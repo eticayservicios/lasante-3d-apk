@@ -83,11 +83,14 @@ fun IntroResponsiveLayout(
             Log.i(
                 PROFILE_LOG_TAG,
                 "profile=${metrics.vitrinaProfileKey} " +
+                    "preferTv66=${metrics.preferTv66} " +
                     "size=${metrics.maxWidth}x${metrics.maxHeight} " +
                     "widthClass=$widthClass " +
                     "isTablet=${metrics.isTabletLandscape} " +
                     "isPhoneLand=${metrics.isPhoneLandscape} " +
-                    "isTv=${metrics.isTv} isTv42=${metrics.isTv42} " +
+                    "isTv=${metrics.isTv} isTv42=${metrics.isTv42} isTv66=${metrics.isTv66} " +
+                    "manufacturer=${android.os.Build.MANUFACTURER} " +
+                    "model=${android.os.Build.MODEL} " +
                     "badgeH=${metrics.bubblesBadgeHeight} badgeW=${metrics.bubblesBadgeWidthFraction} " +
                     "badgePullUp=${metrics.bubblesBadgeTopPullUp} " +
                     "bubbleSize=${metrics.bubbleSize} bubbleTop=${metrics.bubblesRowTopInScene} " +

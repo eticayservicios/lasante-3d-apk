@@ -51,6 +51,7 @@ import com.lasante.tvkiosk.ui.components.TreatmentIconAssets
 import com.lasante.tvkiosk.ui.layout.DeviceProfileResolver
 import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
 import com.lasante.tvkiosk.ui.layout.SharedNavMetrics
+import com.lasante.tvkiosk.ui.layout.TvProfileDetector
 import com.lasante.tvkiosk.ui.theme.LaSanteGreen
 import com.lasante.tvkiosk.ui.theme.LaSanteText
 import com.lasante.tvkiosk.data.DisplayTitles
@@ -73,7 +74,17 @@ fun TreatmentsScreen(
 
     LaSanteBackground {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val screenMetrics = DeviceProfileResolver.screenMetrics(maxWidth, maxHeight)
+            val preferTv66 = TvProfileDetector.isTv66Candidate(
+                maxWidth = maxWidth,
+                maxHeight = maxHeight,
+                density = LocalDensity.current,
+                context = LocalContext.current,
+            )
+            val screenMetrics = DeviceProfileResolver.screenMetrics(
+                maxWidth = maxWidth,
+                maxHeight = maxHeight,
+                preferTv66 = preferTv66,
+            )
             val grid = screenMetrics.grid
             val nav = screenMetrics.nav
             val uiMetrics = TreatmentUiMetrics.forProfile(screenMetrics.profile)

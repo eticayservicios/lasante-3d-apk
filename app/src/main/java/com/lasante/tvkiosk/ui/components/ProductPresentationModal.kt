@@ -47,7 +47,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import com.lasante.tvkiosk.ui.layout.DeviceProfileResolver
 import com.lasante.tvkiosk.ui.layout.SharedModalMetrics
+import com.lasante.tvkiosk.ui.layout.TvProfileDetector
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -102,11 +105,17 @@ private fun rememberProductModalMetrics(widthClass: WindowWidthSizeClass?): Prod
     val configuration = LocalConfiguration.current
     val maxWidth = configuration.screenWidthDp.dp
     val maxHeight = configuration.screenHeightDp.dp
-    val profile = remember(maxWidth, maxHeight, widthClass) {
+    val density = LocalDensity.current
+    val context = LocalContext.current
+    val preferTv66 = remember(maxWidth, maxHeight, density, context) {
+        TvProfileDetector.isTv66Candidate(maxWidth, maxHeight, density, context)
+    }
+    val profile = remember(maxWidth, maxHeight, widthClass, preferTv66) {
         DeviceProfileResolver.resolve(
             maxWidth = maxWidth,
             maxHeight = maxHeight,
             widthClass = widthClass ?: WindowWidthSizeClass.Compact,
+            preferTv66 = preferTv66,
         )
     }
     return remember(profile) {

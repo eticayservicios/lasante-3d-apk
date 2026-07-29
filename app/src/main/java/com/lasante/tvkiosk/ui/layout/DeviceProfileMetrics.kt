@@ -63,13 +63,14 @@ object DeviceProfileResolver {
         maxWidth: Dp,
         maxHeight: Dp,
         widthClass: WindowWidthSizeClass = WindowWidthSizeClass.Compact,
+        preferTv66: Boolean = false,
     ): DeviceProfile {
         val isLandscape = maxWidth > maxHeight
         val isPhoneLandscape = isLandscape && maxHeight < 520.dp &&
             !(maxWidth >= 640.dp && maxHeight >= 400.dp)
         val isTabletLandscape = isLandscape && maxWidth >= 640.dp && maxHeight >= 400.dp
         val isTv = maxWidth >= 880.dp && maxHeight >= 480.dp && !isPhoneLandscape
-        val isTvLarge = isTv && maxWidth > 1400.dp
+        val isTvLarge = isTv && (maxWidth > 1400.dp || preferTv66)
         val isTvRegular = isTv && !isTvLarge
 
         val tier = when {
@@ -95,8 +96,9 @@ object DeviceProfileResolver {
         maxWidth: Dp,
         maxHeight: Dp,
         widthClass: WindowWidthSizeClass = WindowWidthSizeClass.Compact,
+        preferTv66: Boolean = false,
     ): SharedScreenMetrics {
-        val profile = resolve(maxWidth, maxHeight, widthClass)
+        val profile = resolve(maxWidth, maxHeight, widthClass, preferTv66 = preferTv66)
         return SharedScreenMetrics(
             profile = profile,
             grid = gridMetrics(profile),

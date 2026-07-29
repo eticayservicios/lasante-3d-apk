@@ -4,10 +4,13 @@ import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.lasante.tvkiosk.ui.layout.TvProfileDetector
 
 /**
  * Métricas responsivas derivadas del espacio real (ancho + alto).
@@ -18,6 +21,8 @@ data class IntroLayoutMetrics(
     val maxWidth: Dp,
     val maxHeight: Dp,
     val widthClass: WindowWidthSizeClass,
+    /** Forzar tv_66 en paneles 4K/Hikvision aunque reporten ~960 dp. */
+    val preferTv66: Boolean = false,
 ) {
     val isCompactWidth: Boolean
         get() = widthClass == WindowWidthSizeClass.Compact
@@ -47,11 +52,25 @@ data class IntroLayoutMetrics(
 
     /** TV 42" ~1080p (960×540 dp). El tablet del proyecto (~961×529) usa este mismo perfil. */
     val isTv42: Boolean
-        get() = isTv && maxWidth in 900.dp..1400.dp
+        get() = isTv && maxWidth in 900.dp..1400.dp && !preferTv66
 
-    /** TV 66" ~4K (1920×1080 dp). */
+    /** TV 66" ~4K (1920×1080 dp) o panel 4K/Hikvision con densidad alta (~960 dp). */
     val isTv66: Boolean
-        get() = isTv && maxWidth > 1400.dp
+        get() = isTv && (maxWidth > 1400.dp || preferTv66)
+
+    /**
+     * Offsets tv_66 se diseñaron para canvas ~1920×1080 dp.
+     * En Hikvision/AVD 4K @640dpi (~960 dp) hay que reducirlos a la mitad para el mismo
+     * desplazamiento en píxeles / sensación física.
+     */
+    private val tv66OffsetScale: Float
+        get() = when {
+            !isTv66 -> 1f
+            maxWidth > 1400.dp -> 1f
+            else -> (maxWidth.value / 1920f).coerceIn(0.45f, 1f)
+        }
+
+    private fun tv66Dp(designDp: Dp): Dp = (designDp.value * tv66OffsetScale).dp
 
     /** @deprecated Usar isTv42 — alias para compatibilidad en logs. */
     val isTv1080: Boolean
@@ -406,7 +425,7 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             "tv_42", "tablet_landscape" -> (-42).dp
             // TV 66": ~2.5 dedos (~120 dp) más arriba que el baseline previo (-50).
-            "tv_66" -> (-170).dp
+            "tv_66" -> tv66Dp((-170).dp)
             "phone_landscape" -> 0.dp
             else -> 0.dp
         }
@@ -538,7 +557,7 @@ data class IntroLayoutMetrics(
             "tv_32" -> maxHeight * sceneHeightFraction * 0.02f
             "tv_42", "tablet_landscape" -> maxHeight * sceneHeightFraction * 0.035f - 5.dp
             // TV 66": ~3 dedos (~144 dp) más arriba que el baseline.
-            "tv_66" -> maxHeight * sceneHeightFraction * 0.025f - 144.dp
+            "tv_66" -> maxHeight * sceneHeightFraction * 0.025f - tv66Dp(144.dp)
             "expanded" -> maxHeight * sceneHeightFraction * 0.04f
             else -> maxHeight * sceneHeightFraction * 0.04f
         }
@@ -547,8 +566,19 @@ data class IntroLayoutMetrics(
 @Composable
 fun BoxWithConstraintsScope.introLayoutMetrics(
     widthClass: WindowWidthSizeClass,
-): IntroLayoutMetrics = IntroLayoutMetrics(
-    maxWidth = maxWidth,
-    maxHeight = maxHeight,
-    widthClass = widthClass,
-)
+): IntroLayoutMetrics {
+    val density = LocalDensity.current
+    val context = LocalContext.current
+    val preferTv66 = TvProfileDetector.isTv66Candidate(
+        maxWidth = maxWidth,
+        maxHeight = maxHeight,
+        density = density,
+        context = context,
+    )
+    return IntroLayoutMetrics(
+        maxWidth = maxWidth,
+        maxHeight = maxHeight,
+        widthClass = widthClass,
+        preferTv66 = preferTv66,
+    )
+}
