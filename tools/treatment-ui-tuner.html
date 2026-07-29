@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>La Santé — Calibrador badge + clases terapéuticas</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: #f0f0f0; color: #111; }
+    #app { display: grid; grid-template-columns: 1fr 380px; min-height: 100vh; }
+    #preview-wrap {
+      padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 28px;
+      background: linear-gradient(135deg, #ececec 50%, #e4e4e4 50%);
+    }
+    #frame-label {
+      font-size: 0.85rem; font-weight: 700; color: #2448d8;
+      background: #fff; padding: 6px 14px; border-radius: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.1);
+    }
+    #viewport-frame {
+      position: relative; background: #fafafa;
+      box-shadow: 0 4px 24px rgba(0,0,0,.15); border: 3px solid #2448d8;
+      overflow: hidden;
+    }
+    .screen-mock {
+      width: 100%; height: 100%; padding: 14px 16px; position: relative;
+      background: linear-gradient(135deg, #f5f5f5 50%, #ececec 50%);
+    }
+    .mock-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+    .mock-title { font-weight: 800; font-size: 14px; color: #26A641; letter-spacing: .5px; }
+    .mock-nav { display: flex; gap: 8px; }
+    .mock-nav img { width: var(--nav-size); height: var(--nav-size); object-fit: contain; }
+    .mock-sub { text-align: right; font-size: 11px; color: #666; margin-bottom: 12px; padding-right: 48px; }
+    .cards-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+    .class-card {
+      width: var(--card-w); background: linear-gradient(180deg, #f4f4f4, #e1e1e1);
+      border-radius: 16px; box-shadow: 0 3px 8px rgba(0,0,0,.12);
+      padding: 9px 8px; text-align: center;
+    }
+    .class-card .icon-box { height: calc(var(--card-w) * 0.72); display: flex; align-items: center; justify-content: center; }
+    .class-card img.icon { width: var(--card-icon); height: var(--card-icon); object-fit: contain; }
+    .class-card .label { font-size: 9px; color: #333; line-height: 1.15; margin-top: 4px; }
+    .badge-wrap { position: absolute; top: 10px; right: 12px; width: var(--badge-w); height: var(--badge-h); }
+    .badge-wrap img.shadow { width: 100%; height: 100%; object-fit: fill; display: block; }
+    .badge-wrap img.icon {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      top: var(--badge-icon-top); width: var(--badge-icon); height: var(--badge-icon);
+      object-fit: contain;
+    }
+    #panel { padding: 16px; overflow-y: auto; background: #fff; border-left: 1px solid #ddd; }
+    h1 { font-size: 1rem; margin: 0 0 8px; }
+    .warn {
+      background: #fff3cd; border: 1px solid #ffc107; padding: 8px; border-radius: 6px;
+      font-size: 0.72rem; margin-bottom: 10px; line-height: 1.45;
+    }
+    label { display: block; font-size: 0.78rem; font-weight: 600; margin: 10px 0 2px; }
+    label span.val { float: right; font-family: monospace; color: #2448d8; font-weight: 400; }
+    input[type=range] { width: 100%; }
+    select { width: 100%; padding: 6px; margin-bottom: 8px; }
+    .aspect { display: flex; gap: 5px; margin: 8px 0; flex-wrap: wrap; }
+    .aspect button {
+      flex: 1 1 45%; padding: 8px 4px; font-size: 0.7rem; cursor: pointer;
+      border: 1px solid #ccc; border-radius: 6px; background: #fafafa;
+    }
+    .aspect button.active { background: #2448d8; color: #fff; border-color: #2448d8; }
+    pre {
+      margin-top: 12px; padding: 12px; background: #1e1e1e; color: #9cdcfe;
+      font-size: 0.62rem; border-radius: 6px; white-space: pre-wrap; user-select: all;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="preview-wrap">
+    <div id="frame-label">Infinix — 800×360 dp</div>
+    <div id="viewport-frame">
+      <div class="screen-mock" id="screen">
+        <div class="mock-header">
+          <div class="mock-title">HOSPITAL CARE</div>
+          <div class="mock-nav" id="mock-nav">
+            <img src="" alt="back" id="nav-back" />
+            <img src="" alt="home" id="nav-home" />
+          </div>
+        </div>
+        <div class="mock-sub">Clase terapéutica</div>
+        <div class="cards-row" id="cards"></div>
+        <div class="badge-wrap" id="badge">
+          <img class="shadow" src="" alt="" id="badge-shadow" />
+          <img class="icon" id="badge-icon" src="" alt="" />
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="panel">
+    <h1>Calibrador → TreatmentUiMetrics.kt</h1>
+    <div class="warn">
+      <b>Servidor local (desde la raíz del proyecto):</b><br>
+      <code>cd ~/proyectos/lasante/mobile/app && python3 -m http.server 8765</code><br>
+      Abre <code>http://localhost:8765/tools/treatment-ui-tuner.html</code><br>
+      Iconos de clases desde CDN (<code>png/tratamientos</code>); badge/nav desde assets locales.
+    </div>
+
+    <p style="font-size:.78rem;color:#555;margin:0 0 6px"><b>Pantalla</b></p>
+    <div class="aspect" id="aspect-btns"></div>
+
+    <label>Icono preview (Hospital Care) <select id="iconSlug"></select></label>
+
+    <label>Badge altura (dp) <span class="val" id="v-badgeHeight"></span></label>
+    <input type="range" id="badgeHeight" min="44" max="96" step="1" />
+
+    <label>Badge icono (dp) <span class="val" id="v-badgeIconSize"></span></label>
+    <input type="range" id="badgeIconSize" min="20" max="56" step="1" />
+
+    <label>Badge icono top (dp) <span class="val" id="v-badgeIconTop"></span></label>
+    <input type="range" id="badgeIconTop" min="0" max="24" step="1" />
+
+    <label>Card icono (dp) <span class="val" id="v-cardIconSize"></span></label>
+    <input type="range" id="cardIconSize" min="80" max="160" step="1" />
+
+    <label>Card ancho max (dp) <span class="val" id="v-cardMaxWidth"></span></label>
+    <input type="range" id="cardMaxWidth" min="120" max="220" step="1" />
+
+    <label>Nav botones (dp) <span class="val" id="v-navButtonSize"></span></label>
+    <input type="range" id="navButtonSize" min="28" max="72" step="1" />
+
+    <label>Nav margen derecho (dp) <span class="val" id="v-navEndInset"></span></label>
+    <input type="range" id="navEndInset" min="0" max="140" step="1" />
+
+    <pre id="out">Elige perfil e icono.</pre>
+  </div>
+</div>
+
+<script>
+(function () {
+  const BADGE_ASPECT = 509 / 706;
+  const ASSET_BASE = new URL('../app/src/main/assets/', window.location.href).href;
+  const ICON_CDN = 'https://catalog-assets.gurusaws.com/png/tratamientos/';
+
+  document.getElementById('nav-back').src = ASSET_BASE + 'svg/ui/Before.svg';
+  document.getElementById('nav-home').src = ASSET_BASE + 'svg/ui/Home.svg';
+  document.getElementById('badge-shadow').src = ASSET_BASE + 'vitrina/ui/treatment_badge_shadow.png';
+
+  function treatmentIconUrl(slug) {
+    return ICON_CDN + slug + '.png';
+  }
+
+  function fallbackTreatmentIcon(img, slug) {
+    img.onerror = null;
+    img.src = ASSET_BASE + 'svg/clases-terapeuticas/' + slug + '.png';
+  }
+  const HOSPITAL_ICONS = [
+    { slug: 'antiinfeccioso', label: 'Antiinfeccioso' },
+    { slug: 'cardiovascular', label: 'Cardiovascular' },
+    { slug: 'digestivo-metabolico', label: 'Digestivo-metabólico' },
+    { slug: 'sistema-nervioso-central', label: 'Sistema Nervioso Central' },
+    { slug: 'generico', label: 'Genérico (fallback)' },
+  ];
+
+  const PROFILES = {
+    phone_landscape: {
+      kotlin: 'phoneLandscape', label: 'Infinix', w: 800, h: 360,
+      badgeHeight: 57, badgeIconSize: 46, badgeIconTop: 0,
+      cardIconSize: 129, cardMaxWidth: 148, navButtonSize: 35, navEndInset: 0,
+    },
+    phone_portrait: {
+      kotlin: 'phonePortrait', label: 'Móvil vert.', w: 360, h: 800,
+      badgeHeight: 62, badgeIconSize: 44, badgeIconTop: 0,
+      cardIconSize: 139, cardMaxWidth: 146, navButtonSize: 35, navEndInset: 0,
+    },
+    tv_42: {
+      kotlin: 'tv', label: 'TV 42"', w: 960, h: 540,
+      badgeHeight: 64, badgeIconSize: 51, badgeIconTop: 0,
+      cardIconSize: 141, cardMaxWidth: 160, navButtonSize: 42, navEndInset: 0,
+    },
+    tv_66: {
+      kotlin: 'tv66', label: 'TV 66"', w: 1920, h: 1080,
+      badgeHeight: 91, badgeIconSize: 56, badgeIconTop: 0,
+      cardIconSize: 156, cardMaxWidth: 212, navButtonSize: 53, navEndInset: 90,
+    },
+  };
+
+  const SLIDER_IDS = [
+    'badgeHeight', 'badgeIconSize', 'badgeIconTop',
+    'cardIconSize', 'cardMaxWidth', 'navButtonSize', 'navEndInset',
+  ];
+
+  let viewProfile = 'phone_landscape';
+  let selectedSlug = HOSPITAL_ICONS[0].slug;
+
+  const frame = document.getElementById('viewport-frame');
+  const frameLabel = document.getElementById('frame-label');
+  const screen = document.getElementById('screen');
+  const cardsEl = document.getElementById('cards');
+  const badgeIcon = document.getElementById('badge-icon');
+  const mockNav = document.getElementById('mock-nav');
+
+  function getProfile() { return PROFILES[viewProfile]; }
+
+  function readSliders() {
+    const o = {};
+    SLIDER_IDS.forEach(function (id) { o[id] = parseFloat(document.getElementById(id).value); });
+    return o;
+  }
+
+  function applyPreset(key) {
+    const p = PROFILES[key];
+    SLIDER_IDS.forEach(function (id) {
+      document.getElementById(id).value = p[id];
+    });
+  }
+
+  function px(dp, profileW) {
+    const p = getProfile();
+    const scale = frame.clientWidth / profileW;
+    return (dp * scale).toFixed(1) + 'px';
+  }
+
+  function renderCards() {
+    const s = readSliders();
+    const p = getProfile();
+    cardsEl.innerHTML = '';
+    HOSPITAL_ICONS.slice(0, 4).forEach(function (item) {
+      const card = document.createElement('div');
+      card.className = 'class-card';
+      const icon = document.createElement('img');
+      icon.className = 'icon';
+      icon.alt = '';
+      icon.src = treatmentIconUrl(item.slug);
+      icon.onerror = function () { fallbackTreatmentIcon(icon, item.slug); };
+      const box = document.createElement('div');
+      box.className = 'icon-box';
+      box.appendChild(icon);
+      const label = document.createElement('div');
+      label.className = 'label';
+      label.textContent = item.label;
+      card.appendChild(box);
+      card.appendChild(label);
+      cardsEl.appendChild(card);
+    });
+    screen.style.setProperty('--card-w', px(s.cardMaxWidth, p.w));
+    screen.style.setProperty('--card-icon', px(s.cardIconSize, p.w));
+  }
+
+  function applyView() {
+    const s = readSliders();
+    const p = getProfile();
+    SLIDER_IDS.forEach(function (id) {
+      document.getElementById('v-' + id).textContent = s[id];
+    });
+
+    const badgeW = s.badgeHeight * BADGE_ASPECT;
+    screen.style.setProperty('--badge-h', px(s.badgeHeight, p.w));
+    screen.style.setProperty('--badge-w', px(badgeW, p.w));
+    screen.style.setProperty('--badge-icon', px(s.badgeIconSize, p.w));
+    screen.style.setProperty('--badge-icon-top', px(s.badgeIconTop, p.w));
+    screen.style.setProperty('--nav-size', px(s.navButtonSize, p.w));
+    mockNav.style.paddingRight = px(s.navEndInset, p.w);
+
+    badgeIcon.onerror = function () { fallbackTreatmentIcon(badgeIcon, selectedSlug); };
+    badgeIcon.src = treatmentIconUrl(selectedSlug);
+    renderCards();
+
+    const navInsetLine = s.navEndInset > 0
+      ? '    navEndInset = ' + s.navEndInset + '.dp,\n'
+      : '';
+    document.getElementById('out').textContent =
+      '// Perfil: ' + viewProfile + ' (' + p.w + '×' + p.h + ' dp)\n\n' +
+      'val ' + p.kotlin + ' = ProfileMetrics(\n' +
+      '    badgeHeight = ' + s.badgeHeight + '.dp,\n' +
+      '    badgeIconSize = ' + s.badgeIconSize + '.dp,\n' +
+      '    badgeIconTop = ' + s.badgeIconTop + '.dp,\n' +
+      '    cardIconSize = ' + s.cardIconSize + '.dp,\n' +
+      '    cardMaxWidth = ' + s.cardMaxWidth + '.dp,\n' +
+      '    navButtonSize = ' + s.navButtonSize + '.dp,\n' +
+      navInsetLine +
+      ')';
+  }
+
+  function resize() {
+    const p = getProfile();
+    const wrap = document.getElementById('preview-wrap');
+    const maxW = wrap.clientWidth - 48;
+    const maxH = window.innerHeight - 48;
+    const aspect = p.w / p.h;
+    let w = Math.min(maxW, 720);
+    let h = w / aspect;
+    if (h > maxH) { h = maxH; w = h * aspect; }
+    w = Math.round(w); h = Math.round(h);
+    frame.style.width = w + 'px';
+    frame.style.height = h + 'px';
+    frameLabel.textContent = p.label + ' — ' + p.w + '×' + p.h + ' dp';
+    applyView();
+  }
+
+  function selectProfile(key) {
+    viewProfile = key;
+    document.querySelectorAll('.aspect button').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.profile === key);
+    });
+    applyPreset(key);
+    resize();
+  }
+
+  const aspectBtns = document.getElementById('aspect-btns');
+  Object.keys(PROFILES).forEach(function (key) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.dataset.profile = key;
+    btn.textContent = PROFILES[key].label;
+    btn.addEventListener('click', function () { selectProfile(key); });
+    aspectBtns.appendChild(btn);
+  });
+
+  const iconSelect = document.getElementById('iconSlug');
+  HOSPITAL_ICONS.forEach(function (item) {
+    const opt = document.createElement('option');
+    opt.value = item.slug;
+    opt.textContent = item.label;
+    iconSelect.appendChild(opt);
+  });
+  iconSelect.addEventListener('change', function () {
+    selectedSlug = iconSelect.value;
+    applyView();
+  });
+
+  SLIDER_IDS.forEach(function (id) {
+    document.getElementById(id).addEventListener('input', applyView);
+  });
+
+  window.addEventListener('resize', resize);
+  selectProfile('phone_landscape');
+})();
+</script>
+</body>
+</html>

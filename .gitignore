@@ -1,0 +1,53 @@
+# Android
+*.iml
+.gradle/
+local.properties
+.idea/
+.DS_Store
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Keystore - NUNCA subir al repo
+*.jks
+*.keystore
+release/
+
+# Gradle
+.gradle
+.gradle-dist/
+gradle.zip
+
+# Kotlin errors
+.kotlin/
+
+# Google Services
+google-services.json
+
+# Chat logs
+q-dev-chat*.md
+
+# Backend (se despliega por separado)
+backend/
+.codex
+.vscode/
+
+
+Dise\303\261o Funcionabildad Vitrina (1).md
+docs/Dise\303\261o Funcionabildad Vitrina.md
+docs/P. Clases Terapeuticas LS/
+docs/svg-clases-terapeuticas/
+"Dise\303\261o Funcionabildad Vitrina (1).md"
+# Blender GLB files
+app/src/main/assets/vitrina/models/mobile.glb
+app/src/main/assets/vitrina/models/mobile_draco (copia).glb
+app/src/main/assets/vitrina/models/mobile2re.blend
+app/src/main/assets/vitrina/models/mobile2re.blend1
+
+# Fuentes de Blender / GLB pesados (no empaquetar en el APK)
+blender-source/

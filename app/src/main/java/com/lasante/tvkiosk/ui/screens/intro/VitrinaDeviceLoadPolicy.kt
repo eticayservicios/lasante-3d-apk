@@ -1,0 +1,117 @@
+package com.lasante.tvkiosk.ui.screens.intro
+
+import android.app.ActivityManager
+import android.content.Context
+import android.content.pm.PackageManager
+import android.content.res.Configuration
+import android.os.Build
+import androidx.compose.runtime.Immutable
+import io.github.sceneview.RenderQuality
+
+/** Perfil de carga según dispositivo — evita confundir tablet landscape con TV 42". */
+@Immutable
+internal data class VitrinaDeviceProfile(
+    val isAndroidTv: Boolean,
+    val isTabletLandscape: Boolean,
+    val isLowRamDevice: Boolean,
+    val isEmulator: Boolean,
+)
+
+/** Retrasos de prefetch y calidad Filament según perfil — reduce OOM en Fire HD y emulador TV. */
+internal object VitrinaDeviceLoadPolicy {
+    fun resolve(context: Context, configuration: Configuration): VitrinaDeviceProfile {
+        val isEmulator = isLikelyEmulator()
+        val isTabletLandscape = isTabletLandscape(configuration)
+        val isAndroidTv = isAndroidTv(context, configuration, isTabletLandscape)
+        val isLowRam = isLowRamDevice(context)
+        return VitrinaDeviceProfile(
+            isAndroidTv = isAndroidTv,
+            isTabletLandscape = isTabletLandscape,
+            isLowRamDevice = isLowRam,
+            isEmulator = isEmulator,
+        )
+    }
+
+    /**
+     * TV real: [Configuration.UI_MODE_TYPE_TELEVISION].
+     * Tablets grandes (p. ej. Fire HD 961×600 dp) comparten ancho con TV 42" — se excluyen por touch.
+     */
+    fun isAndroidTv(context: Context, configuration: Configuration): Boolean {
+        val isTabletLandscape = isTabletLandscape(configuration)
+        return isAndroidTv(context, configuration, isTabletLandscape)
+    }
+
+    private fun isAndroidTv(
+        context: Context,
+        configuration: Configuration,
+        isTabletLandscape: Boolean,
+    ): Boolean {
+        if ((configuration.uiMode and Configuration.UI_MODE_TYPE_MASK) ==
+            Configuration.UI_MODE_TYPE_TELEVISION
+        ) {
+            return true
+        }
+        if (isTabletLandscape && hasTouchscreen(context)) return false
+        if (isTabletLandscape) return false
+
+        val maxW = maxOf(configuration.screenWidthDp, configuration.screenHeightDp)
+        val maxH = minOf(configuration.screenWidthDp, configuration.screenHeightDp)
+        val isPhoneLandscape = maxW > maxH && maxH < 520
+        if (isPhoneLandscape) return false
+        return maxW >= 880 && maxH >= 480
+    }
+
+    fun isTabletLandscape(configuration: Configuration): Boolean {
+        val maxW = maxOf(configuration.screenWidthDp, configuration.screenHeightDp)
+        val maxH = minOf(configuration.screenWidthDp, configuration.screenHeightDp)
+        return maxW > maxH && maxW >= 640 && maxH >= 400
+    }
+
+    fun isLowRamDevice(context: Context): Boolean {
+        val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        return am.isLowRamDevice || am.memoryClass <= 192
+    }
+
+    fun isLikelyEmulator(): Boolean =
+        Build.FINGERPRINT.startsWith("generic") ||
+            Build.FINGERPRINT.contains("emulator", ignoreCase = true) ||
+            Build.MODEL.contains("emulator", ignoreCase = true) ||
+            Build.MODEL.contains("Android SDK built for x86", ignoreCase = true) ||
+            Build.PRODUCT.contains("sdk", ignoreCase = true) ||
+            Build.HARDWARE.contains("goldfish", ignoreCase = true) ||
+            Build.HARDWARE.contains("ranchu", ignoreCase = true)
+
+    fun videoPrefetchDelayMs(profile: VitrinaDeviceProfile): Long? = when {
+        profile.isEmulator -> null
+        profile.isAndroidTv -> 90_000L
+        profile.isTabletLandscape && profile.isLowRamDevice -> 120_000L
+        profile.isTabletLandscape -> 60_000L
+        else -> 15_000L
+    }
+
+    /** Screen saver: prefetch temprano (no espera GLB base) para tener caché antes del timeout. */
+    fun screenSaverPrefetchDelayMs(profile: VitrinaDeviceProfile): Long? = when {
+        profile.isEmulator -> null
+        profile.isAndroidTv -> 30_000L
+        profile.isTabletLandscape && profile.isLowRamDevice -> 25_000L
+        profile.isTabletLandscape -> 15_000L
+        else -> 8_000L
+    }
+
+    fun institutionalVideoPrefetchDelayMs(profile: VitrinaDeviceProfile): Long? =
+        videoPrefetchDelayMs(profile)
+
+    /**
+     * Tablet mantiene [RenderQuality.Default] (nitidez del GLB).
+     * La presión de memoria en Fire HD se mitiga con prefetch retrasado, no con DRS.
+     * Solo emulador usa Performance (evita ANR en TV x86).
+     */
+    fun filamentRenderQuality(context: Context, layoutMetrics: IntroLayoutMetrics): RenderQuality =
+        when {
+            isLikelyEmulator() -> RenderQuality.Performance
+            else -> RenderQuality.Default
+        }
+
+    private fun hasTouchscreen(context: Context): Boolean =
+        context.packageManager.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)
+}

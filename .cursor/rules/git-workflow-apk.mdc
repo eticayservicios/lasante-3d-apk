@@ -1,0 +1,46 @@
+---
+description: Flujo Git de la APK — develop primero, merge a main solo en ese sentido
+alwaysApply: true
+---
+
+# Flujo Git — lasante-3d-apk
+
+Este repositorio (`lasante-3d-apk`) usa **develop** como rama de trabajo y **main** como rama de producción.
+
+## Reglas
+
+1. **Trabajar siempre en `develop`**
+   - Antes de cambios, verificar con `git branch --show-current`.
+   - Si estás en `main`, cambiar a `develop` (`git checkout develop`).
+
+2. **No commitear en `main`**
+   - Los commits van a `develop`, salvo que el usuario pida explícitamente lo contrario.
+
+3. **Merge solo `develop` → `main`**
+   - Nunca hacer merge de `main` a `develop`.
+   - Para publicar: estar en `main`, ejecutar `git merge develop`, luego push de `main`.
+
+4. **Después de publicar, volver a `develop`**
+   - `git checkout develop` al terminar el merge/push a `main`.
+
+5. **Push**
+   - Cambios de desarrollo: `git push origin develop`.
+   - Publicación a producción: merge `develop` → `main` y luego `git push origin main`.
+   - No hacer force push a `main` salvo petición explícita del usuario.
+
+## Ejemplo — publicar a producción
+
+```bash
+git checkout develop
+git push origin develop
+
+git checkout main
+git merge develop -m "Merge branch 'develop' into main"
+git push origin main
+
+git checkout develop
+```
+
+## Admin (repo aparte)
+
+El admin vive en `lasante-3d-devops` y usa la rama **`dev`**, no confundir con la APK.

@@ -1,0 +1,238 @@
+package com.lasante.tvkiosk.ui.screens.intro
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Text
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
+import android.util.Log
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.lasante.tvkiosk.R
+import com.lasante.tvkiosk.data.Product
+import com.lasante.tvkiosk.data.VitrinaUnit
+import com.lasante.tvkiosk.ui.theme.LaSanteBlue
+import com.lasante.tvkiosk.ui.utils.clickableWithSound
+
+private const val PROFILE_LOG_TAG = "VitrinaProfile"
+
+@Composable
+fun IntroResponsiveLayout(
+    widthClass: WindowWidthSizeClass,
+    vitrinaUnits: List<VitrinaUnit>,
+    activeVitrinaIndex: Int,
+    vitrinaRotationDegrees: Float,
+    vitrinaIsDragging: Boolean,
+    baseRotationHandle: VitrinaBaseRotationHandle,
+    vitrinaFilamentSession: VitrinaFilamentSession,
+    showVitrinaProducts: Boolean,
+    renderVitrinaScene: Boolean = true,
+    vitrinaSceneActive: Boolean = true,
+    vitrinaFilamentRendering: Boolean = true,
+    backdropBlurred: Boolean = false,
+    vitrinaInteractionEnabled: Boolean = true,
+    showVitrinaControls: Boolean = true,
+    vitrinaRotationAnimationSpec: AnimationSpec<Float> = VitrinaConstants.manualRotationAnimationSpec,
+    socialNetworks: List<SocialNetwork>,
+    onProductClick: (Product) -> Unit,
+    onWakeFromIdle: () -> Unit,
+    onRotationAnimationFinished: () -> Unit = {},
+    onDragStart: () -> Unit,
+    onDrag: (Float) -> Unit,
+    onDragEnd: () -> Unit,
+    onVideoClick: () -> Unit,
+    onRotateClick: () -> Unit,
+    onNavigateToTreatments: (String) -> Unit,
+    onSocialClick: (String, String) -> Unit,
+) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val metrics = introLayoutMetrics(widthClass)
+        LaunchedEffect(
+            metrics.vitrinaProfileKey,
+            metrics.maxWidth,
+            metrics.maxHeight,
+            widthClass,
+        ) {
+            // Log siempre (también en tablet) para diagnosticar perfil activo.
+            Log.i(
+                PROFILE_LOG_TAG,
+                "profile=${metrics.vitrinaProfileKey} " +
+                    "size=${metrics.maxWidth}x${metrics.maxHeight} " +
+                    "widthClass=$widthClass " +
+                    "isTablet=${metrics.isTabletLandscape} " +
+                    "isPhoneLand=${metrics.isPhoneLandscape} " +
+                    "isTv=${metrics.isTv} isTv42=${metrics.isTv42} " +
+                    "badgeH=${metrics.bubblesBadgeHeight} badgeW=${metrics.bubblesBadgeWidthFraction} " +
+                    "badgePullUp=${metrics.bubblesBadgeTopPullUp} " +
+                    "bubbleSize=${metrics.bubbleSize} bubbleTop=${metrics.bubblesRowTopInScene} " +
+                    "bubbleSpace=${metrics.bubbleSpacing} rowW=${metrics.bubblesRowWidthFraction} " +
+                    "rotateEnd=${metrics.rotateButtonEndPadding} " +
+                    "rotateX=${metrics.rotateButtonProtrudeOffset} " +
+                    "vOffset=${metrics.vitrinaVerticalOffsetAdjustment} " +
+                    "vBias=${metrics.vitrinaVerticalBias}",
+            )
+        }
+        val vitrinaPadding = Modifier.padding(
+            start = maxWidth * metrics.vitrinaInsetStartFraction,
+            end = maxWidth * metrics.vitrinaInsetEndFraction,
+            top = maxHeight * metrics.vitrinaInsetTopFraction,
+            bottom = maxHeight * metrics.vitrinaInsetBottomFraction,
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(
+                    horizontal = metrics.horizontalPadding,
+                    vertical = metrics.verticalPadding,
+                ),
+        ) {
+            Box(modifier = Modifier.fillMaxSize().then(vitrinaPadding)) {
+                BusinessUnitVitrina(
+                    metrics = metrics,
+                    vitrinaUnits = vitrinaUnits,
+                    activeIndex = activeVitrinaIndex,
+                    displayRotationDegrees = vitrinaRotationDegrees,
+                    isDragging = vitrinaIsDragging,
+                    baseRotationHandle = baseRotationHandle,
+                    vitrinaFilamentSession = vitrinaFilamentSession,
+                    showProducts = showVitrinaProducts,
+                    renderScene = renderVitrinaScene,
+                    sceneActive = vitrinaSceneActive,
+                    filamentRenderingEnabled = vitrinaFilamentRendering,
+                    backdropBlurred = backdropBlurred,
+                    vitrinaInteractionEnabled = vitrinaInteractionEnabled,
+                    showOverlayControls = showVitrinaControls,
+                    rotationAnimationSpec = vitrinaRotationAnimationSpec,
+                    onProductClick = onProductClick,
+                    onWakeFromIdle = onWakeFromIdle,
+                    onRotationAnimationFinished = onRotationAnimationFinished,
+                    onUnitClick = { unitId ->
+                        onWakeFromIdle()
+                        onNavigateToTreatments(unitId)
+                    },
+                    onDragStart = onDragStart,
+                    onDrag = onDrag,
+                    onDragEnd = onDragEnd,
+                    onVideoClick = onVideoClick,
+                    onRotateClick = onRotateClick,
+                )
+            }
+
+            // Redes sociales — centro izquierda (encima del SurfaceView de la vitrina)
+            SocialRail(
+                socialNetworks = socialNetworks,
+                metrics = metrics,
+                onSocialClick = onSocialClick,
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = metrics.socialStartPadding)
+                    .zIndex(20f),
+            )
+
+            Image(
+                painter = painterResource(R.drawable.logo_la_sante_22),
+                contentDescription = null,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(
+                        bottom = metrics.logoBottomPadding,
+                        end = metrics.logoEndPadding,
+                    )
+                    .height(metrics.logoHeight),
+                contentScale = ContentScale.Fit,
+            )
+        }
+    }
+}
+
+@Composable
+internal fun IntroActionButton(
+    assetPath: String,
+    onClick: () -> Unit,
+    size: androidx.compose.ui.unit.Dp,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val isGif = assetPath.endsWith(".gif", ignoreCase = true)
+    val model = remember(assetPath, context, isGif) {
+        ImageRequest.Builder(context)
+            .data(assetPath)
+            .crossfade(false)
+            .apply {
+                if (isGif) {
+                    // Evita frames basura / flash blanco en GIFs con disposal en mid-range (Infinix).
+                    allowHardware(false)
+                }
+            }
+            .build()
+    }
+    AsyncImage(
+        model = model,
+        contentDescription = null,
+        modifier = modifier
+            .size(size)
+            .clickableWithSound { onClick() },
+        contentScale = ContentScale.Fit,
+    )
+}
+
+@Composable
+fun SocialRail(
+    socialNetworks: List<SocialNetwork>,
+    metrics: IntroLayoutMetrics,
+    onSocialClick: (String, String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(metrics.socialIconSpacing),
+        ) {
+            socialNetworks.forEach { social ->
+                SocialNetworkIconButton(
+                    social = social,
+                    size = metrics.socialIconSize,
+                    onClick = { onSocialClick(social.label, social.url) },
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(if (metrics.isPhoneLandscape) 4.dp else if (metrics.isCompactWidth) 6.dp else 10.dp))
+        Text(
+            text = "scanea tu red social",
+            color = LaSanteBlue,
+            fontSize = when {
+                metrics.isPhoneLandscape -> 10.sp
+                metrics.isCompactWidth   -> 11.sp
+                else                     -> 14.sp
+            },
+            fontWeight = FontWeight.SemiBold,
+            fontStyle = FontStyle.Italic,
+        )
+    }
+}

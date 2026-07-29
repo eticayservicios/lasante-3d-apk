@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>La Santé — Calibrador vitrina mobile GLB</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: #f0f0f0; color: #111; }
+    #app { display: grid; grid-template-columns: 1fr 360px; height: 100vh; }
+    #canvas-wrap {
+      display: flex; align-items: center; justify-content: center; flex-direction: column;
+      background: linear-gradient(135deg, #ececec 50%, #e4e4e4 50%);
+      gap: 10px;
+    }
+    #frame-label {
+      font-size: 0.85rem; font-weight: 700; color: #2448d8;
+      background: #fff; padding: 6px 14px; border-radius: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.1);
+    }
+    #viewport-frame {
+      position: relative; box-shadow: 0 4px 24px rgba(0,0,0,.2);
+      border: 3px solid #2448d8; background: #fafafa;
+    }
+    canvas { display: block; }
+    #panel { padding: 16px; overflow-y: auto; background: #fff; border-left: 1px solid #ddd; }
+    h1 { font-size: 1rem; margin: 0 0 6px; }
+    .warn {
+      background: #fff3cd; border: 1px solid #ffc107; padding: 8px; border-radius: 6px;
+      font-size: 0.72rem; margin-bottom: 10px; line-height: 1.45;
+    }
+    p.hint { font-size: 0.78rem; color: #555; margin: 0 0 8px; line-height: 1.4; }
+    label { display: block; font-size: 0.78rem; font-weight: 600; margin: 12px 0 2px; }
+    label span.desc { font-weight: 400; color: #777; }
+    input[type=range] { width: 100%; }
+    .val { font-size: 0.8rem; color: #2448d8; font-family: monospace; float: right; }
+    #drop {
+      border: 2px dashed #aaa; border-radius: 8px; padding: 16px; text-align: center;
+      font-size: 0.8rem; color: #666; cursor: pointer; margin-bottom: 8px;
+    }
+    #drop.hover { border-color: #2448d8; background: #f0f4ff; }
+    input[type=file] { display: none; }
+    pre {
+      margin-top: 12px; padding: 12px; background: #1e1e1e; color: #9cdcfe;
+      font-size: 0.65rem; border-radius: 6px; white-space: pre-wrap; user-select: all;
+    }
+    .aspect { display: flex; gap: 5px; margin: 8px 0; flex-wrap: wrap; }
+    .aspect button {
+      flex: 1 1 30%; padding: 8px 4px; font-size: 0.7rem; cursor: pointer;
+      border: 1px solid #ccc; border-radius: 6px; background: #fafafa;
+    }
+    .aspect button.active { background: #2448d8; color: #fff; border-color: #2448d8; }
+    #status { font-size: 0.75rem; color: #444; margin-top: 6px; }
+    #bbox-info { font-size: 0.68rem; color: #666; line-height: 1.4; margin-top: 4px; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="canvas-wrap">
+    <div id="frame-label">Infinix — 800×360 dp</div>
+    <div id="viewport-frame"><canvas id="c"></canvas></div>
+  </div>
+  <div id="panel">
+    <h1>Calibrador → Kotlin (GLB mobile)</h1>
+    <div class="warn">
+      <b>Servidor local:</b> <code>cd ~/proyectos/lasante/mobile/app && python3 -m http.server 8765</code><br>
+      Abre <code>http://localhost:8765/tools/vitrina-tuner.html</code><br>
+      Carga <code>mobile_draco.glb</code> (Draco). Escala sobre franja visible 3.26u, no el bbox 74.6u.
+    </div>
+
+    <div id="drop">Arrastra mobile_draco.glb aquí</div>
+    <input type="file" id="file" accept=".glb,.gltf" />
+    <div id="status">Sin modelo</div>
+    <div id="bbox-info"></div>
+
+    <p class="hint"><b>Pantalla</b></p>
+    <div class="aspect" id="aspect-btns"></div>
+
+    <label>Tamaño <span class="desc">(verticalFill)</span><span class="val" id="v-verticalFill"></span></label>
+    <input type="range" id="verticalFill" min="0.55" max="1.10" step="0.01" />
+
+    <label>Subir / bajar 3D <span class="desc">(posYOffset)</span><span class="val" id="v-posYOffset"></span></label>
+    <input type="range" id="posYOffset" min="-0.3" max="0.3" step="0.01" />
+
+    <label>Subir / bajar layout <span class="desc">(vitrinaVerticalBias)</span><span class="val" id="v-vBias"></span></label>
+    <input type="range" id="vBias" min="0.02" max="0.20" step="0.01" />
+
+    <label>lookAtY <span class="val" id="v-lookAtY"></span></label>
+    <input type="range" id="lookAtY" min="-0.3" max="0.3" step="0.01" />
+
+    <label>cameraZ <span class="val" id="v-cameraZ"></span></label>
+    <input type="range" id="cameraZ" min="1.5" max="3.5" step="0.05" />
+
+    <label>cameraY <span class="val" id="v-cameraY"></span></label>
+    <input type="range" id="cameraY" min="-0.2" max="0.3" step="0.01" />
+
+    <label>Rotar unidad <span class="val" id="v-rot"></span></label>
+    <input type="range" id="rot" min="0" max="360" step="72" value="0" />
+
+    <pre id="out">Carga el GLB mobile y elige pantalla.</pre>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
+<script>
+(function () {
+  const FOV = 45;
+  const REF_INCHES = 42;
+  /** Igual que VitrinaConstants.kt */
+  const VISIBLE_HEIGHT = 3.26;
+  const VISIBLE_CENTER_Y = 1.28;
+
+  const PROFILES = {
+    tv_32: {
+      kotlin: 'isTv32', label: 'TV 32"', w: 853, h: 480, inches: 32,
+      verticalFill: 0.96, cameraZ: 2.40, cameraY: 0, lookAtY: 0, posYOffset: 0.28, vBias: 0.08,
+    },
+    tv_42: {
+      kotlin: 'isTv42', label: 'TV 42"', w: 960, h: 540, inches: 42,
+      verticalFill: 0.96, cameraZ: 2.38, cameraY: 0, lookAtY: 0, posYOffset: 0.26, vBias: 0.05,
+    },
+    tv_66: {
+      kotlin: 'isTv66', label: 'TV 66"', w: 1920, h: 1080, inches: 66,
+      verticalFill: 0.96, cameraZ: 2.40, cameraY: 0, lookAtY: 0, posYOffset: 0.28, vBias: 0.05,
+    },
+    phone_landscape: {
+      kotlin: 'isPhoneLandscape', label: 'Infinix', w: 800, h: 360, inches: 6.5,
+      verticalFill: 0.94, cameraZ: 2.10, cameraY: 0, lookAtY: 0, posYOffset: 0.26, vBias: 0.06,
+    },
+    phone_portrait: {
+      kotlin: 'isPhonePortrait', label: 'Móvil vert.', w: 360, h: 800, inches: 6.5,
+      verticalFill: 0.55, cameraZ: 2.80, cameraY: 0.10, lookAtY: 0, posYOffset: 0, vBias: 0.06,
+    },
+  };
+
+  const canvas = document.getElementById('c');
+  const frame = document.getElementById('viewport-frame');
+  const frameLabel = document.getElementById('frame-label');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setClearColor(0xfafafa, 1);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(FOV, 16 / 9, 0.05, 200);
+  scene.add(new THREE.AmbientLight(0xffffff, 1.4));
+  const dir = new THREE.DirectionalLight(0xffffff, 1.6);
+  dir.position.set(3, 5, 4);
+  scene.add(dir);
+
+  let pivot = null;
+  let modelRoot = null;
+  let viewProfile = 'phone_landscape';
+  let fullBboxY = 0;
+
+  function viewportHeightAtZ(z) {
+    return 2 * z * Math.tan((FOV * Math.PI / 180) / 2);
+  }
+
+  function uniformScaleFromFill(vf, cameraZ) {
+    return (vf * viewportHeightAtZ(cameraZ)) / VISIBLE_HEIGHT;
+  }
+
+  function getProfile() { return PROFILES[viewProfile]; }
+
+  function applyPreset(key) {
+    const p = PROFILES[key];
+    ['verticalFill', 'posYOffset', 'vBias', 'lookAtY', 'cameraZ', 'cameraY'].forEach(function (id) {
+      const el = document.getElementById(id === 'vBias' ? 'vBias' : id);
+      if (el) el.value = p[id === 'vBias' ? 'vBias' : id];
+    });
+  }
+
+  function readSliders() {
+    return {
+      verticalFill: parseFloat(document.getElementById('verticalFill').value),
+      posYOffset: parseFloat(document.getElementById('posYOffset').value),
+      vBias: parseFloat(document.getElementById('vBias').value),
+      lookAtY: parseFloat(document.getElementById('lookAtY').value),
+      cameraY: parseFloat(document.getElementById('cameraY').value),
+      cameraZ: parseFloat(document.getElementById('cameraZ').value),
+      rot: parseFloat(document.getElementById('rot').value),
+    };
+  }
+
+  function applyView() {
+    const s = readSliders();
+    const p = getProfile();
+    const uScale = uniformScaleFromFill(s.verticalFill, s.cameraZ);
+    const posY = -VISIBLE_CENTER_Y * uScale + s.posYOffset;
+
+    if (pivot && modelRoot) {
+      pivot.rotation.y = s.rot * Math.PI / 180;
+      pivot.scale.setScalar(uScale);
+      modelRoot.position.set(0, -VISIBLE_CENTER_Y, 0);
+      pivot.position.set(0, s.posYOffset, 0);
+    }
+
+    camera.position.set(0, s.cameraY, s.cameraZ);
+    camera.lookAt(0, s.lookAtY, 0);
+
+    ['verticalFill', 'posYOffset', 'vBias', 'lookAtY', 'cameraY', 'cameraZ', 'rot'].forEach(function (id) {
+      const vid = id === 'vBias' ? 'v-vBias' : 'v-' + id;
+      const src = id === 'vBias' ? 'vBias' : id;
+      document.getElementById(vid).textContent = document.getElementById(src).value;
+    });
+
+    document.getElementById('out').textContent =
+'// Perfil: ' + viewProfile + ' (' + p.w + 'x' + p.h + ' dp)\n' +
+'// uScale≈' + uScale.toFixed(3) + ' posY≈' + posY.toFixed(3) + '\n\n' +
+'demoTier(\n' +
+'    verticalFill = ' + s.verticalFill.toFixed(2) + 'f,\n' +
+'    cameraZ = ' + s.cameraZ.toFixed(2) + 'f,\n' +
+'    cameraY = ' + s.cameraY.toFixed(2) + 'f,\n' +
+'    lookAtY = ' + s.lookAtY.toFixed(2) + 'f,\n' +
+'    posYOffset = ' + s.posYOffset.toFixed(2) + 'f,\n' +
+')\n' +
+'// IntroLayoutMetrics vitrinaVerticalBias → ' + s.vBias.toFixed(2) + 'f';
+  }
+
+  function resize() {
+    const p = getProfile();
+    const wrap = document.getElementById('canvas-wrap');
+    const maxW = wrap.clientWidth - 48;
+    const maxH = wrap.clientHeight - 80;
+    const inchScale = p.inches / REF_INCHES;
+    const aspect = p.w / p.h;
+    let w = maxW * Math.min(inchScale, 1.15);
+    let h = w / aspect;
+    if (h > maxH * Math.min(inchScale, 1.15)) { h = maxH * Math.min(inchScale, 1.15); w = h * aspect; }
+    w = Math.round(w); h = Math.round(h);
+    frame.style.width = w + 'px';
+    frame.style.height = h + 'px';
+    renderer.setSize(w, h, false);
+    camera.aspect = p.w / p.h;
+    camera.updateProjectionMatrix();
+    frameLabel.textContent = p.label + ' — ' + p.w + '×' + p.h + ' dp';
+  }
+
+  function selectProfile(key) {
+    viewProfile = key;
+    document.querySelectorAll('.aspect button').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.profile === key);
+    });
+    applyPreset(key);
+    resize();
+    applyView();
+  }
+
+  function loadGlb(file) {
+    document.getElementById('status').textContent = 'Cargando ' + file.name + '…';
+    const url = URL.createObjectURL(file);
+    const loader = new THREE.GLTFLoader();
+    const draco = new THREE.DRACOLoader();
+    draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/');
+    loader.setDRACOLoader(draco);
+    loader.load(url, function (gltf) {
+      if (pivot) scene.remove(pivot);
+      pivot = new THREE.Group();
+      modelRoot = gltf.scene;
+      const box = new THREE.Box3().setFromObject(modelRoot);
+      const size = box.getSize(new THREE.Vector3());
+      fullBboxY = size.y.toFixed(1);
+      const center = box.getCenter(new THREE.Vector3());
+      modelRoot.position.x -= center.x;
+      modelRoot.position.z -= center.z;
+      pivot.add(modelRoot);
+      scene.add(pivot);
+      document.getElementById('status').textContent = 'OK: ' + file.name;
+      document.getElementById('bbox-info').textContent =
+        'BBox Y≈' + fullBboxY + 'u · visible≈' + VISIBLE_HEIGHT + 'u · centro visible Y=' + VISIBLE_CENTER_Y;
+      URL.revokeObjectURL(url);
+      applyView();
+    }, undefined, function (err) {
+      document.getElementById('status').textContent = 'Error: ' + err.message;
+    });
+  }
+
+  const aspectBtns = document.getElementById('aspect-btns');
+  Object.keys(PROFILES).forEach(function (key) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.dataset.profile = key;
+    btn.textContent = PROFILES[key].label;
+    btn.addEventListener('click', function () { selectProfile(key); });
+    aspectBtns.appendChild(btn);
+  });
+
+  ['verticalFill', 'posYOffset', 'vBias', 'lookAtY', 'cameraY', 'cameraZ', 'rot'].forEach(function (id) {
+    document.getElementById(id).addEventListener('input', applyView);
+  });
+
+  var drop = document.getElementById('drop');
+  var fileInput = document.getElementById('file');
+  drop.addEventListener('click', function () { fileInput.click(); });
+  fileInput.addEventListener('change', function (e) { if (e.target.files[0]) loadGlb(e.target.files[0]); });
+  drop.addEventListener('dragover', function (e) { e.preventDefault(); drop.classList.add('hover'); });
+  drop.addEventListener('dragleave', function () { drop.classList.remove('hover'); });
+  drop.addEventListener('drop', function (e) {
+    e.preventDefault(); drop.classList.remove('hover');
+    if (e.dataTransfer.files[0]) loadGlb(e.dataTransfer.files[0]);
+  });
+
+  window.addEventListener('resize', function () { resize(); applyView(); });
+
+  selectProfile('phone_landscape');
+  (function loop() { requestAnimationFrame(loop); renderer.render(scene, camera); })();
+})();
+</script>
+</body>
+</html>
