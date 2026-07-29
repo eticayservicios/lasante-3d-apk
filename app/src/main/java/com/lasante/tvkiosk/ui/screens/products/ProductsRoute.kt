@@ -14,6 +14,7 @@ import com.lasante.tvkiosk.ui.components.ErrorScreen
 import com.lasante.tvkiosk.ui.components.LoadingScreen
 import com.lasante.tvkiosk.navigation.Args
 import com.lasante.tvkiosk.ui.components.UiState
+import com.lasante.tvkiosk.data.DisplayTitles
 
 private data class ProductsData(
     val treatmentName: String,
@@ -50,7 +51,10 @@ fun ProductsRoute(
                 ProductsData(
                     treatmentName = when {
                         isViewAll -> "Ver todo"
-                        else -> treatment?.name ?: treatmentId.substringAfter("_").replace("-", " ")
+                        else -> DisplayTitles.resolve(
+                            treatment?.name,
+                            treatmentId.substringAfter("_").ifBlank { treatmentId },
+                        )
                     },
                     treatmentIconUrl = if (isViewAll) null else treatment?.media?.icono,
                     products = products

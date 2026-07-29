@@ -250,7 +250,7 @@ class RetrofitCatalogRepository(
         unidades.map { u ->
             BusinessUnit(
                 unidadId    = u.id,
-                nombre      = u.nombre ?: "",
+                nombre      = DisplayTitles.resolve(u.nombre, u.id),
                 descripcion = u.descripcion ?: "",
                 estado      = "ACTIVO",
                 orden       = 0,
@@ -303,7 +303,7 @@ class RetrofitCatalogRepository(
                 VitrinaUnit(
                     unit = BusinessUnit(
                         unidadId = unitId,
-                        nombre = unit.nombre ?: "",
+                        nombre = DisplayTitles.resolve(unit.nombre, unitId),
                         descripcion = unit.descripcion ?: "",
                         media = UnitMedia(icono = unit.icono)
                     ),
@@ -356,7 +356,7 @@ class RetrofitCatalogRepository(
                     Treatment(
                         tratamientoId = t.id,
                         unidadId      = unitId,
-                        nombre        = t.nombre ?: "",
+                        nombre        = DisplayTitles.resolve(t.nombre, t.id),
                         descripcion   = t.descripcion ?: "",
                         estado        = "ACTIVO",
                         orden         = 0,

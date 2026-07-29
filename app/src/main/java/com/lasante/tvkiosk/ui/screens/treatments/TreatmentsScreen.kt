@@ -53,6 +53,7 @@ import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
 import com.lasante.tvkiosk.ui.layout.SharedNavMetrics
 import com.lasante.tvkiosk.ui.theme.LaSanteGreen
 import com.lasante.tvkiosk.ui.theme.LaSanteText
+import com.lasante.tvkiosk.data.DisplayTitles
 import com.lasante.tvkiosk.ui.utils.clickableWithSound
 
 @Composable
@@ -110,7 +111,6 @@ fun TreatmentsScreen(
 
                 Text(
                     text = "Clase terapéutica",
-                    color = LaSanteText.copy(alpha = 0.78f),
                     fontSize = when (profile.tier) {
                         DeviceProfileTier.TV_LARGE -> 34.sp
                         DeviceProfileTier.TV_REGULAR -> 26.sp
@@ -118,8 +118,13 @@ fun TreatmentsScreen(
                         else -> if (profile.isWide) 28.sp else 20.sp
                     },
                     fontWeight = FontWeight.Medium,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        brush = Brush.horizontalGradient(
+                            listOf(LaSanteGreen, Color(0xFFA8C829)),
+                        ),
+                    ),
                     textAlign = TextAlign.End,
+                    color = Color.Unspecified,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = gridContentPadding),
@@ -183,12 +188,18 @@ private fun TreatmentsHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         LaSanteScreenTitle(
-            text = unitName,
-            fontSize = navMetrics.titleFontSize.value.toInt(),
-            textBrush = Brush.horizontalGradient(listOf(LaSanteGreen, Color(0xFFA8C829))),
-            underlineBrush = Brush.horizontalGradient(listOf(LaSanteGreen, Color(0xFFA8C829))),
+            text = DisplayTitles.resolve(unitName),
+            fontSize = navMetrics.titleFontSize.value.toInt() + 2,
+            textColor = LaSanteText,
+            underlineBrush = Brush.horizontalGradient(
+                listOf(Color(0xFF8FA88A), Color(0xFFD5D8D2), Color.White),
+            ),
             underlineWidth = navMetrics.titleUnderlineWidth,
+            underlineMatchTextWidth = true,
             textAlign = TextAlign.Start,
+            fontFamily = MaterialTheme.typography.bodyLarge.fontFamily,
+            fontWeight = FontWeight.Light,
+            allCaps = false,
         )
 
         Spacer(modifier = Modifier.weight(1f))

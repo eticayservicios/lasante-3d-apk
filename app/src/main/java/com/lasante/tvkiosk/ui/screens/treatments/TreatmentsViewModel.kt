@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lasante.tvkiosk.data.CatalogRepository
+import com.lasante.tvkiosk.data.DisplayTitles
 import com.lasante.tvkiosk.data.Treatment
 import com.lasante.tvkiosk.ui.components.UiState
 import kotlinx.coroutines.Dispatchers
@@ -77,7 +78,7 @@ class TreatmentsViewModel(
         val treatments = catalogRepository.getTreatments(unitId)
             .filterNot { it.id.endsWith("-vitrina") }
         return TreatmentsData(
-            unitName = unit?.name ?: unitId,
+            unitName = DisplayTitles.resolve(unit?.name, unitId),
             unitDescription = unit?.description.orEmpty(),
             treatments = treatments,
         )

@@ -11,6 +11,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
@@ -35,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import com.lasante.tvkiosk.ui.theme.LaSanteBackground
 import com.lasante.tvkiosk.ui.utils.SoundManager
 import com.lasante.tvkiosk.ui.theme.LaSanteGreen
@@ -192,42 +198,62 @@ fun LaSanteScreenTitle(
     fontSize: Int = 28,
     textAlign: TextAlign = TextAlign.Start,
     textBrush: Brush? = null,
+    textColor: Color? = null,
     underlineBrush: Brush? = null,
-    underlineWidth: Dp = 40.dp // DEFAULT SHORTER UNDERLINE WIDTH
+    underlineWidth: Dp = 40.dp, // fallback until text is measured
+    fontFamily: FontFamily? = null,
+    fontWeight: FontWeight? = null,
+    allCaps: Boolean = true,
+    underlineMatchTextWidth: Boolean = false,
 ) {
-    // THIS COLUMN NOW WRAPS ITS CONTENT TO ALLOW PROPER CENTERING OF THE UNDERLINE
+    val density = LocalDensity.current
+    var measuredUnderlineWidth by remember(text, fontSize, allCaps) { mutableStateOf(0.dp) }
+
     Column(
-        modifier = modifier.wrapContentSize(), // <--- KEY CHANGE HERE
+        modifier = modifier.wrapContentSize(),
         horizontalAlignment = if (textAlign == TextAlign.Center) Alignment.CenterHorizontally else Alignment.Start
     ) {
-        val textStyle = if (textBrush != null) {
-            MaterialTheme.typography.headlineMedium.copy(
-                brush = textBrush,
-                fontSize = fontSize.sp,
-                letterSpacing = 1.sp,
-                textAlign = textAlign,
-            )
-        } else {
-            MaterialTheme.typography.headlineMedium.copy(
-                color = LaSanteGreen,
-                fontSize = fontSize.sp,
-                letterSpacing = 1.sp,
-                textAlign = textAlign,
-            )
+        val baseStyle = MaterialTheme.typography.headlineMedium.copy(
+            fontSize = fontSize.sp,
+            letterSpacing = 1.sp,
+            textAlign = textAlign,
+            fontFamily = fontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
+            fontWeight = fontWeight ?: MaterialTheme.typography.headlineMedium.fontWeight,
+        )
+        val textStyle = when {
+            textBrush != null -> baseStyle.copy(brush = textBrush)
+            textColor != null -> baseStyle.copy(color = textColor)
+            else -> baseStyle.copy(color = LaSanteGreen)
         }
 
         Text(
-            text = text.uppercase(),
+            text = if (allCaps) text.uppercase() else text,
             style = textStyle,
-            color = Color.Unspecified // Always Unspecified here if style is handled completely by TextStyle
+            color = Color.Unspecified,
+            onTextLayout = { layout ->
+                if (underlineMatchTextWidth) {
+                    measuredUnderlineWidth = with(density) { layout.size.width.toDp() }
+                }
+            },
         )
         if (underlineBrush != null) {
+            val lineWidth = if (underlineMatchTextWidth && measuredUnderlineWidth > 0.dp) {
+                measuredUnderlineWidth
+            } else {
+                underlineWidth
+            }
             Box(
                 modifier = Modifier
-                    .width(underlineWidth)
+                    .width(lineWidth)
                     .height(2.dp)
                     .background(underlineBrush, RoundedCornerShape(1.dp))
-                    .align(Alignment.CenterHorizontally) // Centrar la línea con respecto al texto (dentro de este Column que ahora es wrapContentSize)
+                    .then(
+                        if (textAlign == TextAlign.Center) {
+                            Modifier.align(Alignment.CenterHorizontally)
+                        } else {
+                            Modifier.align(Alignment.Start)
+                        },
+                    ),
             )
         }
     }
