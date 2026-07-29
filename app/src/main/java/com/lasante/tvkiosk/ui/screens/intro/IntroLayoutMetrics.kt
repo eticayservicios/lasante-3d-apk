@@ -360,8 +360,27 @@ data class IntroLayoutMetrics(
     val socialStartPadding: Dp
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 42.dp
-            "tv_32", "tv_42", "tv_66", "tablet_landscape" -> 29.dp
+            "tv_66" -> 39.dp // +10 px hacia la derecha vs baseline 29
+            "tv_32", "tv_42", "tablet_landscape" -> 29.dp
             else -> 21.dp
+        }
+
+    /**
+     * Desplazamiento vertical de redes (CenterStart). En TV66 se alinea con el botón Gira.
+     * (+ = abajo). Compensa el caption bajo los iconos para alinear la fila de iconos.
+     */
+    val socialCenterYOffset: Dp
+        get() = when (vitrinaProfileKey) {
+            "tv_66" -> {
+                val paddedCenterShift = -(maxHeight * vitrinaInsetBottomFraction * 0.5f)
+                val iconRowVsColumnCenter = 14.dp // mitad aprox. de spacer + "scanea tu red social"
+                paddedCenterShift +
+                    maxHeight * vitrinaVerticalBias +
+                    vitrinaVerticalOffsetAdjustment +
+                    rotateButtonCenterYOffset +
+                    iconRowVsColumnCenter
+            }
+            else -> 0.dp
         }
 
     val vitrinaBlockWidthFraction: Float
@@ -386,7 +405,8 @@ data class IntroLayoutMetrics(
     val vitrinaVerticalOffsetAdjustment: Dp
         get() = when (vitrinaProfileKey) {
             "tv_42", "tablet_landscape" -> (-42).dp
-            "tv_66" -> (-50).dp
+            // TV 66": ~2.5 dedos (~120 dp) más arriba que el baseline previo (-50).
+            "tv_66" -> (-170).dp
             "phone_landscape" -> 0.dp
             else -> 0.dp
         }
@@ -517,7 +537,8 @@ data class IntroLayoutMetrics(
             "phone_landscape" -> maxHeight * sceneHeightFraction * 0.01f
             "tv_32" -> maxHeight * sceneHeightFraction * 0.02f
             "tv_42", "tablet_landscape" -> maxHeight * sceneHeightFraction * 0.035f - 5.dp
-            "tv_66" -> maxHeight * sceneHeightFraction * 0.025f
+            // TV 66": ~3 dedos (~144 dp) más arriba que el baseline.
+            "tv_66" -> maxHeight * sceneHeightFraction * 0.025f - 144.dp
             "expanded" -> maxHeight * sceneHeightFraction * 0.04f
             else -> maxHeight * sceneHeightFraction * 0.04f
         }

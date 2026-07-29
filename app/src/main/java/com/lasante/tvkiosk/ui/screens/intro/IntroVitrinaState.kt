@@ -23,7 +23,7 @@ import kotlinx.coroutines.delay
 
 private const val DEFAULT_AUTO_ROTATE_TIMEOUT_MS = 2 * 60 * 1000L
 private const val DEFAULT_SCREEN_SAVER_TIMEOUT_MS = 3 * 60 * 1000L
-private const val AUTO_ROTATE_STEP_MS = 8_000L
+private const val AUTO_ROTATE_STEP_MS = 4_000L
 
 private enum class VitrinaMode {
     ScreenSaver,

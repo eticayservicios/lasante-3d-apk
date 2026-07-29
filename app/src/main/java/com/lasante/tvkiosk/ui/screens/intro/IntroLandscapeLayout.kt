@@ -153,6 +153,7 @@ fun IntroResponsiveLayout(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
                     .padding(start = metrics.socialStartPadding)
+                    .offset(y = metrics.socialCenterYOffset)
                     .zIndex(20f),
             )
 
