@@ -6,12 +6,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 
 /**
  * Capa de interacción unificada sobre el cilindro (todos los perfiles).
- * Swipe en cualquier zona → arrastre; tap dentro del cintillo → unidad activa.
+ *
+ * - Swipe en cualquier zona → arrastre / rotación.
+ * - Tap en la cara frontal (estantes + cintillo, “cuadro rojo”) → unidad activa.
+ * Las burbujas van en zIndex más alto y siguen capturando sus propios taps.
  */
 @Composable
 fun VitrinaActiveUnitTapLayer(
@@ -32,19 +33,18 @@ fun VitrinaActiveUnitTapLayer(
     val density = LocalDensity.current
     val glbIndex = VitrinaGlbMapping.glbIndexFor(activeIndex)
     val targetUnitId = VitrinaGlbMapping.navigationUnitIdFor(glbIndex)
-    val hotspotWidth = cintilloHotspotWidth(metrics)
-    val hotspotHeight = cintilloHotspotHeight(metrics)
-    val yFraction = cintilloBandYFraction(metrics)
+    val topFrac = unitTapTopFraction(metrics)
+    val bottomFrac = unitTapBottomFraction(metrics)
+    val widthFrac = unitTapWidthFraction(metrics)
 
     BoxWithConstraints(modifier = modifier) {
         val areaWidthPx = with(density) { maxWidth.toPx() }
         val areaHeightPx = with(density) { maxHeight.toPx() }
-        val hotspotWpx = with(density) { hotspotWidth.toPx() }
-        val hotspotHpx = with(density) { hotspotHeight.toPx() }
-        val cintilloLeft = areaWidthPx / 2f - hotspotWpx / 2f
-        val cintilloTop = areaHeightPx * yFraction - hotspotHpx / 2f
-        val cintilloRight = cintilloLeft + hotspotWpx
-        val cintilloBottom = cintilloTop + hotspotHpx
+        val tapWidthPx = areaWidthPx * widthFrac
+        val tapLeft = areaWidthPx * 0.5f - tapWidthPx / 2f
+        val tapRight = tapLeft + tapWidthPx
+        val tapTop = areaHeightPx * topFrac
+        val tapBottom = areaHeightPx * bottomFrac
 
         Box(
             modifier = Modifier
@@ -53,14 +53,14 @@ fun VitrinaActiveUnitTapLayer(
                     dragSlopPx = dragSlopPx,
                     onTap = { pos ->
                         if (!tapEnabled) return@vitrinaTapOrHorizontalDragGesture
-                        val inCintillo =
-                            pos.x in cintilloLeft..cintilloRight &&
-                                pos.y in cintilloTop..cintilloBottom
-                        if (!inCintillo) return@vitrinaTapOrHorizontalDragGesture
+                        val inUnitFace =
+                            pos.x in tapLeft..tapRight &&
+                                pos.y in tapTop..tapBottom
+                        if (!inUnitFace) return@vitrinaTapOrHorizontalDragGesture
                         android.util.Log.d(
                             "VitrinaTap",
-                            "CINTILLO_TAP activeIndex=$activeIndex glbIndex=$glbIndex " +
-                                "targetUnitId=$targetUnitId yFraction=$yFraction",
+                            "UNIT_FACE_TAP activeIndex=$activeIndex glbIndex=$glbIndex " +
+                                "targetUnitId=$targetUnitId top=$topFrac bottom=$bottomFrac",
                         )
                         onUnitClick(targetUnitId)
                     },
@@ -72,23 +72,26 @@ fun VitrinaActiveUnitTapLayer(
     }
 }
 
-private fun cintilloHotspotWidth(metrics: IntroLayoutMetrics): Dp = when {
-    metrics.isPhoneLandscape -> 162.dp
-    metrics.isTv42 || metrics.isTabletLandscape -> 260.dp
-    metrics.isTv32 || metrics.isTv66 -> 240.dp
-    else -> 200.dp
+/** Empieza bajo las burbujas / badge, sobre el primer estante visible. */
+private fun unitTapTopFraction(metrics: IntroLayoutMetrics): Float = when {
+    metrics.isPhoneLandscape -> 0.34f
+    metrics.isTv42 || metrics.isTabletLandscape -> 0.30f
+    metrics.isTv66 -> 0.32f
+    else -> 0.32f
 }
 
-private fun cintilloHotspotHeight(metrics: IntroLayoutMetrics): Dp = when {
-    metrics.isPhoneLandscape -> 53.dp
-    metrics.isTv42 || metrics.isTabletLandscape -> 84.dp
-    metrics.isTv32 || metrics.isTv66 -> 72.dp
-    else -> 60.dp
+/** Incluye el cintillo con el nombre de la unidad. */
+private fun unitTapBottomFraction(metrics: IntroLayoutMetrics): Float = when {
+    metrics.isPhoneLandscape -> 0.94f
+    metrics.isTv42 || metrics.isTabletLandscape -> 0.96f
+    metrics.isTv66 -> 0.95f
+    else -> 0.95f
 }
 
-private fun cintilloBandYFraction(metrics: IntroLayoutMetrics): Float = when {
-    metrics.isTv42 || metrics.isTabletLandscape -> 0.88f
-    metrics.isTv32 || metrics.isTv66 -> 0.86f
-    metrics.isPhoneLandscape -> 0.82f
-    else -> 0.84f
+/** Ancho de la cara frontal (~cuadro rojo sobre los estantes). */
+private fun unitTapWidthFraction(metrics: IntroLayoutMetrics): Float = when {
+    metrics.isPhoneLandscape -> 0.52f
+    metrics.isTv42 || metrics.isTabletLandscape -> 0.46f
+    metrics.isTv66 -> 0.44f
+    else -> 0.48f
 }

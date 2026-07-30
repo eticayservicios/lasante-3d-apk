@@ -31,8 +31,11 @@ fun IntroDeferredVideoPrefetch(
         ScreenSaverVideoPolicy.filterPlaylist(screenSaverVideos).joinToString("|") { it.url.trim() }
     }
 
-    LaunchedEffect(enabled, profile, screenSaverUrlsKey) {
+    LaunchedEffect(enabled, profile, screenSaverUrlsKey, baseLoaded) {
         if (!enabled || screenSaverUrlsKey.isBlank()) return@LaunchedEffect
+        // Phone: no prefetch hasta tener el GLB base en memoria estable.
+        val phoneLike = !profile.isAndroidTv && !profile.isTabletLandscape
+        if (phoneLike && !baseLoaded) return@LaunchedEffect
 
         val delayMs = VitrinaDeviceLoadPolicy.screenSaverPrefetchDelayMs(profile)
         if (delayMs == null) {
@@ -43,7 +46,8 @@ fun IntroDeferredVideoPrefetch(
         Log.i(
             TAG,
             "Prefetch screen saver en ${delayMs / 1000}s " +
-                "(tv=${profile.isAndroidTv} tablet=${profile.isTabletLandscape} lowRam=${profile.isLowRamDevice})",
+                "(tv=${profile.isAndroidTv} tablet=${profile.isTabletLandscape} " +
+                "lowRam=${profile.isLowRamDevice} baseLoaded=$baseLoaded)",
         )
         delay(delayMs)
         VideoCache.prefetchScreenSaverVideos(

@@ -57,8 +57,10 @@ fun IntroScreen(
     )
 
     val displayVitrinaUnits = rememberDisplayVitrinaUnits(vitrinaUnits)
-    val hasHeavyModalOpen = isVideoPlaying || qrUrl != null
-    val hasModalOpen = selectedProduct != null || hasHeavyModalOpen
+    // Producto 3D también es “heavy”: pausa Filament de la vitrina (queda el último frame)
+    // y el blur Compose sigue viéndose detrás del modal — evita 2 engines a la vez (OOM Redmi).
+    val hasHeavyModalOpen = selectedProduct != null || isVideoPlaying || qrUrl != null
+    val hasModalOpen = hasHeavyModalOpen
     val lifecycleOwner = LocalLifecycleOwner.current
     val baseRotationHandle = remember { VitrinaBaseRotationHandle() }
     val vitrinaFilamentSession = rememberVitrinaFilamentSession()
@@ -107,6 +109,7 @@ fun IntroScreen(
     // Mismo comportamiento en todos los perfiles: vitrina montada, render pausado, video encima.
     val renderVitrinaScene = contentActive
 
+    // Con modal de producto: render OFF (frame congelado) + blur ON → mismo look, menos RAM/GPU.
     val vitrinaFilamentRendering = contentActive && !shouldPlayScreenSaver && !hasHeavyModalOpen
     val vitrinaSceneActive = contentActive && !hasModalOpen && !shouldPlayScreenSaver
     val vitrinaInteractionEnabled = contentActive && !hasModalOpen

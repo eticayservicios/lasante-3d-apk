@@ -86,16 +86,19 @@ internal object VitrinaDeviceLoadPolicy {
         profile.isAndroidTv -> 90_000L
         profile.isTabletLandscape && profile.isLowRamDevice -> 120_000L
         profile.isTabletLandscape -> 60_000L
-        else -> 15_000L
+        // Phone / Redmi: esperar más tras el GLB base (menos pico de RAM).
+        profile.isLowRamDevice -> 60_000L
+        else -> 45_000L
     }
 
-    /** Screen saver: prefetch temprano (no espera GLB base) para tener caché antes del timeout. */
+    /** Screen saver: en phone espera GLB base + delay largo; TV/tablet un poco antes. */
     fun screenSaverPrefetchDelayMs(profile: VitrinaDeviceProfile): Long? = when {
         profile.isEmulator -> null
         profile.isAndroidTv -> 30_000L
         profile.isTabletLandscape && profile.isLowRamDevice -> 25_000L
         profile.isTabletLandscape -> 15_000L
-        else -> 8_000L
+        profile.isLowRamDevice -> 40_000L
+        else -> 25_000L
     }
 
     fun institutionalVideoPrefetchDelayMs(profile: VitrinaDeviceProfile): Long? =

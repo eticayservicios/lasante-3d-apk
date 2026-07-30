@@ -33,35 +33,42 @@ fun Modifier.vitrinaTapOrHorizontalDragGesture(
         var accumulatedX = 0f
         var accumulatedY = 0f
 
-        while (true) {
-            val event = awaitPointerEvent()
-            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+        try {
+            while (true) {
+                val event = awaitPointerEvent()
+                val change = event.changes.firstOrNull { it.id == down.id }
+                if (change == null) break
 
-            if (!change.pressed) {
-                if (dragging) {
-                    onDragEnd()
-                } else if (abs(accumulatedX) < dragSlopPx && abs(accumulatedY) < dragSlopPx) {
-                    onTap(down.position)
+                if (!change.pressed) {
+                    if (dragging) {
+                        onDragEnd()
+                        dragging = false
+                    } else if (abs(accumulatedX) < dragSlopPx && abs(accumulatedY) < dragSlopPx) {
+                        onTap(down.position)
+                    }
+                    break
                 }
-                break
-            }
 
-            val delta = change.positionChange()
-            if (!dragging) {
-                accumulatedX += delta.x
-                accumulatedY += delta.y
-                if (abs(accumulatedX) >= dragSlopPx &&
-                    abs(accumulatedX) >= abs(accumulatedY)
-                ) {
-                    dragging = true
+                val delta = change.positionChange()
+                if (!dragging) {
+                    accumulatedX += delta.x
+                    accumulatedY += delta.y
+                    if (abs(accumulatedX) >= dragSlopPx &&
+                        abs(accumulatedX) >= abs(accumulatedY)
+                    ) {
+                        dragging = true
+                        change.consume()
+                        onDragStart()
+                        onDrag(accumulatedX)
+                    }
+                } else {
                     change.consume()
-                    onDragStart()
-                    onDrag(accumulatedX)
+                    onDrag(delta.x)
                 }
-            } else {
-                change.consume()
-                onDrag(delta.x)
             }
+        } finally {
+            // Cancelación / pointer perdido / composición: no dejar modo Dragging colgado.
+            if (dragging) onDragEnd()
         }
     }
 }
@@ -78,31 +85,39 @@ private fun Modifier.vitrinaHorizontalDragGesture(
         var accumulatedX = 0f
         var accumulatedY = 0f
 
-        while (true) {
-            val event = awaitPointerEvent()
-            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+        try {
+            while (true) {
+                val event = awaitPointerEvent()
+                val change = event.changes.firstOrNull { it.id == down.id }
+                if (change == null) break
 
-            if (!change.pressed) {
-                if (dragging) onDragEnd()
-                break
-            }
-
-            val delta = change.positionChange()
-            if (!dragging) {
-                accumulatedX += delta.x
-                accumulatedY += delta.y
-                if (abs(accumulatedX) >= dragSlopPx &&
-                    abs(accumulatedX) >= abs(accumulatedY)
-                ) {
-                    dragging = true
-                    change.consume()
-                    onDragStart()
-                    onDrag(accumulatedX)
+                if (!change.pressed) {
+                    if (dragging) {
+                        onDragEnd()
+                        dragging = false
+                    }
+                    break
                 }
-            } else {
-                change.consume()
-                onDrag(delta.x)
+
+                val delta = change.positionChange()
+                if (!dragging) {
+                    accumulatedX += delta.x
+                    accumulatedY += delta.y
+                    if (abs(accumulatedX) >= dragSlopPx &&
+                        abs(accumulatedX) >= abs(accumulatedY)
+                    ) {
+                        dragging = true
+                        change.consume()
+                        onDragStart()
+                        onDrag(accumulatedX)
+                    }
+                } else {
+                    change.consume()
+                    onDrag(delta.x)
+                }
             }
+        } finally {
+            if (dragging) onDragEnd()
         }
     }
 }
