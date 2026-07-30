@@ -346,13 +346,8 @@ data class IntroLayoutMetrics(
         }
 
     /**
-     * Logo vertical La Santé (news/LogoLaSante) — altura útil del borde derecho.
-     * ~full height; deja aire mínimo arriba/abajo como en mockup.
+     * Inset derecho del logo vertical y del badge Historia (cerca del borde).
      */
-    val verticalLogoHeightFraction: Float
-        get() = 0.96f
-
-    /** Inset derecho del logo vertical y del badge Historia (cerca del borde). */
     val logoEndPadding: Dp
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 8.dp
@@ -369,7 +364,12 @@ data class IntroLayoutMetrics(
             "phone_landscape" -> 52.dp
             "short_height" -> 58.dp
             "tv_32", "tv_42", "tablet_landscape" -> 72.dp
-            "tv_66" -> 78.dp * 1.15f
+            // TV66: mismo ancho que el logo vertical (dos bloques alineados).
+            "tv_66" -> {
+                val logoAspect = 229f / 1004f
+                val badgeAspect = 459f / 480f
+                maxHeight * logoAspect / (badgeAspect + logoAspect)
+            }
             "expanded" -> 80.dp
             "tv_unknown" -> 74.dp
             else -> 64.dp
@@ -383,7 +383,7 @@ data class IntroLayoutMetrics(
             "phone_landscape" -> 34.dp
             "short_height" -> 40.dp
             "tv_32", "tv_42", "tablet_landscape" -> 48.dp
-            "tv_66" -> 78.dp * 1.30f * 0.62f
+            "tv_66" -> historiaBadgeHeight * 0.58f
             "expanded" -> 54.dp
             "tv_unknown" -> 50.dp
             else -> 44.dp
