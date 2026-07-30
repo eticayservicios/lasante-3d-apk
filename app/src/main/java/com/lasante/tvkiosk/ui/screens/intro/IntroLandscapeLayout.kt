@@ -5,16 +5,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.runtime.Composable
@@ -22,14 +17,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import android.util.Log
 import coil.compose.AsyncImage
@@ -37,7 +27,6 @@ import coil.request.ImageRequest
 import com.lasante.tvkiosk.R
 import com.lasante.tvkiosk.data.Product
 import com.lasante.tvkiosk.data.VitrinaUnit
-import com.lasante.tvkiosk.ui.theme.LaSanteBlue
 import com.lasante.tvkiosk.ui.utils.clickableWithSound
 
 private const val PROFILE_LOG_TAG = "VitrinaProfile"
@@ -214,29 +203,17 @@ fun SocialRail(
     onSocialClick: (String, String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(metrics.socialIconSpacing),
-        ) {
-            socialNetworks.forEach { social ->
-                SocialNetworkIconButton(
-                    social = social,
-                    size = metrics.socialIconSize,
-                    onClick = { onSocialClick(social.label, social.url) },
-                )
-            }
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(metrics.socialIconSpacing),
+    ) {
+        socialNetworks.forEach { social ->
+            SocialNetworkIconButton(
+                social = social,
+                size = metrics.socialIconSize,
+                onClick = { onSocialClick(social.label, social.url) },
+            )
         }
-        Spacer(modifier = Modifier.height(if (metrics.isPhoneLandscape) 4.dp else if (metrics.isCompactWidth) 6.dp else 10.dp))
-        Text(
-            text = "scanea tu red social",
-            color = LaSanteBlue,
-            fontSize = when {
-                metrics.isPhoneLandscape -> 10.sp
-                metrics.isCompactWidth   -> 11.sp
-                else                     -> 14.sp
-            },
-            fontWeight = FontWeight.SemiBold,
-            fontStyle = FontStyle.Italic,
-        )
     }
 }

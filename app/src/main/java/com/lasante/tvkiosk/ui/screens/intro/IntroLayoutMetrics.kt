@@ -235,7 +235,9 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 2.dp + maxHeight * 0.05f
             "phone_portrait" -> 8.dp
-            "tv_42", "tv_66", "tablet_landscape" -> 30.dp + maxHeight * 0.06f
+            "tv_42", "tablet_landscape" -> 30.dp + maxHeight * 0.06f
+            // TV66: +5% más abajo (sin subir con el cilindro).
+            "tv_66" -> 30.dp + maxHeight * 0.11f
             "tv_32" -> 10.dp
             "short_height" -> 6.dp
             "expanded" -> 10.dp
@@ -248,7 +250,9 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 54.dp
             "phone_portrait" -> 81.dp
-            "tv_42", "tv_66", "tablet_landscape" -> 89.dp
+            "tv_42", "tablet_landscape" -> 89.dp
+            // TV66: +10% vs baseline 89.
+            "tv_66" -> 89.dp * 1.10f
             "tv_32" -> 81.dp
             "short_height" -> 78.dp
             "expanded" -> 84.dp
@@ -260,7 +264,9 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 9.dp
             "phone_portrait" -> 5.dp
-            "tv_42", "tv_66", "tablet_landscape" -> 28.dp
+            "tv_42", "tablet_landscape" -> 28.dp
+            // TV66: baseline 28 + 5% del diámetro a cada lado (coherente con +10% tamaño).
+            "tv_66" -> 28.dp + (89.dp * 1.10f) * 0.05f * 2f
             "tv_32" -> 7.dp
             "short_height" -> 4.dp
             "expanded" -> 7.dp
@@ -352,35 +358,27 @@ data class IntroLayoutMetrics(
             else -> if (isCompactWidth) 30.dp else 37.dp
         }
 
-    /** Espacio horizontal entre iconos de redes sociales. */
+    /** Espacio vertical entre iconos de redes sociales. */
     val socialIconSpacing: Dp
-        get() = when (vitrinaProfileKey) {
-            "phone_landscape" -> 10.dp
-            else -> if (isCompactWidth) 6.dp else 8.dp
-        }
+        get() = 30.dp
 
-    /** Inset izquierdo de redes — alineado con gridHorizontalPadding + respiro extra en phone. */
+    /** Inset izquierdo de redes — 10% del ancho para acercarlas a la vitrina. */
     val socialStartPadding: Dp
-        get() = when (vitrinaProfileKey) {
-            "phone_landscape" -> 42.dp
-            "tv_32", "tv_42", "tv_66", "tablet_landscape" -> 29.dp
-            else -> 21.dp
-        }
+        get() = maxWidth * 0.10f
 
     /**
      * Desplazamiento vertical de redes (CenterStart). En TV66 se alinea con el botón Gira.
-     * (+ = abajo). Compensa el caption bajo los iconos para alinear la fila de iconos.
+     * (+ = abajo).
      */
     val socialCenterYOffset: Dp
         get() = when (vitrinaProfileKey) {
             "tv_66" -> {
                 val paddedCenterShift = -(maxHeight * vitrinaInsetBottomFraction * 0.5f)
-                val iconRowVsColumnCenter = 14.dp // mitad aprox. de spacer + "scanea tu red social"
                 paddedCenterShift +
                     maxHeight * vitrinaVerticalBias +
                     vitrinaVerticalOffsetAdjustment +
-                    rotateButtonCenterYOffset +
-                    iconRowVsColumnCenter
+                    vitrinaCylinderNudgeDown +
+                    rotateButtonCenterYOffset
             }
             else -> 0.dp
         }
@@ -407,7 +405,9 @@ data class IntroLayoutMetrics(
     val vitrinaVerticalOffsetAdjustment: Dp
         get() = when (vitrinaProfileKey) {
             // Calibrado vs panel 4K empresa (~1920×1080 dp @ dens 320).
-            "tv_42", "tv_66", "tablet_landscape" -> (-42).dp
+            "tv_42", "tablet_landscape" -> (-42).dp
+            // TV66: baseline -42 + subir 75px @ dens 320 (= 37.5 dp).
+            "tv_66" -> (-42).dp - 37.5.dp
             "phone_landscape" -> 0.dp
             else -> 0.dp
         }
@@ -415,11 +415,14 @@ data class IntroLayoutMetrics(
     /**
      * Baja solo el cilindro 3D (+ botón Gira) sin mover las burbujas.
      * Usa el espacio vacío inferior; no pegar al bottom.
+     * Negativo = subir el cilindro (las burbujas cancelan este nudge).
      */
     val vitrinaCylinderNudgeDown: Dp
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 10.dp
-            "tv_42", "tv_66", "tablet_landscape" -> maxHeight * 0.10f
+            "tv_42", "tablet_landscape" -> maxHeight * 0.10f
+            // TV66: baseline 0.10 → subir 7% → bajar 4% ⇒ nudge 0.07H (burbujas no se mueven).
+            "tv_66" -> maxHeight * 0.07f
             else -> 0.dp
         }
 
