@@ -95,24 +95,17 @@ data class IntroLayoutMetrics(
      */
     val dragHandleWidth: Dp
         get() = when (vitrinaProfileKey) {
-            "phone_landscape" -> 22.dp
-            "tv_32" -> 32.dp
-            "tv_42" -> 36.dp
-            "tv_66" -> 44.dp
-            "tablet_landscape" -> 36.dp
-            "tv_unknown" -> 40.dp
-            else -> 28.dp
+            "phone_landscape" -> 36.dp
+            "tv_32" -> 40.dp
+            "tv_42", "tablet_landscape" -> 44.dp
+            "tv_66" -> 48.dp
+            "tv_unknown" -> 44.dp
+            else -> 36.dp
         }
 
-    /** Slop mínimo antes de iniciar drag horizontal (menor = más sensible). */
-    fun dragPointerSlopPx(density: androidx.compose.ui.unit.Density): Float = with(density) {
-        when (vitrinaProfileKey) {
-            "phone_landscape" -> 4.dp.toPx()
-            "tv_32", "tv_42", "tv_66", "tv_unknown" -> 5.dp.toPx()
-            "tablet_landscape" -> 5.dp.toPx()
-            else -> 4.dp.toPx()
-        }
-    }
+    /** Slop mínimo antes de iniciar drag (igual en todos los perfiles). */
+    fun dragPointerSlopPx(density: androidx.compose.ui.unit.Density): Float =
+        with(density) { 3.dp.toPx() }
 
     val titleFontSize: TextUnit
         get() = when (vitrinaProfileKey) {

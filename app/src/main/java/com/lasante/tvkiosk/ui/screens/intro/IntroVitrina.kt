@@ -158,27 +158,21 @@ fun BusinessUnitVitrina(
                     }
 
                     if (vitrinaInteractionEnabled && showProducts) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .zIndex(5f)
-                                .vitrinaBodyDragGesture(
-                                    dragSlopPx = dragPointerSlopPx,
-                                    onDragStart = { onWakeFromIdle(); onDragStart() },
-                                    onDrag = onDrag,
-                                    onDragEnd = onDragEnd,
-                                ),
-                        )
-
+                        // Una sola capa para todos los perfiles: evita pelea cuerpo vs cintillo.
                         VitrinaActiveUnitTapLayer(
                             activeIndex = activeIndex,
                             projectedUnits = projectedUnits,
-                            enabled = unitTapEnabled,
+                            enabled = bubblesVisible && vitrinaInteractionEnabled,
+                            tapEnabled = unitTapEnabled,
                             metrics = metrics,
+                            dragSlopPx = dragPointerSlopPx,
                             onUnitClick = { unitId ->
                                 onWakeFromIdle()
                                 onUnitClick(unitId)
                             },
+                            onDragStart = { onWakeFromIdle(); onDragStart() },
+                            onDrag = onDrag,
+                            onDragEnd = onDragEnd,
                             modifier = Modifier
                                 .fillMaxSize()
                                 .zIndex(6f),
