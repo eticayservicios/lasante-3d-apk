@@ -9,10 +9,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * Detecta paneles TV grandes / 4K (p. ej. Hikvision, Android TV 4K) que reportan
- * ~960×540 dp por densidad alta (320–640) pero son físicamente 1920–3840 px.
+ * Detecta paneles TV grandes ~65–75" / 4K (Hikvision, Android TV 4K, AVD de TV).
  *
- * Sin esto, caen en `tv_42` y no aplican métricas `tv_66`.
+ * Canvas de referencia para métricas `tv_66`: ~1920×1080 dp
+ * (p. ej. 3840×2160 @ densidad 320). Si el panel reporta ~960×540 dp por
+ * densidad alta (640), igual fuerza `tv_66` para no caer en `tv_42`.
  */
 object TvProfileDetector {
 

@@ -54,23 +54,13 @@ data class IntroLayoutMetrics(
     val isTv42: Boolean
         get() = isTv && maxWidth in 900.dp..1400.dp && !preferTv66
 
-    /** TV 66" ~4K (1920×1080 dp) o panel 4K/Hikvision con densidad alta (~960 dp). */
+    /**
+     * TV ~65–75" / 4K. Canvas de referencia: ~1920×1080 dp
+     * (p. ej. 3840×2160 @ densidad 320). También vía [preferTv66] en paneles
+     * 4K/Hikvision que reportan ~960 dp por densidad alta.
+     */
     val isTv66: Boolean
         get() = isTv && (maxWidth > 1400.dp || preferTv66)
-
-    /**
-     * Offsets tv_66 se diseñaron para canvas ~1920×1080 dp.
-     * En Hikvision/AVD 4K @640dpi (~960 dp) hay que reducirlos a la mitad para el mismo
-     * desplazamiento en píxeles / sensación física.
-     */
-    private val tv66OffsetScale: Float
-        get() = when {
-            !isTv66 -> 1f
-            maxWidth > 1400.dp -> 1f
-            else -> (maxWidth.value / 1920f).coerceIn(0.45f, 1f)
-        }
-
-    private fun tv66Dp(designDp: Dp): Dp = (designDp.value * tv66OffsetScale).dp
 
     /** @deprecated Usar isTv42 — alias para compatibilidad en logs. */
     val isTv1080: Boolean
@@ -170,7 +160,7 @@ data class IntroLayoutMetrics(
     val featuredHintTopFraction: Float
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 0.07f
-            "tv_42", "tablet_landscape" -> 0.08f
+            "tv_42", "tv_66", "tablet_landscape" -> 0.08f
             else -> 0f
         }
 
@@ -188,10 +178,9 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 46.dp
             "phone_portrait" -> 44.dp
-            // tablet del proyecto = tv_42
-            "tv_42", "tablet_landscape" -> 96.dp
+            // tablet del proyecto = tv_42; tv_66 calibrado vs panel 4K ~1920×1080 dp
+            "tv_42", "tv_66", "tablet_landscape" -> 96.dp
             "tv_32" -> 52.dp
-            "tv_66" -> 60.dp
             "short_height" -> 44.dp
             "expanded" -> 54.dp
             "tv_unknown" -> 54.dp
@@ -202,9 +191,8 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 0.371f
             "phone_portrait" -> 0.42f
-            "tv_42", "tablet_landscape" -> 0.52f
+            "tv_42", "tv_66", "tablet_landscape" -> 0.52f
             "tv_32" -> 0.25f
-            "tv_66" -> 0.22f
             "short_height" -> 0.38f
             "expanded" -> 0.28f
             "tv_unknown" -> 0.25f
@@ -217,8 +205,8 @@ data class IntroLayoutMetrics(
             "phone_landscape" -> 4.dp
             "phone_portrait" -> 4.dp
             // 1% más abajo que el calibrado previo (32.dp).
-            "tv_42", "tablet_landscape" -> 32.dp - maxHeight * 0.01f
-            "tv_32", "tv_66", "tv_unknown" -> 0.dp
+            "tv_42", "tv_66", "tablet_landscape" -> 32.dp - maxHeight * 0.01f
+            "tv_32", "tv_unknown" -> 0.dp
             "short_height" -> 4.dp
             "expanded" -> 2.dp
             else -> 2.dp
@@ -231,9 +219,8 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 0.56f
             "phone_portrait" -> 0.60f
-            "tv_42", "tablet_landscape" -> 0.72f
+            "tv_42", "tv_66", "tablet_landscape" -> 0.72f
             "tv_32" -> 0.60f
-            "tv_66" -> 0.57f
             "short_height" -> 0.58f
             "expanded" -> 0.60f
             "tv_unknown" -> 0.58f
@@ -248,9 +235,8 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 2.dp + maxHeight * 0.05f
             "phone_portrait" -> 8.dp
-            "tv_42", "tablet_landscape" -> 30.dp + maxHeight * 0.06f
+            "tv_42", "tv_66", "tablet_landscape" -> 30.dp + maxHeight * 0.06f
             "tv_32" -> 10.dp
-            "tv_66" -> 14.dp
             "short_height" -> 6.dp
             "expanded" -> 10.dp
             "tv_unknown" -> 12.dp
@@ -262,9 +248,8 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 54.dp
             "phone_portrait" -> 81.dp
-            "tv_42", "tablet_landscape" -> 89.dp
+            "tv_42", "tv_66", "tablet_landscape" -> 89.dp
             "tv_32" -> 81.dp
-            "tv_66" -> 102.dp
             "short_height" -> 78.dp
             "expanded" -> 84.dp
             "tv_unknown" -> 87.dp
@@ -275,9 +260,8 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 9.dp
             "phone_portrait" -> 5.dp
-            "tv_42", "tablet_landscape" -> 28.dp
+            "tv_42", "tv_66", "tablet_landscape" -> 28.dp
             "tv_32" -> 7.dp
-            "tv_66" -> 10.dp
             "short_height" -> 4.dp
             "expanded" -> 7.dp
             "tv_unknown" -> 8.dp
@@ -287,7 +271,7 @@ data class IntroLayoutMetrics(
     /** Miniatura ~78% del diámetro: producto grande con poco margen (referencia). */
     val bubbleProductSizeFraction: Float
         get() = when (vitrinaProfileKey) {
-            "phone_landscape", "tv_42", "tablet_landscape" -> 0.78f
+            "phone_landscape", "tv_42", "tv_66", "tablet_landscape" -> 0.78f
             else -> 0.75f
         }
 
@@ -363,8 +347,8 @@ data class IntroLayoutMetrics(
     val socialIconSize: Dp
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 24.dp
-            "tv_42", "tablet_landscape" -> 39.dp
-            "tv_32", "tv_66" -> 46.dp
+            "tv_42", "tv_66", "tablet_landscape" -> 39.dp
+            "tv_32" -> 46.dp
             else -> if (isCompactWidth) 30.dp else 37.dp
         }
 
@@ -379,8 +363,7 @@ data class IntroLayoutMetrics(
     val socialStartPadding: Dp
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 42.dp
-            "tv_66" -> 39.dp // +10 px hacia la derecha vs baseline 29
-            "tv_32", "tv_42", "tablet_landscape" -> 29.dp
+            "tv_32", "tv_42", "tv_66", "tablet_landscape" -> 29.dp
             else -> 21.dp
         }
 
@@ -423,9 +406,8 @@ data class IntroLayoutMetrics(
     /** Ajuste fino en dp del bloque layout (negativo = subir, positivo = bajar). No mueve la cámara. */
     val vitrinaVerticalOffsetAdjustment: Dp
         get() = when (vitrinaProfileKey) {
-            "tv_42", "tablet_landscape" -> (-42).dp
-            // TV 66": ~2.5 dedos (~120 dp) más arriba que el baseline previo (-50).
-            "tv_66" -> tv66Dp((-170).dp)
+            // Calibrado vs panel 4K empresa (~1920×1080 dp @ dens 320).
+            "tv_42", "tv_66", "tablet_landscape" -> (-42).dp
             "phone_landscape" -> 0.dp
             else -> 0.dp
         }
@@ -437,7 +419,7 @@ data class IntroLayoutMetrics(
     val vitrinaCylinderNudgeDown: Dp
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 10.dp
-            "tv_42", "tablet_landscape" -> maxHeight * 0.10f
+            "tv_42", "tv_66", "tablet_landscape" -> maxHeight * 0.10f
             else -> 0.dp
         }
 
@@ -506,8 +488,7 @@ data class IntroLayoutMetrics(
     val vitrinaOverlayEndPadding: Dp
         get() = when (vitrinaProfileKey) {
             "phone_landscape", "tv_32" -> 0.dp
-            "tv_42", "tablet_landscape" -> 2.dp
-            "tv_66" -> 4.dp
+            "tv_42", "tv_66", "tablet_landscape" -> 2.dp
             else -> 4.dp
         }
 
@@ -527,8 +508,7 @@ data class IntroLayoutMetrics(
             "phone_landscape" -> 0.dp
             "tv_32" -> 8.dp
             // Pegado al cilindro con un poco de aire (~estante medio).
-            "tv_42", "tablet_landscape" -> 40.dp
-            "tv_66" -> 12.dp
+            "tv_42", "tv_66", "tablet_landscape" -> 40.dp
             else -> 6.dp
         }
 
@@ -544,9 +524,8 @@ data class IntroLayoutMetrics(
                 val pull = if (pullTowardCylinder > 56.dp) pullTowardCylinder else 56.dp
                 -(pull + dragHandleWidth)
             }
-            "tv_42", "tablet_landscape" -> 0.dp
+            "tv_42", "tv_66", "tablet_landscape" -> 0.dp
             "tv_32" -> (-6).dp
-            "tv_66" -> (-10).dp
             else -> 4.dp
         }
 
@@ -555,9 +534,7 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> maxHeight * sceneHeightFraction * 0.01f
             "tv_32" -> maxHeight * sceneHeightFraction * 0.02f
-            "tv_42", "tablet_landscape" -> maxHeight * sceneHeightFraction * 0.035f - 5.dp
-            // TV 66": ~3 dedos (~144 dp) más arriba que el baseline.
-            "tv_66" -> maxHeight * sceneHeightFraction * 0.025f - tv66Dp(144.dp)
+            "tv_42", "tv_66", "tablet_landscape" -> maxHeight * sceneHeightFraction * 0.035f - 5.dp
             "expanded" -> maxHeight * sceneHeightFraction * 0.04f
             else -> maxHeight * sceneHeightFraction * 0.04f
         }
