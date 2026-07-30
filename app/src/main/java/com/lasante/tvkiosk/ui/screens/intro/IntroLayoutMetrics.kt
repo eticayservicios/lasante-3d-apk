@@ -256,8 +256,8 @@ data class IntroLayoutMetrics(
             "phone_landscape" -> 2.dp + maxHeight * 0.05f
             "phone_portrait" -> 8.dp
             "tv_42", "tablet_landscape" -> 30.dp + maxHeight * 0.06f
-            // TV66: +5% más abajo (sin subir con el cilindro).
-            "tv_66" -> 30.dp + maxHeight * 0.11f
+            // TV66: aire flotante vs cilindro (−3%H vs 0.11 previo).
+            "tv_66" -> 30.dp + maxHeight * 0.08f
             "tv_32" -> 10.dp
             "short_height" -> 6.dp
             "expanded" -> 10.dp
@@ -345,30 +345,53 @@ data class IntroLayoutMetrics(
             else -> 6.dp
         }
 
-    val logoHeight: Dp
-        get() = when (vitrinaProfileKey) {
-            "phone_landscape" -> 22.dp
-            "short_height" -> 28.dp
-            "tv_32" -> 24.dp
-            "tv_42", "tv_66", "tablet_landscape" -> 25.dp
-            "expanded" -> 29.dp
-            else -> 36.dp
-        }
+    /**
+     * Logo vertical La Santé (news/LogoLaSante) — altura útil del borde derecho.
+     * ~full height; deja aire mínimo arriba/abajo como en mockup.
+     */
+    val verticalLogoHeightFraction: Float
+        get() = 0.96f
 
-    /** Padding inferior del logo — más inset = logo más arriba. */
-    val logoBottomPadding: Dp
-        get() = maxHeight * vitrinaInsetBottomFraction * 0.70f + verticalPadding + when (vitrinaProfileKey) {
-            "phone_landscape" -> 10.dp
-            "tv_42", "tv_66", "tablet_landscape" -> 14.dp
-            else -> 8.dp
-        }
-
-    /** Alineado con gridHorizontalPadding de productos/clases (24 landscape / 16 portrait). */
+    /** Inset derecho del logo vertical y del badge Historia (cerca del borde). */
     val logoEndPadding: Dp
         get() = when (vitrinaProfileKey) {
-            "phone_landscape", "tv_32", "tv_42", "tv_66", "tablet_landscape", "expanded" -> 26.dp
-            else -> 18.dp
+            "phone_landscape" -> 8.dp
+            "tv_32", "tv_42", "tv_66", "tablet_landscape", "expanded" -> 12.dp
+            else -> 10.dp
         }
+
+    /**
+     * Badge Historia (BadgeHistoria.png + Historia.gif), mismo patrón que clases terapéuticas.
+     * Aspecto del PNG: 459×480.
+     */
+    val historiaBadgeHeight: Dp
+        get() = when (vitrinaProfileKey) {
+            "phone_landscape" -> 52.dp
+            "short_height" -> 58.dp
+            "tv_32", "tv_42", "tablet_landscape" -> 72.dp
+            "tv_66" -> 78.dp * 1.15f
+            "expanded" -> 80.dp
+            "tv_unknown" -> 74.dp
+            else -> 64.dp
+        }
+
+    val historiaBadgeWidth: Dp
+        get() = historiaBadgeHeight * (459f / 480f)
+
+    val historiaBadgeIconSize: Dp
+        get() = when (vitrinaProfileKey) {
+            "phone_landscape" -> 34.dp
+            "short_height" -> 40.dp
+            "tv_32", "tv_42", "tablet_landscape" -> 48.dp
+            "tv_66" -> 78.dp * 1.30f * 0.62f
+            "expanded" -> 54.dp
+            "tv_unknown" -> 50.dp
+            else -> 44.dp
+        }
+
+    /** Inset superior del gif dentro del badge (escudo con tope plano). */
+    val historiaBadgeIconTop: Dp
+        get() = historiaBadgeHeight * 0.10f
 
     val socialIconSize: Dp
         get() = when (vitrinaProfileKey) {

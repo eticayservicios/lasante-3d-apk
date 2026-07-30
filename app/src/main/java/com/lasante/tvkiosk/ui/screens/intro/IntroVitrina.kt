@@ -49,7 +49,6 @@ fun BusinessUnitVitrina(
     onDragStart: () -> Unit,
     onDrag: (Float) -> Unit,
     onDragEnd: () -> Unit,
-    onVideoClick: () -> Unit = {},
     onRotateClick: () -> Unit = {},
 ) {
     val active = resolveActiveVitrinaUnit(vitrinaUnits, activeIndex) ?: return
@@ -241,22 +240,7 @@ fun BusinessUnitVitrina(
                         .zIndex(40f),
                 )
             }
-
-            if (showOverlayControls) {
-                IntroActionButton(
-                    assetPath = "file:///android_asset/vitrina/ui/Historia.gif",
-                    onClick = onVideoClick,
-                    size = metrics.historyButtonSize,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(
-                            top = metrics.historyButtonTopPadding,
-                            end = metrics.vitrinaOverlayEndPadding,
-                        )
-                        .offset(x = metrics.vitrinaOverlayEndOffset)
-                        .zIndex(40f),
-                )
-            }
+            // Historia: BadgeHistoria + gif en IntroLandscapeLayout (rail derecho).
         }
     }
 }

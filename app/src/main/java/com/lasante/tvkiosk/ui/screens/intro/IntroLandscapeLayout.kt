@@ -1,6 +1,5 @@
 package com.lasante.tvkiosk.ui.screens.intro
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -10,6 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.runtime.Composable
@@ -19,12 +19,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import android.util.Log
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.lasante.tvkiosk.R
 import com.lasante.tvkiosk.data.Product
 import com.lasante.tvkiosk.data.VitrinaUnit
 import com.lasante.tvkiosk.ui.utils.clickableWithSound
@@ -132,7 +131,6 @@ fun IntroResponsiveLayout(
                     onDragStart = onDragStart,
                     onDrag = onDrag,
                     onDragEnd = onDragEnd,
-                    onVideoClick = onVideoClick,
                     onRotateClick = onRotateClick,
                 )
             }
@@ -149,19 +147,74 @@ fun IntroResponsiveLayout(
                     .zIndex(20f),
             )
 
-            Image(
-                painter = painterResource(R.drawable.logo_la_sante_22),
+            // Logo La Santé vertical — full height al borde derecho (mockup Pantalla_1).
+            val logoH = metrics.maxHeight * metrics.verticalLogoHeightFraction
+            val logoW = logoH * (229f / 1004f)
+            AsyncImage(
+                model = "file:///android_asset/vitrina/ui/logo_la_sante_vertical.png",
                 contentDescription = null,
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(
-                        bottom = metrics.logoBottomPadding,
-                        end = metrics.logoEndPadding,
-                    )
-                    .height(metrics.logoHeight),
+                    .align(Alignment.CenterEnd)
+                    .padding(end = metrics.logoEndPadding)
+                    .height(logoH)
+                    .width(logoW)
+                    .zIndex(15f),
                 contentScale = ContentScale.Fit,
             )
+
+            // Historia: BadgeHistoria + gif (mismo patrón que badges de clases terapéuticas).
+            if (showVitrinaControls) {
+                HistoriaBadgeButton(
+                    metrics = metrics,
+                    onClick = onVideoClick,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(
+                            top = metrics.historyButtonTopPadding,
+                            end = metrics.logoEndPadding,
+                        )
+                        .zIndex(25f),
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun HistoriaBadgeButton(
+    metrics: IntroLayoutMetrics,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val gifModel = remember(context) {
+        ImageRequest.Builder(context)
+            .data("file:///android_asset/vitrina/ui/Historia.gif")
+            .crossfade(false)
+            .allowHardware(false)
+            .build()
+    }
+    Box(
+        modifier = modifier
+            .width(metrics.historiaBadgeWidth)
+            .height(metrics.historiaBadgeHeight)
+            .clickableWithSound { onClick() },
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        AsyncImage(
+            model = "file:///android_asset/vitrina/ui/badge_historia.png",
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Fit,
+        )
+        AsyncImage(
+            model = gifModel,
+            contentDescription = null,
+            modifier = Modifier
+                .padding(top = metrics.historiaBadgeIconTop.coerceAtLeast(0.dp))
+                .size(metrics.historiaBadgeIconSize),
+            contentScale = ContentScale.Fit,
+        )
     }
 }
 
