@@ -32,6 +32,17 @@ class VitrinaBaseRotationHandle {
         apply()
     }
 
+    /** Incorpora el offset de drag en la base (sin salto visual al soltar). */
+    fun commitDragIntoBase() {
+        baseDegrees = VitrinaRotation.normalizeDegrees(baseDegrees + dragOffsetDegrees)
+        dragOffsetDegrees = 0f
+        apply()
+    }
+
+    /** Ángulo Y aplicado ahora mismo (base + offset de drag). */
+    fun currentDegrees(): Float =
+        VitrinaRotation.normalizeDegrees(baseDegrees + dragOffsetDegrees)
+
     /** Reaplica tras SideEffect del composable SceneView que resetea rotation al valor fijo. */
     fun reapply() {
         apply()

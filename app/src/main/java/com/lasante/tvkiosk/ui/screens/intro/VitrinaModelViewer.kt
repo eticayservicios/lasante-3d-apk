@@ -40,6 +40,7 @@ fun VitrinaModelViewer(
     sceneActive: Boolean = true,
     filamentRenderingEnabled: Boolean = true,
     backdropBlurred: Boolean = false,
+    isDragging: Boolean = false,
     onUnitAnchorCentersChanged: (Map<Int, FeaturedSlotScreenPoint>) -> Unit = {},
     onRotationAnimationFinished: () -> Unit = {},
 ) {
@@ -96,11 +97,19 @@ fun VitrinaModelViewer(
         baseRotationHandle.setBaseDegrees(displayRotationDegrees)
         rotationAnim.snapTo(displayRotationDegrees)
     }
-    LaunchedEffect(targetRotationDegrees, rotationAnimationSpec, sceneActive) {
+    LaunchedEffect(targetRotationDegrees, rotationAnimationSpec, sceneActive, isDragging) {
+        if (isDragging) return@LaunchedEffect
         if (!sceneActive) {
             rotationAnim.snapTo(targetRotationDegrees)
             baseRotationHandle.setBaseDegrees(targetRotationDegrees)
             return@LaunchedEffect
+        }
+        val visual = VitrinaRotation.nearestEquivalentAngle(
+            rotationAnim.value,
+            baseRotationHandle.currentDegrees(),
+        )
+        if (kotlin.math.abs(rotationAnim.value - visual) > 0.5f) {
+            rotationAnim.snapTo(visual)
         }
         val target = VitrinaRotation.nearestEquivalentAngle(rotationAnim.value, targetRotationDegrees)
         if (kotlin.math.abs(rotationAnim.value - target) < 0.05f) {

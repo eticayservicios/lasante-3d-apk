@@ -104,23 +104,13 @@ data class IntroLayoutMetrics(
             else -> 28.dp
         }
 
-    /** Umbral de snap al soltar drag, en píxeles según densidad del dispositivo. */
-    fun dragSnapThresholdPx(density: androidx.compose.ui.unit.Density): Float = with(density) {
-        when (vitrinaProfileKey) {
-            "phone_landscape" -> 22.dp.toPx()
-            "tv_32", "tv_42", "tv_66", "tv_unknown" -> 30.dp.toPx()
-            "tablet_landscape" -> 30.dp.toPx()
-            else -> 26.dp.toPx()
-        }
-    }
-
     /** Slop mínimo antes de iniciar drag horizontal (menor = más sensible). */
     fun dragPointerSlopPx(density: androidx.compose.ui.unit.Density): Float = with(density) {
         when (vitrinaProfileKey) {
-            "phone_landscape" -> 8.dp.toPx()
-            "tv_32", "tv_42", "tv_66", "tv_unknown" -> 10.dp.toPx()
-            "tablet_landscape" -> 10.dp.toPx()
-            else -> 7.dp.toPx()
+            "phone_landscape" -> 4.dp.toPx()
+            "tv_32", "tv_42", "tv_66", "tv_unknown" -> 5.dp.toPx()
+            "tablet_landscape" -> 5.dp.toPx()
+            else -> 4.dp.toPx()
         }
     }
 

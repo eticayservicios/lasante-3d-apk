@@ -12,10 +12,10 @@ object VitrinaConstants {
     const val UNIT_COUNT = 5
     const val SLOTS_PER_UNIT = 4
     const val ROTATION_STEP_DEGREES = 72f
-    /** Distancia horizontal mínima para snap ±1 unidad al soltar drag. */
-    const val DRAG_SNAP_THRESHOLD_PX = 40f
-    /** Grados de offset visual por píxel arrastrado (72° / 40px). */
-    const val DRAG_DEGREES_PER_PX = ROTATION_STEP_DEGREES / DRAG_SNAP_THRESHOLD_PX
+    /** Fracción del ancho de pantalla ≈ 1 unidad (72°). Menor = más sensible. */
+    const val DRAG_TRACK_WIDTH_SCREEN_FRACTION = 0.40f
+    /** Fracción de un paso (72°) para comprometer snap al soltar. */
+    const val DRAG_SNAP_COMMIT_FRACTION = 0.18f
 
     /**
      * GLB vitrina en CloudFront (Draco, ~26 MB). Se cachea en disco al abrir Intro.

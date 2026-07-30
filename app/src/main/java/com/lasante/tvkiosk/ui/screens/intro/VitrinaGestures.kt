@@ -8,35 +8,22 @@ import androidx.compose.ui.input.pointer.positionChange
 import kotlin.math.abs
 
 /**
- * Drag horizontal en los bordes laterales de la vitrina.
+ * Drag horizontal en bordes o cuerpo de la vitrina (misma lógica).
+ * Los wrappers públicos mantienen el call-site legible (edge vs body).
  */
 fun Modifier.vitrinaEdgeDragGesture(
     dragSlopPx: Float,
     onDragStart: () -> Unit,
     onDrag: (Float) -> Unit,
     onDragEnd: () -> Unit,
-): Modifier = vitrinaHorizontalDragGesture(
-    dragSlopPx = dragSlopPx,
-    onDragStart = onDragStart,
-    onDrag = onDrag,
-    onDragEnd = onDragEnd,
-)
+): Modifier = vitrinaHorizontalDragGesture(dragSlopPx, onDragStart, onDrag, onDragEnd)
 
-/**
- * Drag horizontal sobre toda el área de la vitrina (encima del SceneView).
- * Permite rotar deslizando el cilindro desde cualquier zona libre de tap.
- */
 fun Modifier.vitrinaBodyDragGesture(
     dragSlopPx: Float,
     onDragStart: () -> Unit,
     onDrag: (Float) -> Unit,
     onDragEnd: () -> Unit,
-): Modifier = vitrinaHorizontalDragGesture(
-    dragSlopPx = dragSlopPx,
-    onDragStart = onDragStart,
-    onDrag = onDrag,
-    onDragEnd = onDragEnd,
-)
+): Modifier = vitrinaHorizontalDragGesture(dragSlopPx, onDragStart, onDrag, onDragEnd)
 
 private fun Modifier.vitrinaHorizontalDragGesture(
     dragSlopPx: Float,
@@ -48,6 +35,7 @@ private fun Modifier.vitrinaHorizontalDragGesture(
         val down = awaitFirstDown(requireUnconsumed = false)
         var dragging = false
         var accumulatedX = 0f
+        var accumulatedY = 0f
 
         while (true) {
             val event = awaitPointerEvent()
@@ -61,7 +49,10 @@ private fun Modifier.vitrinaHorizontalDragGesture(
             val delta = change.positionChange()
             if (!dragging) {
                 accumulatedX += delta.x
-                if (abs(accumulatedX) >= dragSlopPx && abs(accumulatedX) > abs(delta.y) * 1.1f) {
+                accumulatedY += delta.y
+                if (abs(accumulatedX) >= dragSlopPx &&
+                    abs(accumulatedX) > abs(accumulatedY) * 1.05f
+                ) {
                     dragging = true
                     change.consume()
                     onDragStart()

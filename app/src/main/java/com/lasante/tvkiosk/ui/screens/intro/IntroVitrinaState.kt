@@ -19,6 +19,8 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.unit.dp
+import kotlin.math.abs
+import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
 private const val DEFAULT_AUTO_ROTATE_TIMEOUT_MS = 2 * 60 * 1000L
@@ -74,27 +76,13 @@ fun rememberVitrinaInteractionController(
     val lifecycleOwner = LocalLifecycleOwner.current
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current
-    val isTabletLandscape = configuration.screenWidthDp > configuration.screenHeightDp &&
-        configuration.screenWidthDp >= 640 &&
-        configuration.screenHeightDp >= 400
-    val isPhoneLandscape = configuration.screenWidthDp > configuration.screenHeightDp &&
-        configuration.screenHeightDp < 520 &&
-        !isTabletLandscape
-    val isTvLandscape = configuration.screenWidthDp >= 880 &&
-        configuration.screenHeightDp >= 480 &&
-        !isPhoneLandscape
-    val dragSnapThresholdPx = remember(isTabletLandscape, isPhoneLandscape, isTvLandscape, density) {
-        with(density) {
-            when {
-                // TV antes que tablet: ~961×529 es ambos.
-                isTvLandscape -> 30.dp.toPx()
-                isPhoneLandscape -> 22.dp.toPx()
-                isTabletLandscape -> 30.dp.toPx()
-                else -> 26.dp.toPx()
-            }
-        }
+    // Arrastre directo: ~40% del ancho de pantalla ≈ 1 unidad (72°).
+    val dragDegreesPerPx = remember(configuration.screenWidthDp, density) {
+        val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
+        val trackWidthPx = (screenWidthPx * VitrinaConstants.DRAG_TRACK_WIDTH_SCREEN_FRACTION)
+            .coerceAtLeast(1f)
+        VitrinaConstants.ROTATION_STEP_DEGREES / trackWidthPx
     }
-    val dragDegreesPerPx = VitrinaConstants.ROTATION_STEP_DEGREES / dragSnapThresholdPx
     var isForeground by remember {
         mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
     }
@@ -130,16 +118,38 @@ fun rememberVitrinaInteractionController(
 
     val isDragging = mode == VitrinaMode.Dragging
 
-    fun dragVisualOffsetDegrees(): Float {
-        val offset = -dragAccumulatedX * dragDegreesPerPx
-        return offset.coerceIn(
-            -VitrinaConstants.ROTATION_STEP_DEGREES,
-            VitrinaConstants.ROTATION_STEP_DEGREES,
-        )
-    }
+    /**
+     * Offset Y del mesh mientras se arrastra.
+     * Index+1 usa rotación más negativa (−72°); swipe izquierda (deltaX < 0) debe
+     * bajar el ángulo para previsualizar la unidad siguiente (no la anterior).
+     */
+    fun dragVisualOffsetDegrees(): Float = dragAccumulatedX * dragDegreesPerPx
 
     fun updateDragVisual() {
         baseRotationHandle?.setDragOffset(dragVisualOffsetDegrees())
+    }
+
+    /**
+     * Pasos de [activeIndex]: opuesto al offset de rotación porque
+     * subir de índice baja el ángulo Y del modelo.
+     */
+    fun dragStepsFromOffset(offsetDegrees: Float): Int {
+        val step = VitrinaConstants.ROTATION_STEP_DEGREES
+        val indexSpaceDegrees = -offsetDegrees
+        if (abs(indexSpaceDegrees) < step * VitrinaConstants.DRAG_SNAP_COMMIT_FRACTION) return 0
+        val raw = indexSpaceDegrees.div(step).roundToInt()
+        val maxSteps = (itemCount - 1).coerceAtLeast(1)
+        return raw.coerceIn(-maxSteps, maxSteps)
+    }
+
+    /** Cancela drag y restaura el cilindro a la unidad activa (p. ej. modal a mitad de gesto). */
+    fun abortDragToCurrentUnit() {
+        if (mode != VitrinaMode.Dragging) return
+        dragAccumulatedX = 0f
+        baseRotationHandle?.clearDragOffset()
+        baseRotationHandle?.setBaseDegrees(displayRotationDegrees)
+        mode = if (hasModalOpen) VitrinaMode.ModalOpen else VitrinaMode.Interactive
+        lastUserInteraction = System.currentTimeMillis()
     }
 
     // Productos siempre visibles salvo screen saver.
@@ -231,29 +241,30 @@ fun rememberVitrinaInteractionController(
     }
 
     fun handleDrag(deltaX: Float) {
-        if (mode == VitrinaMode.Dragging) {
-            dragAccumulatedX += deltaX
-            updateDragVisual()
-            lastUserInteraction = System.currentTimeMillis()
-        }
+        if (mode != VitrinaMode.Dragging) return
+        dragAccumulatedX += deltaX
+        updateDragVisual()
     }
 
     fun handleDragEnd() {
-        if (itemCount <= 0 || hasModalOpen || mode != VitrinaMode.Dragging) return
-        val totalDeltaX = dragAccumulatedX
-        baseRotationHandle?.clearDragOffset()
-        // Snap siempre a ±1 paso (igual que botón Rota)
-        val steps = when {
-            totalDeltaX < -dragSnapThresholdPx -> 1
-            totalDeltaX > dragSnapThresholdPx -> -1
-            else -> 0
+        if (mode != VitrinaMode.Dragging) return
+        if (itemCount <= 0 || hasModalOpen) {
+            abortDragToCurrentUnit()
+            return
         }
+        val offsetDegrees = dragVisualOffsetDegrees()
+        val steps = dragStepsFromOffset(offsetDegrees)
         dragAccumulatedX = 0f
+        baseRotationHandle?.commitDragIntoBase()
         android.util.Log.d(
             "VitrinaGesture",
-            "drag end deltaX=$totalDeltaX steps=$steps activeIndex=$activeIndex",
+            "drag end offsetDeg=$offsetDegrees steps=$steps activeIndex=$activeIndex",
         )
-        if (steps == 0) settleInteractive() else rotateBySteps(steps, source = "drag")
+        if (steps == 0) {
+            settleInteractive()
+        } else {
+            rotateBySteps(steps, source = "drag")
+        }
     }
 
     LaunchedEffect(itemCount, activeIndex) {
@@ -264,7 +275,11 @@ fun rememberVitrinaInteractionController(
 
     LaunchedEffect(hasModalOpen) {
         if (hasModalOpen) {
-            mode = VitrinaMode.ModalOpen
+            if (mode == VitrinaMode.Dragging) {
+                abortDragToCurrentUnit()
+            } else {
+                mode = VitrinaMode.ModalOpen
+            }
         } else if (mode == VitrinaMode.ModalOpen) {
             settleInteractive()
         }

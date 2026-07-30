@@ -150,6 +150,7 @@ fun BusinessUnitVitrina(
                             sceneActive = sceneActive && renderScene,
                             filamentRenderingEnabled = filamentRenderingEnabled && renderScene,
                             backdropBlurred = backdropBlurred,
+                            isDragging = isDragging,
                             onUnitAnchorCentersChanged = { projectedUnits = it },
                             onRotationAnimationFinished = onRotationAnimationFinished,
                             modifier = Modifier.fillMaxSize(),
