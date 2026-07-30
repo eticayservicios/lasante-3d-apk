@@ -209,7 +209,7 @@ fun BusinessUnitVitrina(
             // para que endPadding/protrude sí se noten en TV42.
             if (showOverlayControls) {
                 IntroActionButton(
-                    assetPath = "file:///android_asset/vitrina/ui/gira_cilindro.gif",
+                    assetPath = "file:///android_asset/vitrina/ui/gira.gif",
                     onClick = onRotateClick,
                     size = metrics.rotateButtonSize,
                     modifier = Modifier
@@ -223,6 +223,25 @@ fun BusinessUnitVitrina(
                 )
             }
 
+            if (showOverlayControls && vitrinaInteractionEnabled && showProducts) {
+                IntroActionButton(
+                    assetPath = "file:///android_asset/vitrina/ui/touch.gif",
+                    onClick = {
+                        onWakeFromIdle()
+                        onUnitClick(activeVitrinaUnit.unit.id)
+                    },
+                    size = metrics.rotateButtonSize,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(
+                            end = metrics.rotateButtonEndPadding,
+                            bottom = metrics.touchHintBottomPadding,
+                        )
+                        .offset(x = metrics.rotateButtonProtrudeOffset)
+                        .zIndex(40f),
+                )
+            }
+
             if (showOverlayControls) {
                 IntroActionButton(
                     assetPath = "file:///android_asset/vitrina/ui/Historia.gif",
@@ -231,7 +250,7 @@ fun BusinessUnitVitrina(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(
-                            top = metrics.featuredHintTopPadding,
+                            top = metrics.historyButtonTopPadding,
                             end = metrics.vitrinaOverlayEndPadding,
                         )
                         .offset(x = metrics.vitrinaOverlayEndOffset)

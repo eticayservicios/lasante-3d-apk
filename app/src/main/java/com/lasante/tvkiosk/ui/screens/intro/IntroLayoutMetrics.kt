@@ -152,6 +152,24 @@ data class IntroLayoutMetrics(
             else -> 31.dp
         }
 
+    /**
+     * Top padding del botón Historia (TopEnd).
+     * TV42: subir ~15%H vs baseline 44dp — justo bajo PRODUCTOS ESTRELLAS, a la derecha (como phone).
+     */
+    val historyButtonTopPadding: Dp
+        get() = when (vitrinaProfileKey) {
+            "phone_landscape" -> 2.dp
+            "tv_42", "tablet_landscape" -> {
+                val raised = 44.dp - maxHeight * 0.15f
+                if (raised < 4.dp) 4.dp else raised
+            }
+            "tv_32" -> 33.dp
+            "tv_66" -> 44.dp
+            "expanded" -> 41.dp
+            "short_height" -> 27.dp
+            else -> 31.dp
+        }
+
     /** Ajuste fino vertical del hint (+ = abajo, − = subir). */
     val featuredHintVerticalOffset: Dp
         get() = 0.dp
@@ -219,7 +237,9 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 0.56f
             "phone_portrait" -> 0.60f
-            "tv_42", "tv_66", "tablet_landscape" -> 0.72f
+            "tv_42", "tablet_landscape" -> 0.72f
+            // TV66: fila un poco mas ancha para caber burbujas +25%.
+            "tv_66" -> 0.78f
             "tv_32" -> 0.60f
             "short_height" -> 0.58f
             "expanded" -> 0.60f
@@ -251,8 +271,8 @@ data class IntroLayoutMetrics(
             "phone_landscape" -> 54.dp
             "phone_portrait" -> 81.dp
             "tv_42", "tablet_landscape" -> 89.dp
-            // TV66: +10% vs baseline 89.
-            "tv_66" -> 89.dp * 1.10f
+            // TV66: +50% vs baseline 89 (+20% sobre el 1.25 previo, para verlo en emulador).
+            "tv_66" -> 89.dp * 1.50f
             "tv_32" -> 81.dp
             "short_height" -> 78.dp
             "expanded" -> 84.dp
@@ -265,8 +285,8 @@ data class IntroLayoutMetrics(
             "phone_landscape" -> 9.dp
             "phone_portrait" -> 5.dp
             "tv_42", "tablet_landscape" -> 28.dp
-            // TV66: baseline 28 + 5% del diámetro a cada lado (coherente con +10% tamaño).
-            "tv_66" -> 28.dp + (89.dp * 1.10f) * 0.05f * 2f
+            // TV66: baseline 28 + 5% del diámetro a cada lado.
+            "tv_66" -> 28.dp + (89.dp * 1.50f) * 0.05f * 2f
             "tv_32" -> 7.dp
             "short_height" -> 4.dp
             "expanded" -> 7.dp
@@ -481,17 +501,28 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 54.dp
             "short_height" -> 64.dp
-            "tv_32", "tv_42", "tv_66", "tablet_landscape" -> 78.dp
+            "tv_32", "tv_42", "tablet_landscape" -> 78.dp
+            // TV66: +30% vs baseline 78 (gira / historia / touch).
+            "tv_66" -> 78.dp * 1.30f
             "expanded" -> 88.dp
             "tv_unknown" -> 80.dp
             else -> 70.dp
         }
 
+    /** Padding inferior del hint touch.gif (base de la vitrina). */
+    val touchHintBottomPadding: Dp
+        get() = when (vitrinaProfileKey) {
+            // Phone: subir por encima del logo La Santé.
+            "phone_landscape" -> maxHeight * 0.12f
+            "tv_32", "tv_42", "tv_66", "tablet_landscape" -> maxHeight * 0.04f
+            else -> maxHeight * 0.03f
+        }
+
     /** Borde derecho del cilindro 3D — botón Nuestra Historia (padding ≥ 0). */
     val vitrinaOverlayEndPadding: Dp
         get() = when (vitrinaProfileKey) {
-            "phone_landscape", "tv_32" -> 0.dp
-            "tv_42", "tv_66", "tablet_landscape" -> 2.dp
+            "phone_landscape", "tv_32", "tv_42", "tablet_landscape" -> 0.dp
+            "tv_66" -> 4.dp
             else -> 4.dp
         }
 
@@ -499,6 +530,8 @@ data class IntroLayoutMetrics(
     val vitrinaOverlayEndOffset: Dp
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 2.dp
+            // TV42/tablet: más a la derecha, estilo phone.
+            "tv_42", "tablet_landscape" -> 8.dp
             else -> 0.dp
         }
 
@@ -511,7 +544,9 @@ data class IntroLayoutMetrics(
             "phone_landscape" -> 0.dp
             "tv_32" -> 8.dp
             // Pegado al cilindro con un poco de aire (~estante medio).
-            "tv_42", "tv_66", "tablet_landscape" -> 40.dp
+            "tv_42", "tablet_landscape" -> 40.dp
+            // TV66: más cerca de la vitrina.
+            "tv_66" -> 58.dp
             else -> 6.dp
         }
 
@@ -523,11 +558,13 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> {
                 // Anclado al borde de escena: compensar el handle derecho para no mover Infinix.
+                // -5.dp extra: pegar un poco más hacia la vitrina.
                 val pullTowardCylinder = maxWidth * 0.12f
                 val pull = if (pullTowardCylinder > 56.dp) pullTowardCylinder else 56.dp
-                -(pull + dragHandleWidth)
+                -(pull + dragHandleWidth) - 5.dp
             }
-            "tv_42", "tv_66", "tablet_landscape" -> 0.dp
+            "tv_42", "tablet_landscape" -> 0.dp
+            "tv_66" -> (-4).dp
             "tv_32" -> (-6).dp
             else -> 4.dp
         }
