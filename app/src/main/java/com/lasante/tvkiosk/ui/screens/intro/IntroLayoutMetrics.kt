@@ -395,15 +395,35 @@ data class IntroLayoutMetrics(
 
     val socialIconSize: Dp
         get() = when (vitrinaProfileKey) {
-            "phone_landscape" -> 24.dp
-            "tv_42", "tv_66", "tablet_landscape" -> 39.dp
+            // Phone: +30% vs baseline 24.
+            "phone_landscape" -> 24.dp * 1.30f
+            "tv_42", "tablet_landscape" -> 39.dp
+            // TV66: mismo tamaño que Gira / Touch.
+            "tv_66" -> rotateButtonSize
             "tv_32" -> 46.dp
             else -> if (isCompactWidth) 30.dp else 37.dp
         }
 
     /** Espacio vertical entre iconos de redes sociales. */
     val socialIconSpacing: Dp
-        get() = 30.dp
+        get() = when (vitrinaProfileKey) {
+            // TV66: redes más grandes → más aire vertical que TV42 (30.dp).
+            "tv_66" -> 42.dp
+            else -> 30.dp
+        }
+
+    /**
+     * Pull-up del rail BadgeHistoria + logo (mismo criterio que PRODUCTOS ESTRELLAS).
+     * TV42/tablet: −3%H vs pull-up de estrellas (antes −5%; se subió 2% porque se bajó de más).
+     */
+    val historiaRailTopPullUp: Dp
+        get() = when (vitrinaProfileKey) {
+            "tv_42", "tablet_landscape" -> {
+                val lowered = bubblesBadgeTopPullUp - maxHeight * 0.03f
+                if (lowered < 0.dp) 0.dp else lowered
+            }
+            else -> bubblesBadgeTopPullUp
+        }
 
     /** Inset izquierdo de redes — 10% del ancho para acercarlas a la vitrina. */
     val socialStartPadding: Dp

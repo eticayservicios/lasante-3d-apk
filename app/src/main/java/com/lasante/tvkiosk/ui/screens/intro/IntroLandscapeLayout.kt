@@ -148,7 +148,7 @@ fun IntroResponsiveLayout(
             )
 
             // Rail derecho: BadgeHistoria (tope como PRODUCTOS ESTRELLAS) + logo debajo (sin solape).
-            val pullUp = metrics.bubblesBadgeTopPullUp
+            val pullUp = metrics.historiaRailTopPullUp
             val railHeight = metrics.maxHeight - metrics.verticalPadding * 2 + pullUp
             Column(
                 modifier = Modifier
