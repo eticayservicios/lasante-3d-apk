@@ -2,7 +2,10 @@ package com.lasante.tvkiosk.ui.screens.intro
 
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
@@ -19,6 +22,9 @@ fun Modifier.vitrinaEdgeDragGesture(
 /**
  * Capa única sobre la vitrina (todos los perfiles):
  * swipe horizontal → rotar; tap corto → [onTap] con la posición del toque.
+ *
+ * Usa [rememberUpdatedState] para que el tap use siempre el [activeIndex] /
+ * unitId actuales (si no, tras girar el pointerInput queda con la unidad anterior).
  */
 fun Modifier.vitrinaTapOrHorizontalDragGesture(
     dragSlopPx: Float,
@@ -26,49 +32,56 @@ fun Modifier.vitrinaTapOrHorizontalDragGesture(
     onDragStart: () -> Unit,
     onDrag: (Float) -> Unit,
     onDragEnd: () -> Unit,
-): Modifier = pointerInput(dragSlopPx) {
-    awaitEachGesture {
-        val down = awaitFirstDown(requireUnconsumed = false)
-        var dragging = false
-        var accumulatedX = 0f
-        var accumulatedY = 0f
+): Modifier = composed {
+    val currentOnTap by rememberUpdatedState(onTap)
+    val currentOnDragStart by rememberUpdatedState(onDragStart)
+    val currentOnDrag by rememberUpdatedState(onDrag)
+    val currentOnDragEnd by rememberUpdatedState(onDragEnd)
 
-        try {
-            while (true) {
-                val event = awaitPointerEvent()
-                val change = event.changes.firstOrNull { it.id == down.id }
-                if (change == null) break
+    pointerInput(dragSlopPx) {
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false)
+            var dragging = false
+            var accumulatedX = 0f
+            var accumulatedY = 0f
 
-                if (!change.pressed) {
-                    if (dragging) {
-                        onDragEnd()
-                        dragging = false
-                    } else if (abs(accumulatedX) < dragSlopPx && abs(accumulatedY) < dragSlopPx) {
-                        onTap(down.position)
+            try {
+                while (true) {
+                    val event = awaitPointerEvent()
+                    val change = event.changes.firstOrNull { it.id == down.id }
+                    if (change == null) break
+
+                    if (!change.pressed) {
+                        if (dragging) {
+                            currentOnDragEnd()
+                            dragging = false
+                        } else if (abs(accumulatedX) < dragSlopPx && abs(accumulatedY) < dragSlopPx) {
+                            currentOnTap(down.position)
+                        }
+                        break
                     }
-                    break
-                }
 
-                val delta = change.positionChange()
-                if (!dragging) {
-                    accumulatedX += delta.x
-                    accumulatedY += delta.y
-                    if (abs(accumulatedX) >= dragSlopPx &&
-                        abs(accumulatedX) >= abs(accumulatedY)
-                    ) {
-                        dragging = true
+                    val delta = change.positionChange()
+                    if (!dragging) {
+                        accumulatedX += delta.x
+                        accumulatedY += delta.y
+                        if (abs(accumulatedX) >= dragSlopPx &&
+                            abs(accumulatedX) >= abs(accumulatedY)
+                        ) {
+                            dragging = true
+                            change.consume()
+                            currentOnDragStart()
+                            currentOnDrag(accumulatedX)
+                        }
+                    } else {
                         change.consume()
-                        onDragStart()
-                        onDrag(accumulatedX)
+                        currentOnDrag(delta.x)
                     }
-                } else {
-                    change.consume()
-                    onDrag(delta.x)
                 }
+            } finally {
+                // Cancelación / pointer perdido / composición: no dejar modo Dragging colgado.
+                if (dragging) currentOnDragEnd()
             }
-        } finally {
-            // Cancelación / pointer perdido / composición: no dejar modo Dragging colgado.
-            if (dragging) onDragEnd()
         }
     }
 }
@@ -78,46 +91,52 @@ private fun Modifier.vitrinaHorizontalDragGesture(
     onDragStart: () -> Unit,
     onDrag: (Float) -> Unit,
     onDragEnd: () -> Unit,
-): Modifier = pointerInput(dragSlopPx) {
-    awaitEachGesture {
-        val down = awaitFirstDown(requireUnconsumed = false)
-        var dragging = false
-        var accumulatedX = 0f
-        var accumulatedY = 0f
+): Modifier = composed {
+    val currentOnDragStart by rememberUpdatedState(onDragStart)
+    val currentOnDrag by rememberUpdatedState(onDrag)
+    val currentOnDragEnd by rememberUpdatedState(onDragEnd)
 
-        try {
-            while (true) {
-                val event = awaitPointerEvent()
-                val change = event.changes.firstOrNull { it.id == down.id }
-                if (change == null) break
+    pointerInput(dragSlopPx) {
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false)
+            var dragging = false
+            var accumulatedX = 0f
+            var accumulatedY = 0f
 
-                if (!change.pressed) {
-                    if (dragging) {
-                        onDragEnd()
-                        dragging = false
+            try {
+                while (true) {
+                    val event = awaitPointerEvent()
+                    val change = event.changes.firstOrNull { it.id == down.id }
+                    if (change == null) break
+
+                    if (!change.pressed) {
+                        if (dragging) {
+                            currentOnDragEnd()
+                            dragging = false
+                        }
+                        break
                     }
-                    break
-                }
 
-                val delta = change.positionChange()
-                if (!dragging) {
-                    accumulatedX += delta.x
-                    accumulatedY += delta.y
-                    if (abs(accumulatedX) >= dragSlopPx &&
-                        abs(accumulatedX) >= abs(accumulatedY)
-                    ) {
-                        dragging = true
+                    val delta = change.positionChange()
+                    if (!dragging) {
+                        accumulatedX += delta.x
+                        accumulatedY += delta.y
+                        if (abs(accumulatedX) >= dragSlopPx &&
+                            abs(accumulatedX) >= abs(accumulatedY)
+                        ) {
+                            dragging = true
+                            change.consume()
+                            currentOnDragStart()
+                            currentOnDrag(accumulatedX)
+                        }
+                    } else {
                         change.consume()
-                        onDragStart()
-                        onDrag(accumulatedX)
+                        currentOnDrag(delta.x)
                     }
-                } else {
-                    change.consume()
-                    onDrag(delta.x)
                 }
+            } finally {
+                if (dragging) currentOnDragEnd()
             }
-        } finally {
-            if (dragging) onDragEnd()
         }
     }
 }

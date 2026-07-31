@@ -120,7 +120,8 @@ object DeviceProfileResolver {
             DeviceProfileTier.TV_LARGE -> SharedGridMetrics(
                 columns = 4,
                 horizontalPadding = 42.dp,
-                maxContentWidth = 1332.dp,
+                // +30% vs 1332: más ancho útil en clases y productos (márgenes laterales menos agresivos).
+                maxContentWidth = 1732.dp,
                 contentPadding = 10.dp,
                 cardSpacing = 24.dp,
                 topPadding = 58.dp,

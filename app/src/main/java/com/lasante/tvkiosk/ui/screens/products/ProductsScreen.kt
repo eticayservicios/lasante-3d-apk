@@ -1,6 +1,5 @@
 package com.lasante.tvkiosk.ui.screens.products
 
-import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -21,8 +20,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -38,7 +36,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
@@ -52,9 +49,11 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.lasante.tvkiosk.data.CatalogRepository
+import com.lasante.tvkiosk.data.DisplayTitles
 import com.lasante.tvkiosk.data.Product
 import com.lasante.tvkiosk.ui.components.GreenNavButton
 import com.lasante.tvkiosk.ui.components.LaSanteBackground
+import com.lasante.tvkiosk.ui.components.LaSanteScreenTitle
 import com.lasante.tvkiosk.ui.components.RealGreenScrollBar
 import com.lasante.tvkiosk.ui.components.TreatmentIconAssets
 import com.lasante.tvkiosk.ui.layout.DeviceProfileResolver
@@ -136,14 +135,14 @@ fun ProductsScreen(
             val isTv66 = profile.tier == DeviceProfileTier.TV_LARGE
             val isTv42 = profile.tier == DeviceProfileTier.TV_REGULAR
             val isTv = isTv42 || isTv66
+            val isPhone = profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE ||
+                profile.tier == DeviceProfileTier.COMPACT_PORTRAIT
             val columns = when (profile.tier) {
                 DeviceProfileTier.TV_LARGE -> 3
                 DeviceProfileTier.COMPACT_PORTRAIT -> 2
                 else -> if (profile.isLandscape) 4 else 2
             }
             val buttonSize = uiMetrics.navButtonSize
-            val gridHorizontalPadding = grid.horizontalPadding
-            val gridContentStartPadding = grid.contentPadding
             val topPadding = grid.topPadding
 
             var searchQuery by remember { mutableStateOf("") }
@@ -239,18 +238,15 @@ fun ProductsScreen(
 
             val showScrollbar = filteredProducts.isNotEmpty()
 
+            val horizontalPadding = grid.horizontalPadding
+            val contentPadding = grid.contentPadding
+            val gridMaxWidth = grid.maxContentWidth
             val badgeWidth = uiMetrics.badgeHeight * TreatmentUiMetrics.BADGE_WIDTH_TO_HEIGHT
-            val badgeEndGap = when (profile.tier) {
-                DeviceProfileTier.COMPACT_LANDSCAPE -> 18.dp
-                DeviceProfileTier.TV_REGULAR -> 20.dp
-                DeviceProfileTier.TV_LARGE -> 16.dp
-                else -> 14.dp
-            }
-            val headerEndInsetFromBadge = badgeWidth + badgeEndGap
-            val navStartPadding = gridContentStartPadding + when {
-                isPhoneLandscape -> 10.dp
-                isLandscape -> 8.dp
-                else -> 4.dp
+            val titleStartGap = badgeWidth + when {
+                isPhoneLandscape -> 18.dp
+                isTv66 -> 28.dp
+                isTv42 -> 22.dp
+                else -> 20.dp
             }
             val searchBarWidth = when (profile.tier) {
                 DeviceProfileTier.TV_REGULAR -> 320.dp
@@ -260,260 +256,271 @@ fun ProductsScreen(
             }
 
             Box(modifier = Modifier.fillMaxSize()) {
-            Column(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        start = gridHorizontalPadding,
-                        end = when (profile.tier) {
-                            DeviceProfileTier.TV_LARGE -> 24.dp
-                            DeviceProfileTier.TV_REGULAR -> 16.dp
-                            DeviceProfileTier.COMPACT_LANDSCAPE -> 10.dp
-                            else -> if (profile.isLandscape) 16.dp else 16.dp
-                        },
-                        top = topPadding,
-                        bottom = if (isLandscape) 6.dp else 8.dp,
-                    ),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = topPadding),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Row(
-                        modifier = Modifier.padding(start = navStartPadding),
-                        horizontalArrangement = Arrangement.spacedBy(if (isLandscape) 16.dp else 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        GreenNavButton(
-                            assetPath = "svg/ui/Before.svg",
-                            contentDescription = "Volver",
-                            onClick = onBack,
-                            size = buttonSize,
-                        )
-                        GreenNavButton(
-                            assetPath = "svg/ui/Home.svg",
-                            contentDescription = "Inicio",
-                            onClick = onHome,
-                            size = buttonSize,
-                        )
-                    }
-
-                    Box(
+                    Column(
                         modifier = Modifier
                             .weight(1f)
-                            .padding(horizontal = if (isPhoneLandscape) 6.dp else 8.dp),
-                        contentAlignment = Alignment.Center,
+                            .widthIn(max = gridMaxWidth)
+                            .fillMaxWidth()
+                            .padding(horizontal = horizontalPadding),
                     ) {
-                        ProductsTitle(
-                            text = treatmentName,
-                            isLandscape = isLandscape,
-                            isTv42 = isTv42,
-                            isPhoneLandscape = isPhoneLandscape,
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.padding(
-                            end = headerEndInsetFromBadge,
-                        ),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(if (isPhoneLandscape) 6.dp else 8.dp),
-                    ) {
-                        AsyncImage(
-                            model = "file:///android_asset/vitrina/ui/filter_button.png",
-                            contentDescription = "Filtrar",
+                        Row(
                             modifier = Modifier
-                                .size(when {
-                                    isTv42 -> 30.dp
-                                    isPhoneLandscape -> 24.dp
-                                    isLandscape -> 28.dp
-                                    else -> 26.dp
-                                })
-                                .clickableWithSound { showFilterSheet = true },
-                            contentScale = ContentScale.Fit,
-                        )
+                                .fillMaxWidth()
+                                .padding(horizontal = contentPadding),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            LaSanteScreenTitle(
+                                text = DisplayTitles.resolve(treatmentName),
+                                fontSize = nav.titleFontSize.value.toInt() + 2,
+                                textColor = LaSanteText,
+                                underlineBrush = Brush.horizontalGradient(
+                                    listOf(Color(0xFF8FA88A), Color(0xFFD5D8D2), Color.White),
+                                ),
+                                underlineWidth = nav.titleUnderlineWidth,
+                                underlineMatchTextWidth = true,
+                                textAlign = TextAlign.Start,
+                                fontFamily = MaterialTheme.typography.bodyLarge.fontFamily,
+                                fontWeight = FontWeight.Light,
+                                allCaps = false,
+                                modifier = Modifier.padding(start = titleStartGap),
+                            )
+
+                            Spacer(modifier = Modifier.weight(1f))
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(
+                                    if (isPhoneLandscape) 6.dp else 8.dp,
+                                ),
+                            ) {
+                                AsyncImage(
+                                    model = "file:///android_asset/vitrina/ui/filter_button.png",
+                                    contentDescription = "Filtrar",
+                                    modifier = Modifier
+                                        .size(
+                                            when {
+                                                isTv42 -> 30.dp
+                                                isPhoneLandscape -> 24.dp
+                                                isLandscape -> 28.dp
+                                                else -> 26.dp
+                                            },
+                                        )
+                                        .clickableWithSound { showFilterSheet = true },
+                                    contentScale = ContentScale.Fit,
+                                )
+
+                                Box(
+                                    modifier = Modifier
+                                        .width(searchBarWidth)
+                                        .height(
+                                            when {
+                                                isTv42 -> 32.dp
+                                                isPhoneLandscape -> 28.dp
+                                                isLandscape -> 30.dp
+                                                else -> 28.dp
+                                            },
+                                        )
+                                        .shadow(elevation = 2.dp, shape = RoundedCornerShape(50.dp))
+                                        .clip(RoundedCornerShape(50.dp))
+                                        .background(
+                                            Brush.horizontalGradient(
+                                                colors = listOf(Color(0xFFF8F8F8), Color(0xFFD0D0D0)),
+                                            ),
+                                        )
+                                        .padding(horizontal = if (isLandscape) 10.dp else 8.dp),
+                                    contentAlignment = Alignment.CenterStart,
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    ) {
+                                        AsyncImage(
+                                            model = "file:///android_asset/vitrina/ui/search_icon.png",
+                                            contentDescription = null,
+                                            modifier = Modifier.size(if (isLandscape) 16.dp else 14.dp),
+                                            contentScale = ContentScale.Fit,
+                                        )
+                                        BasicTextField(
+                                            value = searchQuery,
+                                            onValueChange = { searchQuery = it },
+                                            textStyle = TextStyle(
+                                                color = LaSanteText,
+                                                fontSize = if (isTv66) 13.sp else if (isLandscape) 12.sp else 11.sp,
+                                            ),
+                                            cursorBrush = SolidColor(LaSanteGreen),
+                                            modifier = Modifier.weight(1f),
+                                            singleLine = true,
+                                            decorationBox = { innerTextField ->
+                                                if (searchQuery.isEmpty()) {
+                                                    Text(
+                                                        "Buscar Producto",
+                                                        color = LaSanteTextSecondary,
+                                                        fontSize = if (isTv66) 13.sp else if (isLandscape) 12.sp else 11.sp,
+                                                    )
+                                                }
+                                                innerTextField()
+                                            },
+                                        )
+                                        if (isSearching) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(12.dp),
+                                                strokeWidth = 2.dp,
+                                                color = LaSanteGreen,
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(nav.buttonSpacing),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    GreenNavButton(
+                                        assetPath = "svg/ui/Before.svg",
+                                        contentDescription = "Volver",
+                                        onClick = onBack,
+                                        size = buttonSize,
+                                    )
+                                    GreenNavButton(
+                                        assetPath = "svg/ui/Home.svg",
+                                        contentDescription = "Inicio",
+                                        onClick = onHome,
+                                        size = buttonSize,
+                                    )
+                                }
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    start = contentPadding,
+                                    end = contentPadding,
+                                    top = if (isPhoneLandscape) 4.dp else 5.dp,
+                                ),
+                            horizontalArrangement = Arrangement.End,
+                        ) {
+                            ProductsSortButton(
+                                sortOrder = sortOrder,
+                                onSortClick = {
+                                    sortOrder = when (sortOrder) {
+                                        SortOrder.NONE -> SortOrder.AZ
+                                        SortOrder.AZ -> SortOrder.ZA
+                                        SortOrder.ZA -> SortOrder.NONE
+                                    }
+                                },
+                                isLandscape = isLandscape,
+                                isTv66 = isTv66,
+                                isTv42 = isTv42,
+                            )
+                        }
 
                         Box(
                             modifier = Modifier
-                                .width(searchBarWidth)
-                                .height(when {
-                                    isTv42 -> 32.dp
-                                    isPhoneLandscape -> 28.dp
-                                    isLandscape -> 30.dp
-                                    else -> 28.dp
-                                })
-                                .shadow(elevation = 2.dp, shape = RoundedCornerShape(50.dp))
-                                .clip(RoundedCornerShape(50.dp))
-                                .background(
-                                    Brush.horizontalGradient(
-                                        colors = listOf(Color(0xFFF8F8F8), Color(0xFFD0D0D0)),
-                                    ),
-                                )
-                                .padding(horizontal = if (isLandscape) 10.dp else 8.dp),
-                            contentAlignment = Alignment.CenterStart,
+                                .weight(1f)
+                                .fillMaxWidth(),
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            ) {
-                                AsyncImage(
-                                    model = "file:///android_asset/vitrina/ui/search_icon.png",
-                                    contentDescription = null,
-                                    modifier = Modifier.size(if (isLandscape) 16.dp else 14.dp),
-                                    contentScale = ContentScale.Fit,
-                                )
-                                BasicTextField(
-                                    value = searchQuery,
-                                    onValueChange = { searchQuery = it },
-                                    textStyle = TextStyle(
-                                        color = LaSanteText,
-                                        fontSize = if (isTv66) 13.sp else if (isLandscape) 12.sp else 11.sp,
-                                    ),
-                                    cursorBrush = SolidColor(LaSanteGreen),
-                                    modifier = Modifier.weight(1f),
-                                    singleLine = true,
-                                    decorationBox = { innerTextField ->
-                                        if (searchQuery.isEmpty()) {
-                                            Text(
-                                                "Buscar Producto",
-                                                color = LaSanteTextSecondary,
-                                                fontSize = if (isTv66) 13.sp else if (isLandscape) 12.sp else 11.sp,
-                                            )
-                                        }
-                                        innerTextField()
+                            LazyVerticalGrid(
+                                state = gridState,
+                                columns = GridCells.Fixed(columns),
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(
+                                    start = contentPadding,
+                                    end = if (showScrollbar) {
+                                        (if (isLandscape) 48.dp else 40.dp) + contentPadding
+                                    } else {
+                                        contentPadding
                                     },
-                                )
-                                if (isSearching) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(12.dp),
-                                        strokeWidth = 2.dp,
-                                        color = LaSanteGreen,
+                                    top = 16.dp,
+                                    bottom = 32.dp,
+                                ),
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            ) {
+                                items(
+                                    count = filteredProducts.size,
+                                    key = { index -> filteredProducts[index].productoId },
+                                ) { index ->
+                                    ProductGridItem(
+                                        product = filteredProducts[index],
+                                        isLandscape = isLandscape,
+                                        isPhone = isPhone,
+                                        isTv66 = isTv66,
+                                        onClick = { onProductSelected(filteredProducts[index]) },
                                     )
+                                }
+                            }
+
+                            if (showScrollbar) {
+                                Column(
+                                    modifier = Modifier
+                                        .align(Alignment.CenterEnd)
+                                        .width(if (isLandscape) 48.dp else 40.dp)
+                                        .fillMaxHeight()
+                                        .padding(bottom = 24.dp, top = 24.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    IconButton(onClick = {
+                                        coroutineScope.launch { gridState.animateScrollToItem(0) }
+                                    }) {
+                                        Icon(
+                                            Icons.Default.KeyboardArrowUp,
+                                            contentDescription = null,
+                                            tint = LaSanteGreen,
+                                        )
+                                    }
+                                    RealGreenScrollBar(
+                                        scrollFraction = scrollInfo.value.first,
+                                        thumbFraction = scrollInfo.value.second,
+                                        modifier = Modifier.weight(1f).padding(vertical = 4.dp),
+                                    )
+                                    IconButton(onClick = {
+                                        coroutineScope.launch {
+                                            gridState.animateScrollToItem(filteredProducts.size - 1)
+                                        }
+                                    }) {
+                                        Icon(
+                                            Icons.Default.KeyboardArrowDown,
+                                            contentDescription = null,
+                                            tint = LaSanteGreen,
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
 
-                Row(
+                // Badge pegado al top (como antes), a la izquierda; título queda separado vía titleStartGap.
+                TreatmentIconBadge(
+                    iconUrl = treatmentIconUrl,
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .align(Alignment.TopStart)
+                        .offset {
+                            IntOffset(
+                                0,
+                                if (isPhoneLandscape) (-10).dp.roundToPx()
+                                else if (isTv42) (-6).dp.roundToPx()
+                                else 0,
+                            )
+                        }
                         .padding(
-                            top = if (isPhoneLandscape) 4.dp else 5.dp,
-                            end = headerEndInsetFromBadge,
+                            start = horizontalPadding + contentPadding,
+                            top = 0.dp,
                         ),
-                    horizontalArrangement = Arrangement.End,
-                ) {
-                    ProductsSortButton(
-                        sortOrder = sortOrder,
-                        onSortClick = {
-                            sortOrder = when (sortOrder) {
-                                SortOrder.NONE -> SortOrder.AZ
-                                SortOrder.AZ -> SortOrder.ZA
-                                SortOrder.ZA -> SortOrder.NONE
-                            }
-                        },
-                        isLandscape = isLandscape,
-                        isTv66 = isTv66,
-                        isTv42 = isTv42,
-                    )
-                }
-            }
-
-                // Contenedor principal de la cuadrícula de productos SIN borde
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = gridHorizontalPadding),
-                ) {
-                    LazyVerticalGrid(
-                        state = gridState,
-                        columns = GridCells.Fixed(columns),
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(
-                            start = gridContentStartPadding,
-                            end = if (showScrollbar) (if (isLandscape) 48.dp else 40.dp) + 16.dp else 16.dp,
-                            top = 16.dp,
-                            bottom = 32.dp,
-                        ),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        items(
-                            count = filteredProducts.size,
-                            key = { index -> filteredProducts[index].productoId },
-                        ) { index ->
-                            ProductGridItem(
-                                product = filteredProducts[index],
-                                isLandscape = isLandscape,
-                                isPhoneLandscape = isPhoneLandscape,
-                                isTv42 = isTv42,
-                                isTv66 = isTv66,
-                                onClick = { onProductSelected(filteredProducts[index]) },
-                            )
-                        }
-                    }
-
-                    if (showScrollbar) {
-                        Column(
-                            modifier = Modifier
-                                .align(Alignment.CenterEnd)
-                                .width(if (isLandscape) 48.dp else 40.dp)
-                                .fillMaxHeight()
-                                .padding(bottom = 24.dp, top = 24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            IconButton(onClick = {
-                                coroutineScope.launch { gridState.animateScrollToItem(0) }
-                            }) {
-                                Icon(Icons.Default.KeyboardArrowUp, contentDescription = null, tint = LaSanteGreen)
-                            }
-                            RealGreenScrollBar(
-                                scrollFraction = scrollInfo.value.first,
-                                thumbFraction = scrollInfo.value.second,
-                                modifier = Modifier.weight(1f).padding(vertical = 4.dp),
-                            )
-                            IconButton(onClick = {
-                                coroutineScope.launch { gridState.animateScrollToItem(filteredProducts.size - 1) }
-                            }) {
-                                Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = LaSanteGreen)
-                            }
-                        }
-                    }
-                }
-            }
-
-            TreatmentIconBadge(
-                iconUrl = treatmentIconUrl,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .offset {
-                        IntOffset(
-                            0,
-                            if (isPhoneLandscape) (-10).dp.roundToPx() else if (isTv42) (-6).dp.roundToPx() else 0,
-                        )
-                    }
-                    .padding(
-                        top = when {
-                            isPhoneLandscape -> 8.dp
-                            isTv42 -> 12.dp
-                            isLandscape -> 16.dp
-                            else -> 10.dp
-                        },
-                        end = when {
-                            isPhoneLandscape -> 10.dp
-                            isTv -> 16.dp
-                            isLandscape -> 12.dp
-                            else -> 10.dp
-                        },
-                    ),
-                isPhoneLandscape = isPhoneLandscape,
-                isTv42 = isTv42,
-                isTv = isTv,
-                isTv66 = isTv66,
-            )
+                    isPhoneLandscape = isPhoneLandscape,
+                    isTv42 = isTv42,
+                    isTv = isTv,
+                    isTv66 = isTv66,
+                )
             }
 
             if (showFilterSheet) {
@@ -584,52 +591,6 @@ private fun ProductsSortButton(
 }
 
 @Composable
-private fun ProductsTitle(
-    text: String,
-    isLandscape: Boolean,
-    isTv42: Boolean = false,
-    isPhoneLandscape: Boolean = false,
-    modifier: Modifier = Modifier,
-) {
-    val underlineBrush = Brush.horizontalGradient(listOf(LaSanteGreen, Color(0xFFC5E1A5)))
-    val density = LocalDensity.current
-    var underlineWidth by remember(text) { mutableStateOf(0.dp) }
-
-    Column(
-        modifier = modifier.wrapContentSize(align = Alignment.TopStart),
-        horizontalAlignment = Alignment.Start,
-    ) {
-        Text(
-            text = text.uppercase(),
-            onTextLayout = { layout ->
-                underlineWidth = with(density) { layout.size.width.toDp() }
-            },
-            style = MaterialTheme.typography.headlineSmall.copy(
-                brush = underlineBrush,
-                fontSize = when {
-                    isTv42 -> 25.sp
-                    isPhoneLandscape -> 17.sp
-                    isLandscape -> 25.sp
-                    else -> 20.sp
-                },
-                letterSpacing = 0.sp,
-            ),
-            maxLines = 1,
-            overflow = TextOverflow.Clip,
-            softWrap = false,
-        )
-        if (underlineWidth > 0.dp) {
-            Box(
-                modifier = Modifier
-                    .width(underlineWidth)
-                    .height(2.dp)
-                    .background(underlineBrush, RoundedCornerShape(1.dp)),
-            )
-        }
-    }
-}
-
-@Composable
 private fun TreatmentIconBadge(
     iconUrl: String?,
     modifier: Modifier = Modifier,
@@ -679,60 +640,68 @@ private fun TreatmentIconBadge(
 private fun ProductGridItem(
     product: Product,
     isLandscape: Boolean,
-    isPhoneLandscape: Boolean = false,
-    isTv42: Boolean = false,
+    isPhone: Boolean = false,
     isTv66: Boolean = false,
     onClick: () -> Unit,
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
-    val gridImageSizePx = with(density) {
-        (if (isTv66) 224.dp else if (isLandscape) 152.dp else 124.dp).roundToPx()
+    // Alto del card (gris); en phone la imagen interior va al 50% y el card no cambia.
+    val imageHeight = when {
+        isTv66 -> 168.dp
+        isLandscape -> 150.dp
+        else -> 120.dp
     }
+    val imageFillFraction = if (isPhone) 0.5f else 1f
+    val gridImageSizePx = with(density) { (imageHeight * imageFillFraction).roundToPx() }
+    val titleFontSize = when {
+        isTv66 -> 16.sp
+        isLandscape -> 13.sp
+        else -> 11.sp
+    }
+    val strengthFontSize = when {
+        isTv66 -> 14.sp
+        isLandscape -> 12.sp
+        else -> 10.sp
+    }
+    val titleBrush = Brush.horizontalGradient(
+        listOf(LaSanteGreenDark, LaSanteGreen, Color(0xFFA8C829)),
+    )
+    val (titlePart, strengthPart) = remember(product.name) { splitProductTitleAndStrength(product.name) }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(elevation = 0.dp, shape = RoundedCornerShape(24.dp))
             .clip(RoundedCornerShape(24.dp))
             .background(Color.Transparent)
             .clickableWithSound { onClick() }
             .padding(bottom = 12.dp),
         horizontalAlignment = Alignment.Start,
     ) {
-        // Imagen del producto
         val gridVisual = product.gridVisual()
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(if (isTv66) 224.dp else if (isLandscape) 152.dp else 124.dp)
+                .height(imageHeight)
                 .padding(
-                    top = if (isTv66) 10.dp else 6.dp,
-                    start = if (isTv66) 12.dp else 6.dp,
-                    end = if (isTv66) 12.dp else 6.dp,
+                    top = if (isTv66) 8.dp else 4.dp,
+                    start = if (isTv66) 10.dp else 6.dp,
+                    end = if (isTv66) 10.dp else 6.dp,
                     bottom = if (isTv66) 4.dp else 2.dp,
                 )
-                .clip(RoundedCornerShape(28.dp))
+                .clip(RoundedCornerShape(20.dp))
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(Color(0xFFE7E7E7), Color(0xFFF7F7F7)),
                     ),
                 )
-                .padding(
-                    horizontal = if (gridVisual is ProductGridVisual.Photo && gridVisual.enlarge) 0.dp else 4.dp,
-                    vertical = if (gridVisual is ProductGridVisual.Photo && gridVisual.enlarge) 0.dp else 3.dp,
-                ),
-            contentAlignment = Alignment.Center
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            contentAlignment = Alignment.Center,
         ) {
             when (gridVisual) {
                 is ProductGridVisual.Photo -> {
-                    val enlargeScale = when {
-                        !gridVisual.enlarge -> 1f
-                        isTv66 -> 1.68f
-                        isTv42 -> 1.60f
-                        isPhoneLandscape -> 1.72f
-                        isLandscape -> 1.55f
-                        else -> 1.45f
-                    }
+                    // Misma escala Fit para miniatura y vista previa GLB.
+                    // Phone: 50% del área del card; el contenedor gris se mantiene.
                     AsyncImage(
                         model = ImageRequest.Builder(context)
                             .data(gridVisual.url)
@@ -741,60 +710,89 @@ private fun ProductGridItem(
                             .build(),
                         contentDescription = null,
                         modifier = Modifier
-                            .fillMaxSize(enlargeScale)
+                            .fillMaxSize(imageFillFraction)
                             .align(Alignment.Center),
-                        contentScale = if (gridVisual.enlarge) ContentScale.Crop else ContentScale.Fit,
+                        contentScale = ContentScale.Fit,
                     )
                 }
                 ProductGridVisual.Placeholder -> Text(
                     "📦",
-                    fontSize = if (isTv66) 86.sp else if (isLandscape) 64.sp else 54.sp,
+                    fontSize = when {
+                        isPhone -> if (isLandscape) 22.sp else 18.sp
+                        isTv66 -> 56.sp
+                        isLandscape -> 42.sp
+                        else -> 36.sp
+                    },
                     color = Color.Gray,
                 )
             }
         }
 
-        // Contenedor para el texto del producto con borde verde ligero (sin fondo blanco)
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth(0.9f)
-                .wrapContentHeight()
-                .border(BorderStroke(1.dp, LaSanteGreen.copy(alpha = 0.45f)), RoundedCornerShape(50.dp))
-                .clip(RoundedCornerShape(50.dp))
-                .background(Color.Transparent)
                 .padding(
-                    horizontal = if (isTv66) 22.dp else 16.dp,
-                    vertical = if (isTv66) 11.dp else 8.dp,
+                    horizontal = if (isTv66) 10.dp else 8.dp,
+                    vertical = if (isTv66) 6.dp else 4.dp,
                 )
-                .align(Alignment.CenterHorizontally)
+                .align(Alignment.CenterHorizontally),
+            horizontalAlignment = Alignment.Start,
         ) {
-            Column(horizontalAlignment = Alignment.Start) {
+            Text(
+                text = titlePart,
+                style = TextStyle(
+                    brush = titleBrush,
+                    fontSize = titleFontSize,
+                    fontWeight = FontWeight.Bold,
+                ),
+                color = Color.Unspecified,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (!strengthPart.isNullOrBlank()) {
                 Text(
-                    text = product.name,
-                    color = Color.Black,
-                    fontSize = if (isTv66) 18.sp else if (isLandscape) 15.sp else 13.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    text = strengthPart,
+                    color = LaSanteTextSecondary,
+                    fontSize = strengthFontSize,
+                    fontWeight = FontWeight.Normal,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Start,
                 )
-
-                // Subtítulo/Descripción del producto
-                if (product.description.isNotBlank()) {
-                    Text(
-                        text = product.description,
-                        color = Color.Black.copy(alpha = 0.7f),
-                        fontSize = if (isTv66) 14.sp else if (isLandscape) 12.sp else 10.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center, // Alinear el subtitulo al centro
-                        lineHeight = if (isTv66) 17.sp else if (isLandscape) 14.sp else 12.sp,
-                    )
-                }
             }
         }
     }
 }
+
+/**
+ * Separa nombre de concentración/presentación.
+ * Ej: "Cetirizina 10 mg" → ("Cetirizina", "10 mg");
+ *     "Fexofenadina - Suspensión" → ("Fexofenadina", "Suspensión").
+ */
+private fun splitProductTitleAndStrength(rawName: String): Pair<String, String?> {
+    val name = rawName.trim()
+    if (name.isEmpty()) return "" to null
+
+    val dosageMatch = PRODUCT_DOSAGE_SUFFIX.find(name)
+    if (dosageMatch != null) {
+        val title = dosageMatch.groupValues[1].trim().trimEnd('-', '–', '—').trim()
+        val strength = dosageMatch.groupValues[2].trim()
+        if (title.isNotEmpty()) return title to strength
+    }
+
+    val dashIndex = name.lastIndexOf(" - ")
+    if (dashIndex > 0) {
+        val title = name.substring(0, dashIndex).trim()
+        val strength = name.substring(dashIndex + 3).trim()
+        if (title.isNotEmpty() && strength.isNotEmpty()) return title to strength
+    }
+
+    return name to null
+}
+
+private val PRODUCT_DOSAGE_SUFFIX = Regex(
+    """^(.+?)\s+(\d+[.,]?\d*\s*(?:mg|g|ml|mcg|µg|ui|%))\s*$""",
+    RegexOption.IGNORE_CASE,
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
