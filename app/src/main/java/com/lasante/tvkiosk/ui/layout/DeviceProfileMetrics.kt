@@ -128,8 +128,9 @@ object DeviceProfileResolver {
             )
             DeviceProfileTier.TV_REGULAR -> SharedGridMetrics(
                 columns = 5,
-                horizontalPadding = 24.dp,
-                maxContentWidth = 828.dp,
+                horizontalPadding = 20.dp,
+                // +10% vs 828: más ancho útil en clases y productos TV42.
+                maxContentWidth = 911.dp,
                 contentPadding = 10.dp,
                 cardSpacing = 14.dp,
                 topPadding = 54.dp,
@@ -177,8 +178,9 @@ object DeviceProfileResolver {
         DeviceProfileTier.TV_REGULAR -> SharedNavMetrics(
             buttonSize = 38.dp,
             buttonSpacing = 12.dp,
-            titleFontSize = 28.sp,
-            titleUnderlineWidth = 220.dp,
+            // −20% vs 28.sp: deja espacio para buscador + Back/Home en Productos.
+            titleFontSize = 22.sp,
+            titleUnderlineWidth = 176.dp,
         )
         DeviceProfileTier.TABLET_LANDSCAPE, DeviceProfileTier.DEFAULT -> SharedNavMetrics(
             buttonSize = if (profile.isWide) 40.dp else 35.dp,

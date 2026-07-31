@@ -62,12 +62,12 @@ object TreatmentUiMetrics {
     val tv: ProfileMetrics
         get() = tv42
 
-    /** TV 66" (~1920×1080 dp). */
+    /** TV 66" (~1920×1080 dp). Iconos de clase +30% vs baseline 156 (card se mantiene). */
     val tv66 = ProfileMetrics(
         badgeHeight = 91.dp,
         badgeIconSize = 56.dp,
         badgeIconTop = 0.dp,
-        cardIconSize = 156.dp,
+        cardIconSize = 203.dp,
         cardMaxWidth = 212.dp,
         navButtonSize = 53.dp,
         navEndInset = 90.dp,

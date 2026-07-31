@@ -138,7 +138,7 @@ fun ProductsScreen(
             val isPhone = profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE ||
                 profile.tier == DeviceProfileTier.COMPACT_PORTRAIT
             val columns = when (profile.tier) {
-                DeviceProfileTier.TV_LARGE -> 3
+                DeviceProfileTier.TV_LARGE -> 4
                 DeviceProfileTier.COMPACT_PORTRAIT -> 2
                 else -> if (profile.isLandscape) 4 else 2
             }
@@ -249,7 +249,7 @@ fun ProductsScreen(
                 else -> 20.dp
             }
             val searchBarWidth = when (profile.tier) {
-                DeviceProfileTier.TV_REGULAR -> 320.dp
+                DeviceProfileTier.TV_REGULAR -> 256.dp
                 DeviceProfileTier.TV_LARGE -> 360.dp
                 DeviceProfileTier.COMPACT_LANDSCAPE -> 168.dp
                 else -> if (profile.isLandscape) 220.dp else 150.dp
@@ -452,6 +452,7 @@ fun ProductsScreen(
                                         product = filteredProducts[index],
                                         isLandscape = isLandscape,
                                         isPhone = isPhone,
+                                        isTv42 = isTv42,
                                         isTv66 = isTv66,
                                         onClick = { onProductSelected(filteredProducts[index]) },
                                     )
@@ -641,18 +642,23 @@ private fun ProductGridItem(
     product: Product,
     isLandscape: Boolean,
     isPhone: Boolean = false,
+    isTv42: Boolean = false,
     isTv66: Boolean = false,
     onClick: () -> Unit,
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
-    // Alto del card (gris); en phone la imagen interior va al 50% y el card no cambia.
+    // Alto del card (gris); phone 50% / TV42 70% interior — el contenedor no cambia.
     val imageHeight = when {
         isTv66 -> 168.dp
         isLandscape -> 150.dp
         else -> 120.dp
     }
-    val imageFillFraction = if (isPhone) 0.5f else 1f
+    val imageFillFraction = when {
+        isPhone -> 0.5f
+        isTv42 -> 0.7f
+        else -> 1f
+    }
     val gridImageSizePx = with(density) { (imageHeight * imageFillFraction).roundToPx() }
     val titleFontSize = when {
         isTv66 -> 16.sp

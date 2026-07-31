@@ -39,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -170,6 +171,7 @@ fun TreatmentsScreen(
                             TherapeuticClassCard(
                                 treatment = treatment,
                                 isLandscape = isLandscape,
+                                isTv66 = profile.tier == DeviceProfileTier.TV_LARGE,
                                 iconSize = uiMetrics.cardIconSize,
                                 cardMaxWidth = uiMetrics.cardMaxWidth,
                                 onClick = { onTreatmentSelected(treatment.id) },
@@ -239,6 +241,7 @@ private fun TreatmentsHeader(
 private fun TherapeuticClassCard(
     treatment: Treatment,
     isLandscape: Boolean,
+    isTv66: Boolean = false,
     iconSize: Dp,
     cardMaxWidth: Dp,
     onClick: () -> Unit,
@@ -250,6 +253,16 @@ private fun TherapeuticClassCard(
     )
     val context = LocalContext.current
     val iconSizePx = with(LocalDensity.current) { iconSize.roundToPx() }
+    val labelFontSize = when {
+        isTv66 -> 12.sp // +20% vs landscape 10.sp
+        isLandscape -> 10.sp
+        else -> 12.sp
+    }
+    val labelLineHeight = when {
+        isTv66 -> 13.sp
+        isLandscape -> 11.sp
+        else -> 14.sp
+    }
 
     LaunchedEffect(treatment.id, iconModel) {
         android.util.Log.d(
@@ -274,7 +287,10 @@ private fun TherapeuticClassCard(
                 ),
             )
             .clickableWithSound { onClick() }
-            .padding(horizontal = 8.dp, vertical = 9.dp),
+            .padding(
+                horizontal = if (isTv66) 4.dp else 8.dp,
+                vertical = 9.dp,
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(7.dp),
     ) {
@@ -311,16 +327,16 @@ private fun TherapeuticClassCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(therapeuticClassLabelHeight(isLandscape)),
+                .height(therapeuticClassLabelHeight(labelLineHeight)),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = treatment.name,
                 color = LaSanteText,
                 style = MaterialTheme.typography.bodySmall,
-                fontSize = if (isLandscape) 10.sp else 12.sp,
+                fontSize = labelFontSize,
                 textAlign = TextAlign.Center,
-                lineHeight = if (isLandscape) 11.sp else 14.sp,
+                lineHeight = labelLineHeight,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth(),
@@ -331,7 +347,6 @@ private fun TherapeuticClassCard(
 
 /** Altura fija del rótulo (2 líneas) para que todos los cards del grid tengan el mismo alto. */
 @Composable
-private fun therapeuticClassLabelHeight(isLandscape: Boolean): Dp {
-    val lineHeight = if (isLandscape) 11.sp else 14.sp
+private fun therapeuticClassLabelHeight(lineHeight: TextUnit): Dp {
     return with(LocalDensity.current) { (lineHeight.toPx() * 2f).toDp() }
 }
