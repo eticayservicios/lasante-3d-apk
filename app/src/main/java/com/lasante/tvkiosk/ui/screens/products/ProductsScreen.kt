@@ -648,15 +648,17 @@ private fun ProductGridItem(
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
-    // Alto del card (gris); phone 50% / TV42 70% interior — el contenedor no cambia.
+    // Alto del card (gris); phone 57.5% / TV42 70% interior — el contenedor no cambia.
+    // TV66: +50.dp vs 168 para cards más cuadrados (menos rectangular).
     val imageHeight = when {
-        isTv66 -> 168.dp
+        isTv66 -> 218.dp
         isLandscape -> 150.dp
         else -> 120.dp
     }
     val imageFillFraction = when {
-        isPhone -> 0.5f
+        isPhone -> 0.604f // ~57.5% + 5%: solo la imagen/GLB, card igual
         isTv42 -> 0.7f
+        isTv66 -> 0.88f // card 218dp; imagen −12% vs llenar el card
         else -> 1f
     }
     val gridImageSizePx = with(density) { (imageHeight * imageFillFraction).roundToPx() }

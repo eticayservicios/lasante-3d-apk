@@ -254,15 +254,16 @@ private fun TherapeuticClassCard(
     val context = LocalContext.current
     val iconSizePx = with(LocalDensity.current) { iconSize.roundToPx() }
     val labelFontSize = when {
-        isTv66 -> 12.sp // +20% vs landscape 10.sp
+        isTv66 -> 20.sp
         isLandscape -> 10.sp
         else -> 12.sp
     }
     val labelLineHeight = when {
-        isTv66 -> 13.sp
+        isTv66 -> 24.sp
         isLandscape -> 11.sp
         else -> 14.sp
     }
+    val labelFontWeight = if (isTv66) FontWeight.Medium else FontWeight.Normal
 
     LaunchedEffect(treatment.id, iconModel) {
         android.util.Log.d(
@@ -333,10 +334,12 @@ private fun TherapeuticClassCard(
             Text(
                 text = treatment.name,
                 color = LaSanteText,
-                style = MaterialTheme.typography.bodySmall,
-                fontSize = labelFontSize,
-                textAlign = TextAlign.Center,
-                lineHeight = labelLineHeight,
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontSize = labelFontSize,
+                    fontWeight = labelFontWeight,
+                    lineHeight = labelLineHeight,
+                    textAlign = TextAlign.Center,
+                ),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth(),
