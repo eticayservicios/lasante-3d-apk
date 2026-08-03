@@ -181,12 +181,13 @@ data class IntroLayoutMetrics(
             else -> 0.72f
         }
 
-    /** Badge verde inline "PRODUCTOS ESTRELLAS" (~+20% vs primer pase mockup). */
+    /** Badge verde inline "PRODUCTOS ESTRELLAS". */
     val bubblesBadgeHeight: Dp
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 26.dp
             "phone_portrait" -> 28.dp
-            "tv_42", "tablet_landscape" -> 43.dp
+            // Fire ~961×529: más chico. Damasco canvas alto: mantiene 43.
+            "tv_42", "tablet_landscape" -> if (isTv42LargeCanvas) 43.dp else 30.dp
             "tv_66" -> 48.dp
             "tv_32" -> 34.dp
             "short_height" -> 26.dp
@@ -287,8 +288,8 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 54.dp
             "phone_portrait" -> 81.dp
-            // Damasco 10″ (canvas alto): +20 dp vs Fire/tv_42 baseline.
-            "tv_42", "tablet_landscape" -> if (isTv42LargeCanvas) 109.dp else 89.dp
+            // Damasco canvas alto: +20 dp. Fire: −10% vs baseline 89.
+            "tv_42", "tablet_landscape" -> if (isTv42LargeCanvas) 109.dp else 80.dp
             // TV66: +50% vs baseline 89 (+20% sobre el 1.25 previo, para verlo en emulador).
             "tv_66" -> 89.dp * 1.50f
             "tv_32" -> 81.dp
@@ -491,8 +492,8 @@ data class IntroLayoutMetrics(
     /** Ajuste fino en dp del bloque layout (negativo = subir, positivo = bajar). No mueve la cámara. */
     val vitrinaVerticalOffsetAdjustment: Dp
         get() = when (vitrinaProfileKey) {
-            // Fire ~961×529: -42. Damasco canvas alto: subir un poco más.
-            "tv_42", "tablet_landscape" -> if (isTv42LargeCanvas) (-62).dp else (-42).dp
+            // Fire: subir un poco más (−54). Damasco canvas alto: −62.
+            "tv_42", "tablet_landscape" -> if (isTv42LargeCanvas) (-62).dp else (-54).dp
             // TV66: baseline -42 + subir 75px @ dens 320 (= 37.5 dp).
             "tv_66" -> (-42).dp - 37.5.dp
             "phone_landscape" -> 0.dp
@@ -507,8 +508,9 @@ data class IntroLayoutMetrics(
     val vitrinaCylinderNudgeDown: Dp
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 10.dp
+            // Fire: menos nudge = cilindro más arriba. Damasco ya en 0.07.
             "tv_42", "tablet_landscape" ->
-                if (isTv42LargeCanvas) maxHeight * 0.07f else maxHeight * 0.10f
+                if (isTv42LargeCanvas) maxHeight * 0.07f else maxHeight * 0.08f
             // TV66: baseline 0.10 → subir 7% → bajar 4% ⇒ nudge 0.07H (burbujas no se mueven).
             "tv_66" -> maxHeight * 0.07f
             else -> 0.dp
