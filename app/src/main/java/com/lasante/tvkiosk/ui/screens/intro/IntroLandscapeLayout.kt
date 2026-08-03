@@ -77,6 +77,7 @@ fun IntroResponsiveLayout(
                     "isTablet=${metrics.isTabletLandscape} " +
                     "isPhoneLand=${metrics.isPhoneLandscape} " +
                     "isTv=${metrics.isTv} isTv42=${metrics.isTv42} isTv66=${metrics.isTv66} " +
+                    "tv42Large=${metrics.isTv42LargeCanvas} " +
                     "manufacturer=${android.os.Build.MANUFACTURER} " +
                     "model=${android.os.Build.MODEL} " +
                     "badgeH=${metrics.bubblesBadgeHeight} badgeW=${metrics.bubblesBadgeWidthFraction} " +
@@ -168,12 +169,7 @@ fun IntroResponsiveLayout(
                 BoxWithConstraints(
                     modifier = Modifier.weight(1f),
                 ) {
-                    // Infinix: −10.dp para que no pegue al borde inferior.
-                    val logoH = if (metrics.isPhoneLandscape) {
-                        (maxHeight - 10.dp).coerceAtLeast(0.dp)
-                    } else {
-                        maxHeight
-                    }
+                    val logoH = (maxHeight - metrics.verticalLogoHeightReduction).coerceAtLeast(0.dp)
                     val logoW = logoH * (229f / 1004f)
                     AsyncImage(
                         model = "file:///android_asset/vitrina/ui/logo_la_sante_vertical.png",
