@@ -78,15 +78,6 @@ fun BusinessUnitVitrina(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        VitrinaProductosEstrellasBadge(
-            visible = bubblesVisible,
-            metrics = metrics,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .offset(y = -metrics.bubblesBadgeTopPullUp)
-                .zIndex(12f),
-        )
-
         Box(
             modifier = Modifier
                 .align(Alignment.Center)

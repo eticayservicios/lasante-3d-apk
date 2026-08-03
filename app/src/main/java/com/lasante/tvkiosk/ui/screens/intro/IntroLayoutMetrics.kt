@@ -174,20 +174,21 @@ data class IntroLayoutMetrics(
             else -> 0.72f
         }
 
-    /** Badge verde "PRODUCTOS ESTRELLAS". */
+    /** Badge verde inline "PRODUCTOS ESTRELLAS" (~+20% vs primer pase mockup). */
     val bubblesBadgeHeight: Dp
         get() = when (vitrinaProfileKey) {
-            "phone_landscape" -> 46.dp
-            "phone_portrait" -> 44.dp
-            // tablet del proyecto = tv_42; tv_66 calibrado vs panel 4K ~1920×1080 dp
-            "tv_42", "tv_66", "tablet_landscape" -> 96.dp
-            "tv_32" -> 52.dp
-            "short_height" -> 44.dp
-            "expanded" -> 54.dp
-            "tv_unknown" -> 54.dp
-            else -> 46.dp
+            "phone_landscape" -> 26.dp
+            "phone_portrait" -> 28.dp
+            "tv_42", "tablet_landscape" -> 43.dp
+            "tv_66" -> 48.dp
+            "tv_32" -> 34.dp
+            "short_height" -> 26.dp
+            "expanded" -> 36.dp
+            "tv_unknown" -> 36.dp
+            else -> 28.dp
         }
 
+    /** @deprecated El badge ya no usa fracción de ancho de pantalla (va inline). */
     val bubblesBadgeWidthFraction: Float
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 0.371f
@@ -200,7 +201,7 @@ data class IntroLayoutMetrics(
             else -> 0.30f
         }
 
-    /** Sube el badge hacia el borde superior. Valores más altos = más arriba. */
+    /** Sube el badge Historia (comparte anclaje tope con la barra de estrellas). */
     val bubblesBadgeTopPullUp: Dp
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 4.dp
@@ -214,14 +215,40 @@ data class IntroLayoutMetrics(
         }
 
     /**
-     * Ancho de la fila relativo a la columna 3D.
+     * Offset horizontal del badge para alinear su borde izquierdo con las redes.
+     * Las redes viven en el layout exterior; las burbujas están dentro del inset + handle,
+     * así que suele ser negativo (desplaza el badge hacia la izquierda).
+     */
+    val bubblesBadgeStartOffset: Dp
+        get() = socialStartPadding - maxWidth * vitrinaInsetStartFraction - dragHandleWidth
+
+    /** Grosor de la línea verde que une badge → burbujas. */
+    val bubblesConnectorStroke: Dp
+        get() = when (vitrinaProfileKey) {
+            "phone_landscape" -> 2.dp
+            "tv_42", "tablet_landscape" -> 3.dp
+            "tv_66" -> 3.5.dp
+            else -> 2.5.dp
+        }
+
+    /** Puntitos decorativos entre burbujas. */
+    val bubblesDotSize: Dp
+        get() = when (vitrinaProfileKey) {
+            "phone_landscape" -> 7.dp
+            "tv_42", "tablet_landscape" -> 11.dp
+            "tv_66" -> 14.dp
+            else -> 9.dp
+        }
+
+    /**
+     * Ancho del cluster de burbujas relativo a la columna 3D (como antes del rediseño).
+     * El badge vive aparte a la izquierda; no empuja las burbujas.
      */
     val bubblesRowWidthFraction: Float
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 0.56f
             "phone_portrait" -> 0.60f
             "tv_42", "tablet_landscape" -> 0.72f
-            // TV66: fila un poco mas ancha para caber burbujas +25%.
             "tv_66" -> 0.78f
             "tv_32" -> 0.60f
             "short_height" -> 0.58f
@@ -265,7 +292,8 @@ data class IntroLayoutMetrics(
 
     val bubbleSpacing: Dp
         get() = when (vitrinaProfileKey) {
-            "phone_landscape" -> 9.dp
+            // Infinix: más aire para que se vea la línea entre puntitos.
+            "phone_landscape" -> 18.dp
             "phone_portrait" -> 5.dp
             "tv_42", "tablet_landscape" -> 28.dp
             // TV66: baseline 28 + 5% del diámetro a cada lado.
