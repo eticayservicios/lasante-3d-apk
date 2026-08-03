@@ -54,6 +54,7 @@ fun VitrinaModelViewer(
     val modelLoader = filamentSession.modelLoader
     val sceneLifecycle = rememberVitrinaSceneLifecycle(renderingEnabled = filamentRenderingEnabled)
     val environmentLoader = rememberEnvironmentLoader(engine)
+    // Entorno/luz por defecto de SceneView: sin IBL custom, sin teñir el albedo del GLB.
     val environment = rememberEnvironment(environmentLoader, isOpaque = false) {
         createEnvironment(environmentLoader, isOpaque = false).let { env ->
             env.skybox?.let { engine.safeDestroySkybox(it) }
@@ -75,9 +76,8 @@ fun VitrinaModelViewer(
         cameraNode.lookAt(Position(x = 0f, y = scene.lookAtY, z = 0f), smooth = false)
     }
 
-    val mainLightNode = rememberMainLightNode(engine) {
-        intensity = scene.lightIntensity
-    }
+    // Luz principal = default SceneView (sin color/dirección/intensidad custom).
+    val mainLightNode = rememberMainLightNode(engine)
 
     val unitAnchors = remember(baseInstance) {
         baseInstance?.let { instance ->

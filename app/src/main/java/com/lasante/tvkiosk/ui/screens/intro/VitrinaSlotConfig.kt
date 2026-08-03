@@ -18,7 +18,6 @@ data class VitrinaSceneMetrics(
     val cameraZ: Float,
     val lookAtY: Float,
     val posYOffset: Float,
-    val lightIntensity: Float,
     val featuredSlots: List<VitrinaSlot>,
 )
 
@@ -43,7 +42,6 @@ object VitrinaSlotConfig {
             cameraZ = tier.cameraZ,
             lookAtY = tier.lookAtY,
             posYOffset = tier.posYOffset,
-            lightIntensity = if (layout.isTv) 340_000f else 230_000f,
             featuredSlots = featuredSlots,
         )
     }
