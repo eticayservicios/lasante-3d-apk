@@ -168,7 +168,12 @@ fun IntroResponsiveLayout(
                 BoxWithConstraints(
                     modifier = Modifier.weight(1f),
                 ) {
-                    val logoH = maxHeight
+                    // Infinix: −10.dp para que no pegue al borde inferior.
+                    val logoH = if (metrics.isPhoneLandscape) {
+                        (maxHeight - 10.dp).coerceAtLeast(0.dp)
+                    } else {
+                        maxHeight
+                    }
                     val logoW = logoH * (229f / 1004f)
                     AsyncImage(
                         model = "file:///android_asset/vitrina/ui/logo_la_sante_vertical.png",

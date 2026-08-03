@@ -329,13 +329,14 @@ data class IntroLayoutMetrics(
         }
 
     /**
-     * Inset derecho del logo vertical y del badge Historia (cerca del borde).
+     * Inset derecho del logo vertical y del badge Historia (~30.dp del borde en todos).
      */
     val logoEndPadding: Dp
         get() = when (vitrinaProfileKey) {
-            "phone_landscape" -> 8.dp
-            "tv_32", "tv_42", "tv_66", "tablet_landscape", "expanded" -> 12.dp
-            else -> 10.dp
+            "phone_landscape" -> 30.dp
+            "tv_66" -> 36.dp
+            "tv_32", "tv_42", "tablet_landscape", "expanded" -> 30.dp
+            else -> 30.dp
         }
 
     /**
@@ -398,9 +399,11 @@ data class IntroLayoutMetrics(
     /**
      * Pull-up del rail BadgeHistoria + logo (mismo criterio que PRODUCTOS ESTRELLAS).
      * TV42/tablet: −3%H vs pull-up de estrellas (antes −5%; se subió 2% porque se bajó de más).
+     * Phone: −1%H para que el icono del badge no se corte arriba.
      */
     val historiaRailTopPullUp: Dp
         get() = when (vitrinaProfileKey) {
+            "phone_landscape" -> bubblesBadgeTopPullUp - maxHeight * 0.01f
             "tv_42", "tablet_landscape" -> {
                 val lowered = bubblesBadgeTopPullUp - maxHeight * 0.03f
                 if (lowered < 0.dp) 0.dp else lowered
