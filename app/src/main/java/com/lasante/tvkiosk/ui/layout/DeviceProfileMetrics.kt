@@ -110,11 +110,12 @@ object DeviceProfileResolver {
         val w = profile.maxWidth
         return when (profile.tier) {
             DeviceProfileTier.COMPACT_LANDSCAPE -> SharedGridMetrics(
-                columns = 6,
-                horizontalPadding = 16.dp,
-                maxContentWidth = 702.dp,
+                // 5 cols (antes 6): cards/iconos más grandes en Infinix.
+                columns = 5,
+                horizontalPadding = 12.dp,
+                maxContentWidth = 780.dp,
                 contentPadding = 4.dp,
-                cardSpacing = 10.dp,
+                cardSpacing = 8.dp,
                 topPadding = 28.dp,
             )
             DeviceProfileTier.TV_LARGE -> SharedGridMetrics(
@@ -128,11 +129,11 @@ object DeviceProfileResolver {
             )
             DeviceProfileTier.TV_REGULAR -> SharedGridMetrics(
                 columns = 5,
-                horizontalPadding = 20.dp,
-                // +10% vs 828: más ancho útil en clases y productos TV42.
-                maxContentWidth = 911.dp,
-                contentPadding = 10.dp,
-                cardSpacing = 14.dp,
+                horizontalPadding = if (w >= 1200.dp) 16.dp else 20.dp,
+                // Damasco (~1333) usa más ancho; Fire (~961) queda en 911.
+                maxContentWidth = if (w >= 1200.dp) 1180.dp else 911.dp,
+                contentPadding = 8.dp,
+                cardSpacing = if (w >= 1200.dp) 12.dp else 14.dp,
                 topPadding = 54.dp,
             )
             DeviceProfileTier.TABLET_LANDSCAPE -> SharedGridMetrics(

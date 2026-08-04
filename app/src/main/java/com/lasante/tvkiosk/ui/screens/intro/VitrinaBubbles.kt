@@ -189,6 +189,8 @@ private fun ProductosEstrellasInlineBadge(
     modifier: Modifier = Modifier,
 ) {
     val fontSize = when {
+        height >= 60.dp -> 18.sp
+        height >= 50.dp -> 16.sp
         height >= 42.dp -> 15.sp
         height >= 32.dp -> 12.sp
         height >= 26.dp -> 10.sp

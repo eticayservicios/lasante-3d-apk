@@ -188,7 +188,7 @@ data class IntroLayoutMetrics(
             "phone_portrait" -> 28.dp
             // Fire ~961×529: más chico. Damasco canvas alto: mantiene 43.
             "tv_42", "tablet_landscape" -> if (isTv42LargeCanvas) 43.dp else 30.dp
-            "tv_66" -> 48.dp
+            "tv_66" -> 64.dp
             "tv_32" -> 34.dp
             "short_height" -> 26.dp
             "expanded" -> 36.dp

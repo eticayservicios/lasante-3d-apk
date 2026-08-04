@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -31,7 +30,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.material3.MaterialTheme
@@ -69,8 +67,6 @@ fun TreatmentsScreen(
 ) {
     BackHandler(onBack = onBack)
 
-    val configuration = LocalConfiguration.current
-    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val gridState = rememberLazyGridState()
 
     LaSanteBackground {
@@ -170,10 +166,9 @@ fun TreatmentsScreen(
                         ) { treatment ->
                             TherapeuticClassCard(
                                 treatment = treatment,
-                                isLandscape = isLandscape,
-                                isTv66 = profile.tier == DeviceProfileTier.TV_LARGE,
                                 iconSize = uiMetrics.cardIconSize,
-                                cardMaxWidth = uiMetrics.cardMaxWidth,
+                                labelFontSize = uiMetrics.cardLabelFontSize,
+                                labelLineHeight = uiMetrics.cardLabelLineHeight,
                                 onClick = { onTreatmentSelected(treatment.id) },
                             )
                         }
@@ -240,10 +235,9 @@ private fun TreatmentsHeader(
 @Composable
 private fun TherapeuticClassCard(
     treatment: Treatment,
-    isLandscape: Boolean,
-    isTv66: Boolean = false,
     iconSize: Dp,
-    cardMaxWidth: Dp,
+    labelFontSize: TextUnit,
+    labelLineHeight: TextUnit,
     onClick: () -> Unit,
 ) {
     val iconModel = TreatmentIconAssets.resolve(
@@ -253,17 +247,6 @@ private fun TherapeuticClassCard(
     )
     val context = LocalContext.current
     val iconSizePx = with(LocalDensity.current) { iconSize.roundToPx() }
-    val labelFontSize = when {
-        isTv66 -> 20.sp
-        isLandscape -> 10.sp
-        else -> 12.sp
-    }
-    val labelLineHeight = when {
-        isTv66 -> 24.sp
-        isLandscape -> 11.sp
-        else -> 14.sp
-    }
-    val labelFontWeight = if (isTv66) FontWeight.Medium else FontWeight.Normal
 
     LaunchedEffect(treatment.id, iconModel) {
         android.util.Log.d(
@@ -275,30 +258,26 @@ private fun TherapeuticClassCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .widthIn(max = cardMaxWidth)
             .shadow(
                 elevation = 3.dp,
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(18.dp),
                 clip = false,
             )
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(18.dp))
             .background(
                 Brush.verticalGradient(
                     colors = listOf(Color(0xFFF4F4F4), Color(0xFFE1E1E1)),
                 ),
             )
             .clickableWithSound { onClick() }
-            .padding(
-                horizontal = if (isTv66) 4.dp else 8.dp,
-                vertical = 9.dp,
-            ),
+            .padding(horizontal = 4.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(7.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(if (isLandscape) 1.12f else 1.02f),
+                .aspectRatio(1f),
             contentAlignment = Alignment.Center,
         ) {
             AsyncImage(
@@ -308,7 +287,7 @@ private fun TherapeuticClassCard(
                     .crossfade(true)
                     .build(),
                 contentDescription = treatment.name,
-                modifier = Modifier.size(iconSize),
+                modifier = Modifier.fillMaxSize(TreatmentUiMetrics.CARD_ICON_FILL),
                 contentScale = ContentScale.Fit,
                 onSuccess = {
                     android.util.Log.d(
@@ -336,7 +315,7 @@ private fun TherapeuticClassCard(
                 color = LaSanteText,
                 style = MaterialTheme.typography.bodySmall.copy(
                     fontSize = labelFontSize,
-                    fontWeight = labelFontWeight,
+                    fontWeight = FontWeight.Normal,
                     lineHeight = labelLineHeight,
                     textAlign = TextAlign.Center,
                 ),
