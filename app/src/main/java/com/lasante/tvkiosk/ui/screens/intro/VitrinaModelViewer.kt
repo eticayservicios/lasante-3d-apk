@@ -2,6 +2,10 @@ package com.lasante.tvkiosk.ui.screens.intro
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
@@ -100,30 +104,45 @@ fun VitrinaModelViewer(
         baseRotationHandle.setBaseDegrees(displayRotationDegrees)
         rotationAnim.snapTo(displayRotationDegrees)
     }
-    LaunchedEffect(targetRotationDegrees, rotationAnimationSpec, sceneActive, isDragging) {
+    LaunchedEffect(targetRotationDegrees, rotationAnimationSpec, sceneActive, isDragging, isUserActive) {
         if (isDragging) return@LaunchedEffect
         if (!sceneActive) {
             rotationAnim.snapTo(targetRotationDegrees)
             baseRotationHandle.setBaseDegrees(targetRotationDegrees)
             return@LaunchedEffect
         }
-        val visual = VitrinaRotation.nearestEquivalentAngle(
-            rotationAnim.value,
-            baseRotationHandle.currentDegrees(),
-        )
-        if (kotlin.math.abs(rotationAnim.value - visual) > 0.5f) {
-            rotationAnim.snapTo(visual)
-        }
-        val target = VitrinaRotation.nearestEquivalentAngle(rotationAnim.value, targetRotationDegrees)
-        if (kotlin.math.abs(rotationAnim.value - target) < 0.05f) {
-            rotationAnim.snapTo(target)
-            baseRotationHandle.setBaseDegrees(target)
-        } else {
-            rotationAnim.animateTo(target, rotationAnimationSpec) {
+        if (!isUserActive) {
+            // Rotación continua, lenta e infinita cuando el usuario está inactivo.
+            // 360 grados cada 30 segundos = velocidad lenta, uniforme y constante en todos los dispositivos.
+            val startAngle = rotationAnim.value
+            rotationAnim.animateTo(
+                targetValue = startAngle - 360f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(durationMillis = 30000, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart
+                )
+            ) {
                 baseRotationHandle.setBaseDegrees(value)
             }
+        } else {
+            val visual = VitrinaRotation.nearestEquivalentAngle(
+                rotationAnim.value,
+                baseRotationHandle.currentDegrees(),
+            )
+            if (kotlin.math.abs(rotationAnim.value - visual) > 0.5f) {
+                rotationAnim.snapTo(visual)
+            }
+            val target = VitrinaRotation.nearestEquivalentAngle(rotationAnim.value, targetRotationDegrees)
+            if (kotlin.math.abs(rotationAnim.value - target) < 0.05f) {
+                rotationAnim.snapTo(target)
+                baseRotationHandle.setBaseDegrees(target)
+            } else {
+                rotationAnim.animateTo(target, rotationAnimationSpec) {
+                    baseRotationHandle.setBaseDegrees(value)
+                }
+            }
+            onRotationAnimationFinished()
         }
-        onRotationAnimationFinished()
     }
 
     LaunchedEffect(activeUnitId, activeIndex, targetRotationDegrees) {
@@ -192,20 +211,48 @@ fun VitrinaModelViewer(
         var glassOn: MaterialInstance? = null
         var glassOff: MaterialInstance? = null
 
-        instance.getMaterialInstances().forEach { mat ->
-            if (mat.getName() == "MAT_SECCION_ON") matOn = mat
-            if (mat.getName() == "MAT_SECCION_OFF") matOff = mat
-            if (mat.getName() == "GLASS.on") glassOn = mat
-            if (mat.getName() == "GLASS") glassOff = mat
+        val materialInstances = instance.getMaterialInstances()
+        materialInstances.forEachIndexed { idx, mat ->
+            val name = try { mat.getName() ?: "" } catch (e: Exception) { "" }
+            
+            android.util.Log.d("VitrinaMaterials", "MaterialInstance[$idx]: name='$name'")
+            
+            if (name == "MAT_SECCION_ON") matOn = mat
+            if (name == "MAT_SECCION_OFF") matOff = mat
+            if (name == "GLASS.on") glassOn = mat
+            if (name == "GLASS") glassOff = mat
         }
 
-        if (matOn == null || matOff == null) {
-            VitrinaDebugLog.d("VitrinaMaterials", "MAT_SECCION_ON o MAT_SECCION_OFF no se encontraron en el GLB")
+        // Fallback por índice estable si la API de nombres de gltfio devuelve vacío (seguridad 100% infalible)
+        if (matOn == null && materialInstances.size > 18) {
+            matOn = materialInstances[18]
+            android.util.Log.w("VitrinaMaterials", "Fallback index 18 usado para MAT_SECCION_ON")
+        }
+        if (matOff == null && materialInstances.size > 19) {
+            matOff = materialInstances[19]
+            android.util.Log.w("VitrinaMaterials", "Fallback index 19 usado para MAT_SECCION_OFF")
+        }
+        if (glassOn == null && materialInstances.size > 17) {
+            glassOn = materialInstances[17]
+            android.util.Log.w("VitrinaMaterials", "Fallback index 17 usado para GLASS.on")
+        }
+        if (glassOff == null && materialInstances.size > 16) {
+            glassOff = materialInstances[16]
+            android.util.Log.w("VitrinaMaterials", "Fallback index 16 usado para GLASS")
+        }
+
+        if (matOn == null || matOff == null || glassOn == null || glassOff == null) {
+            android.util.Log.e("VitrinaMaterials", "ERROR: No se pudieron encontrar todos los materiales! matOn=$matOn, matOff=$matOff, glassOn=$glassOn, glassOff=$glassOff")
             return@LaunchedEffect
         }
 
         val isCloseToTarget = kotlin.math.abs(rotationAnim.value - targetRotationDegrees) < 1.0f
         val activeNodeIndex = if (isCloseToTarget && isUserActive) activeIndex else -1
+
+        android.util.Log.d(
+            "VitrinaMaterials",
+            "Swapping... isUserActive=$isUserActive, isCloseToTarget=$isCloseToTarget, activeIndex=$activeIndex -> activeNodeIndex=$activeNodeIndex"
+        )
 
         // 1. Alternar cintillo
         VitrinaConstants.UNIT_GLB_NODE_NAMES.forEachIndexed { index, nodeName ->
@@ -225,9 +272,10 @@ fun VitrinaModelViewer(
             val entity = instance.model.getFirstEntityByName(nodeName)
             if (entity != 0 && renderableManager.hasComponent(entity)) {
                 val renderableInstance = renderableManager.getInstance(entity)
-                if (renderableInstance != 0 && glassOn != null && glassOff != null) {
+                if (renderableInstance != 0) {
                     val desiredGlass = if (isCloseToTarget && isUserActive) glassOn!! else glassOff!!
                     renderableManager.setMaterialInstanceAt(renderableInstance, 0, desiredGlass)
+                    android.util.Log.d("VitrinaMaterials", "Set cylinder '$nodeName' to material: " + (if (desiredGlass === glassOn) "GLASS.on" else "GLASS"))
                 }
             }
         }

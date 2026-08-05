@@ -2,11 +2,14 @@ package com.lasante.tvkiosk.ui.screens.intro
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.lasante.tvkiosk.ui.utils.ModalFrostScrim
@@ -122,7 +125,15 @@ fun IntroScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(LaSanteBackground),
+            .background(LaSanteBackground)
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false)
+                    // Registrar interacción para detener el giro automático inmediato y encender la vitrina activa actual.
+                    // No seleccionamos una unidad al azar al tocar cualquier parte de la pantalla.
+                    vitrinaController.registerInteraction()
+                }
+            },
     ) {
         Box(
             modifier = Modifier

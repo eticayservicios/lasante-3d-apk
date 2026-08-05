@@ -68,7 +68,7 @@ fun rememberVitrinaInteractionController(
 ): VitrinaInteractionController {
     var activeIndex by rememberSaveable { mutableIntStateOf(0) }
     var displayRotationDegrees by rememberSaveable { mutableFloatStateOf(0f) }
-    var mode by remember { mutableStateOf(VitrinaMode.Interactive) }
+    var mode by remember { mutableStateOf(VitrinaMode.AutoRotating) }
     var rotationAnimationSpec by remember {
         mutableStateOf<AnimationSpec<Float>>(VitrinaConstants.manualRotationAnimationSpec)
     }
@@ -326,10 +326,12 @@ fun rememberVitrinaInteractionController(
                 }
                 idleFor >= autoRotateAfterMs -> {
                     if (mode != VitrinaMode.Dragging && mode != VitrinaMode.ScreenSaver) {
-                        rotateBySteps(1, source = "auto")
+                        if (mode != VitrinaMode.AutoRotating) {
+                            mode = VitrinaMode.AutoRotating
+                        }
                     }
                     isUserActive = false
-                    delay(AUTO_ROTATE_STEP_MS)
+                    delay(1000L)
                 }
                 else -> {
                     if (mode != VitrinaMode.Interactive) {
