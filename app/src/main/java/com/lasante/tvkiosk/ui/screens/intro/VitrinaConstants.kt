@@ -47,12 +47,19 @@ object VitrinaConstants {
     val baseModelRotation = Rotation()
 
     val FEATURED_ANCHOR_NAMES = listOf("featured_1", "featured_2", "featured_3", "featured_4")
-    /** Nodos de unidad en mobile_draco.glb (orden API 0…4). */
+    /**
+     * Nodos de unidad en mobile_draco.glb (orden API 0…4).
+     *
+     * En el export actual, los meshes `specialty_care` y `phq_consumo` tienen
+     * el texto/UV del cintillo cruzado respecto al nombre del nodo: el mesh
+     * llamado specialty muestra “PHQ Consumo” y viceversa. Por eso aquí se
+     * cruzan solo esos dos nombres para alinear cara visual ↔ unidad de negocio.
+     */
     val UNIT_GLB_NODE_NAMES = listOf(
         "genericos_lasante",
         "primary_care",
-        "specialty_care",
         "phq_consumo",
+        "specialty_care",
         "hospital_care",
     )
     /**
