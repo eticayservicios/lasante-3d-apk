@@ -48,18 +48,20 @@ object VitrinaConstants {
 
     val FEATURED_ANCHOR_NAMES = listOf("featured_1", "featured_2", "featured_3", "featured_4")
     /**
-     * Nodos de unidad en mobile_draco.glb (orden API 0…4).
+     * Nodos GLB en orden de rotación 0…4.
      *
-     * En el export actual, los meshes `specialty_care` y `phq_consumo` tienen
-     * el texto/UV del cintillo cruzado respecto al nombre del nodo: el mesh
-     * llamado specialty muestra “PHQ Consumo” y viceversa. Por eso aquí se
-     * cruzan solo esos dos nombres para alinear cara visual ↔ unidad de negocio.
+     * En este export el nombre del nodo NO coincide con el texto del cintillo:
+     * - mesh `specialty_care` → texto “PHQ Consumo”
+     * - mesh `phq_consumo` → texto “Specialty Care”
+     * Por eso el orden de nodos para la secuencia visual deseada
+     * (…→ PHQ → Specialty →…) usa specialty_care y luego phq_consumo.
+     * Los IDs reales van en [VitrinaGlbMapping.orderedNavigationUnitIds].
      */
     val UNIT_GLB_NODE_NAMES = listOf(
         "genericos_lasante",
         "primary_care",
-        "phq_consumo",
-        "specialty_care",
+        "specialty_care", // texto cintillo: PHQ Consumo
+        "phq_consumo", // texto cintillo: Specialty Care
         "hospital_care",
     )
     /**
@@ -78,11 +80,11 @@ object VitrinaConstants {
     val LEGACY_ANCHOR_NAMES = listOf("slot_1", "slot_2", "slot_3", "slot_4")
 
     val UNIT_ACCENT_COLORS = listOf(
-        Color(0xFF26A641),
-        Color(0xFF2448D8),
-        Color(0xFF7B2CBF),
-        Color(0xFFFF9800),
-        Color(0xFFE53935),
+        Color(0xFF26A641), // genericos
+        Color(0xFF2448D8), // primary
+        Color(0xFFFF9800), // phq_consumo
+        Color(0xFF7B2CBF), // specialty_care
+        Color(0xFFE53935), // hospital
     )
 
     val fadeAnimationSpec: AnimationSpec<Float> = tween(durationMillis = 280)

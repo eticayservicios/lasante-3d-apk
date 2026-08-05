@@ -3,19 +3,22 @@ package com.lasante.tvkiosk.ui.screens.intro
 /**
  * Orden canónico de unidades en [mobile_draco.glb] y mapeo con IDs del API/backend.
  *
- * Índice 0…4 ↔ cara visual del cintillo ↔ ID de navegación.
- * Los nodos GLB de specialty/phq están cruzados a propósito en
- * [VitrinaConstants.UNIT_GLB_NODE_NAMES] (texto UV ≠ nombre de nodo).
+ * Índice 0…4 = orden de rotación visual deseado:
+ * genericos → primary → phq → specialty → hospital.
+ *
+ * Los nodos GLB de phq/specialty tienen el texto del cintillo cruzado;
+ * [orderedGlbNodeNames] apunta al mesh que *se ve* en cada paso y
+ * [orderedNavigationUnitIds] al ID correcto de esa cara.
  */
 object VitrinaGlbMapping {
     val orderedGlbNodeNames: List<String> = VitrinaConstants.UNIT_GLB_NODE_NAMES
 
-    /** IDs de navegación alineados al índice visual 0…4 (no al nombre crudo del nodo). */
+    /** ID de negocio por índice visual (alineado al texto del cintillo, no al nombre del nodo). */
     val orderedNavigationUnitIds: List<String> = listOf(
         "genericos-la-sante",
         "primary-care",
-        "specialty-care",
         "phq-consumo",
+        "specialty-care",
         "hospital-care",
     )
 
