@@ -44,6 +44,7 @@ class VitrinaInteractionController internal constructor(
     /** Productos visibles y clickeables — solo en unidad detenida al frente. */
     val showProducts: Boolean,
     val isScreenSaverActive: Boolean,
+    val isUserActive: Boolean,
     val rotationAnimationSpec: AnimationSpec<Float>,
     val registerInteraction: () -> Unit,
     val dismissScreenSaver: () -> Unit,
@@ -71,7 +72,8 @@ fun rememberVitrinaInteractionController(
     var rotationAnimationSpec by remember {
         mutableStateOf<AnimationSpec<Float>>(VitrinaConstants.manualRotationAnimationSpec)
     }
-    var lastUserInteraction by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var isUserActive by remember { mutableStateOf(false) }
+    var lastUserInteraction by remember { mutableLongStateOf(System.currentTimeMillis() - autoRotateAfterMs) }
     var dragAccumulatedX by remember { mutableFloatStateOf(0f) }
     val lifecycleOwner = LocalLifecycleOwner.current
     val density = LocalDensity.current
@@ -173,11 +175,13 @@ fun rememberVitrinaInteractionController(
 
     fun settleInteractive() {
         mode = VitrinaMode.Interactive
+        isUserActive = true
         lastUserInteraction = System.currentTimeMillis()
     }
 
     fun registerInteraction() {
         lastUserInteraction = System.currentTimeMillis()
+        isUserActive = true
         if (!hasModalOpen && mode != VitrinaMode.Dragging) {
             mode = VitrinaMode.Interactive
         }
@@ -185,6 +189,7 @@ fun rememberVitrinaInteractionController(
 
     fun dismissScreenSaver() {
         lastUserInteraction = System.currentTimeMillis()
+        isUserActive = true
         if (mode == VitrinaMode.ScreenSaver) {
             mode = VitrinaMode.Interactive
         }
@@ -316,18 +321,21 @@ fun rememberVitrinaInteractionController(
                         )
                         mode = VitrinaMode.ScreenSaver
                     }
+                    isUserActive = false
                     delay(1000L)
                 }
                 idleFor >= autoRotateAfterMs -> {
                     if (mode != VitrinaMode.Dragging && mode != VitrinaMode.ScreenSaver) {
                         rotateBySteps(1, source = "auto")
                     }
+                    isUserActive = false
                     delay(AUTO_ROTATE_STEP_MS)
                 }
                 else -> {
                     if (mode != VitrinaMode.Interactive) {
                         mode = VitrinaMode.Interactive
                     }
+                    isUserActive = true
                     delay(1000L)
                 }
             }
@@ -340,6 +348,7 @@ fun rememberVitrinaInteractionController(
         isDragging = isDragging,
         showProducts = showProducts,
         isScreenSaverActive = !hasModalOpen && mode == VitrinaMode.ScreenSaver,
+        isUserActive = isUserActive,
         rotationAnimationSpec = rotationAnimationSpec,
         registerInteraction = ::registerInteraction,
         dismissScreenSaver = ::dismissScreenSaver,

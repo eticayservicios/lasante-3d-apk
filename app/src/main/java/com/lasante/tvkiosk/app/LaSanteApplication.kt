@@ -25,11 +25,9 @@ class LaSanteApplication : Application(), ImageLoaderFactory {
     override fun newImageLoader(): ImageLoader =
         ImageLoader.Builder(this)
             .components {
-                if (Build.VERSION.SDK_INT >= 28) {
-                    add(ImageDecoderDecoder.Factory())
-                } else {
-                    add(GifDecoder.Factory())
-                }
+                // Forzamos GifDecoder.Factory() en todas las versiones de Android para evitar
+                // destellos blancos o loops corruptos en GIFs transparentes (bug de ImageDecoderDecoder)
+                add(GifDecoder.Factory())
             }
             .build()
 

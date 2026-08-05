@@ -20,12 +20,14 @@ import io.github.sceneview.createEnvironment
 import io.github.sceneview.environment.Environment
 import io.github.sceneview.math.Position
 import io.github.sceneview.math.Scale
+import io.github.sceneview.model.model
 import io.github.sceneview.node.ModelNode
 import io.github.sceneview.rememberCameraNode
 import io.github.sceneview.rememberEnvironment
 import io.github.sceneview.rememberEnvironmentLoader
 import io.github.sceneview.rememberMainLightNode
 import io.github.sceneview.safeDestroySkybox
+import com.google.android.filament.MaterialInstance
 
 @Composable
 fun VitrinaModelViewer(
@@ -41,6 +43,7 @@ fun VitrinaModelViewer(
     filamentRenderingEnabled: Boolean = true,
     backdropBlurred: Boolean = false,
     isDragging: Boolean = false,
+    isUserActive: Boolean = true,
     onUnitAnchorCentersChanged: (Map<Int, FeaturedSlotScreenPoint>) -> Unit = {},
     onRotationAnimationFinished: () -> Unit = {},
 ) {
@@ -171,6 +174,63 @@ fun VitrinaModelViewer(
             projectedUnits = unitCenters,
             rotationDegrees = VitrinaConstants.baseModelRotation.y + projectionRotation,
         )
+    }
+
+    // Intercambio dinámico de materiales para el cintillo y el acrílico de la vitrina.
+    // Durante el giro constante lento:
+    // - Las secciones del cintillo se muestran apagadas (MAT_SECCION_OFF).
+    // - El acrílico de la vitrina se muestra apagado (material GLASS tradicional con opacidad esmerilada de piso).
+    // Al detenerse por touch:
+    // - La sección activa del cintillo se ilumina con MAT_SECCION_ON.
+    // - El acrílico cambia a GLASS.on (con brillo sutil emisivo para indicar que la vitrina está encendida/activa).
+    LaunchedEffect(baseInstance, activeIndex, rotationAnim.value, targetRotationDegrees, isUserActive) {
+        val instance = baseInstance ?: return@LaunchedEffect
+        val renderableManager = engine.renderableManager
+
+        var matOn: MaterialInstance? = null
+        var matOff: MaterialInstance? = null
+        var glassOn: MaterialInstance? = null
+        var glassOff: MaterialInstance? = null
+
+        instance.getMaterialInstances().forEach { mat ->
+            if (mat.getName() == "MAT_SECCION_ON") matOn = mat
+            if (mat.getName() == "MAT_SECCION_OFF") matOff = mat
+            if (mat.getName() == "GLASS.on") glassOn = mat
+            if (mat.getName() == "GLASS") glassOff = mat
+        }
+
+        if (matOn == null || matOff == null) {
+            VitrinaDebugLog.d("VitrinaMaterials", "MAT_SECCION_ON o MAT_SECCION_OFF no se encontraron en el GLB")
+            return@LaunchedEffect
+        }
+
+        val isCloseToTarget = kotlin.math.abs(rotationAnim.value - targetRotationDegrees) < 1.0f
+        val activeNodeIndex = if (isCloseToTarget && isUserActive) activeIndex else -1
+
+        // 1. Alternar cintillo
+        VitrinaConstants.UNIT_GLB_NODE_NAMES.forEachIndexed { index, nodeName ->
+            val entity = instance.model.getFirstEntityByName(nodeName)
+            if (entity != 0 && renderableManager.hasComponent(entity)) {
+                val renderableInstance = renderableManager.getInstance(entity)
+                if (renderableInstance != 0) {
+                    val desiredMat = if (index == activeNodeIndex) matOn!! else matOff!!
+                    renderableManager.setMaterialInstanceAt(renderableInstance, 0, desiredMat)
+                }
+            }
+        }
+
+        // 2. Alternar vidrio/acrílico (GLASS cuando gira, GLASS.on cuando se detiene)
+        // Cylinder (nodo 40) y Cylinder.002 (nodo 41) representan las partes de acrílico de la vitrina
+        listOf("Cylinder", "Cylinder.002").forEach { nodeName ->
+            val entity = instance.model.getFirstEntityByName(nodeName)
+            if (entity != 0 && renderableManager.hasComponent(entity)) {
+                val renderableInstance = renderableManager.getInstance(entity)
+                if (renderableInstance != 0 && glassOn != null && glassOff != null) {
+                    val desiredGlass = if (isCloseToTarget && isUserActive) glassOn!! else glassOff!!
+                    renderableManager.setMaterialInstanceAt(renderableInstance, 0, desiredGlass)
+                }
+            }
+        }
     }
 
     Box(modifier = modifier) {

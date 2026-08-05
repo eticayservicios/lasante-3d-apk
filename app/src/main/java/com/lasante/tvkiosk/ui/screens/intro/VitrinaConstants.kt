@@ -2,6 +2,7 @@ package com.lasante.tvkiosk.ui.screens.intro
 
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.Color
 import io.github.sceneview.math.Position
@@ -82,7 +83,10 @@ object VitrinaConstants {
         durationMillis = 180,
         easing = snappyRotationEasing,
     )
-    val autoRotationAnimationSpec: AnimationSpec<Float> = tween(durationMillis = 400)
+    val autoRotationAnimationSpec: AnimationSpec<Float> = tween(
+        durationMillis = 4000,
+        easing = LinearEasing,
+    )
 
     /** @deprecated Usar [manualRotationAnimationSpec] o [autoRotationAnimationSpec]. */
     val rotationAnimationSpec: AnimationSpec<Float> = manualRotationAnimationSpec

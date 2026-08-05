@@ -157,6 +157,7 @@ fun IntroScreen(
                 baseRotationHandle = baseRotationHandle,
                 vitrinaFilamentSession = vitrinaFilamentSession,
                 showVitrinaProducts = vitrinaController.showProducts,
+                isUserActive = vitrinaController.isUserActive,
                 renderVitrinaScene = renderVitrinaScene,
                 vitrinaSceneActive = vitrinaSceneActive,
                 vitrinaFilamentRendering = vitrinaFilamentRendering,
