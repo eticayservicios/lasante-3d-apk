@@ -244,7 +244,7 @@ fun ProductsScreen(
             val badgeWidth = uiMetrics.badgeHeight * TreatmentUiMetrics.BADGE_WIDTH_TO_HEIGHT
             val titleStartGap = badgeWidth + when {
                 // Infinix: título más a la derecha (badge intacto).
-                isPhoneLandscape -> 30.dp
+                isPhoneLandscape -> 48.dp
                 isTv66 -> 40.dp
                 isTv42 -> 34.dp
                 else -> 32.dp
