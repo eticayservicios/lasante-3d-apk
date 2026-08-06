@@ -65,14 +65,15 @@ object VitrinaConstants {
 
     val FEATURED_ANCHOR_NAMES = listOf("featured_1", "featured_2", "featured_3", "featured_4")
     /**
-     * Nodos GLB en orden angular (~72°): nombre = texto del cintillo = ID de negocio.
-     * Genéricos → Primary → PHQ → Specialty → Hospital.
+     * Nodos GLB en orden angular (~72°), igual que API/admin:
+     * Genéricos → Primary → Specialty → PHQ → Hospital.
+     * Nombre de nodo = texto del cintillo = ID.
      */
     val UNIT_GLB_NODE_NAMES = listOf(
         "genericos_lasante",
         "primary_care",
-        "phq_consumo",
         "specialty_care",
+        "phq_consumo",
         "hospital_care",
     )
     /**
@@ -82,8 +83,8 @@ object VitrinaConstants {
     val UNIT_MESH_BEARING_DEGREES = listOf(
         90.417f, // genericos_lasante
         162.405f, // primary_care
-        -125.590f, // phq_consumo
-        -53.566f, // specialty_care
+        -125.567f, // specialty_care
+        -53.593f, // phq_consumo
         18.440f, // hospital_care
     )
     /**
@@ -92,8 +93,8 @@ object VitrinaConstants {
     val UNIT_SLOT_CATEGORIA_NAMES = listOf(
         "slot_categoria_1",
         "slot_categoria_2",
-        "slot_categoria_3", // PHQ
-        "slot_categoria_4", // Specialty
+        "slot_categoria_3", // Specialty
+        "slot_categoria_4", // PHQ
         "slot_categoria_5",
     )
     /** @deprecated Usar [UNIT_GLB_NODE_NAMES]. */
@@ -103,8 +104,8 @@ object VitrinaConstants {
     val UNIT_ACCENT_COLORS = listOf(
         Color(0xFF26A641), // genericos
         Color(0xFF2448D8), // primary
-        Color(0xFFFF9800), // PHQ
         Color(0xFF7B2CBF), // Specialty
+        Color(0xFFFF9800), // PHQ
         Color(0xFFE53935), // hospital
     )
 

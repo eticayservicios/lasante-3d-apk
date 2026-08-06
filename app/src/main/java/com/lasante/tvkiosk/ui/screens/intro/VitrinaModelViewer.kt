@@ -275,12 +275,12 @@ fun VitrinaModelViewer(
                 targetRotationDegrees,
             )
             val close = abs(rotationAnim.value - alignedTarget) < 1.0f
-            // Encender la cara realmente al frente (bearing), no solo activeIndex:
-            // si nombres GLB/código divergen (specialty↔phq), activeIndex dejaba
-            // la frontal apagada y la hermana encendida.
+            // Luz = activeIndex (cara pedida) si coincide con el frente;
+            // si no, la cara realmente al frente (evita specialty↔phq apagadas).
             val frontIndex = VitrinaGlbMapping.frontGlbIndexForRotation(rotationAnim.value)
             val activeNode = when {
                 !close || !isUserActive -> -1
+                frontIndex == activeIndex -> activeIndex
                 else -> frontIndex
             }
             val glassLit = close && isUserActive

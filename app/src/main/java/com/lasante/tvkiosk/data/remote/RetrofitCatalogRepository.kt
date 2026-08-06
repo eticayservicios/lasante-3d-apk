@@ -55,14 +55,14 @@ class RetrofitCatalogRepository(
             aliases = setOf("primary", "primary-care", "primary care"),
         ),
         BusinessUnitAlias(
-            fallbackId = "phq-consumo",
-            displayName = "PHQ Consumo",
-            aliases = setOf("phq", "phq-consumo", "phq consumo", "consumo"),
-        ),
-        BusinessUnitAlias(
             fallbackId = "specialty-care",
             displayName = "Specialty Care",
             aliases = setOf("specialty", "specialty-care", "specialty care"),
+        ),
+        BusinessUnitAlias(
+            fallbackId = "phq-consumo",
+            displayName = "PHQ Consumo",
+            aliases = setOf("phq", "phq-consumo", "phq consumo", "consumo"),
         ),
         BusinessUnitAlias(
             fallbackId = "hospital-care",
@@ -273,13 +273,12 @@ class RetrofitCatalogRepository(
             return emptyList()
         }
 
-        // Orden canónico del cilindro (PHQ antes que Specialty). El `orden` del API
-        // puede traer Specialty@3; la UI reordena otra vez en rememberDisplayVitrinaUnits.
+        // Orden = API/admin = cilindro: Specialty antes que PHQ.
         val glbOrder = listOf(
             "genericos-la-sante",
             "primary-care",
-            "phq-consumo",
             "specialty-care",
+            "phq-consumo",
             "hospital-care",
             "medicina-general",
         )
