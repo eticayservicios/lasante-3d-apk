@@ -217,7 +217,7 @@ fun BusinessUnitVitrina(
                         onWakeFromIdle()
                         onUnitClick(activeVitrinaUnit.unit.id)
                     },
-                    size = metrics.rotateButtonSize,
+                    size = metrics.touchHintSize,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(bottom = metrics.touchHintBottomPadding)

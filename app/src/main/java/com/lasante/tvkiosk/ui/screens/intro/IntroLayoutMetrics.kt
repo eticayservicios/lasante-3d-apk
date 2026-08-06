@@ -391,7 +391,10 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 52.dp
             "short_height" -> 58.dp
-            "tv_32", "tv_42", "tablet_landscape" -> 72.dp
+            // TV42/tablet: +28% baseline; Damasco canvas alto +40% (el +10% no se notaba).
+            "tv_32" -> 72.dp * 1.20f
+            "tv_42", "tablet_landscape" ->
+                if (isTv42LargeCanvas) 72.dp * 1.40f else 72.dp * 1.28f
             // TV66: mismo ancho que el logo vertical (dos bloques alineados).
             "tv_66" -> {
                 val logoAspect = 229f / 1004f
@@ -410,7 +413,9 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 34.dp
             "short_height" -> 40.dp
-            "tv_32", "tv_42", "tablet_landscape" -> 48.dp
+            "tv_32" -> 48.dp * 1.20f
+            "tv_42", "tablet_landscape" ->
+                if (isTv42LargeCanvas) 48.dp * 1.40f else 48.dp * 1.28f
             "tv_66" -> historiaBadgeHeight * 0.58f
             "expanded" -> 54.dp
             "tv_unknown" -> 50.dp
@@ -525,12 +530,12 @@ data class IntroLayoutMetrics(
 
     /**
      * Resta altura al logo vertical dentro del rail (dp).
-     * Phone: 10 (aire inferior). Damasco canvas alto: 20. Fire/tv_42: 0.
+     * Phone: 10. Damasco: 45 (badge más grande + logo un poco más corto).
      */
     val verticalLogoHeightReduction: Dp
         get() = when {
             isPhoneLandscape -> 10.dp
-            isTv42LargeCanvas -> 20.dp
+            isTv42LargeCanvas -> 45.dp
             else -> 0.dp
         }
 
@@ -597,25 +602,35 @@ data class IntroLayoutMetrics(
             else -> 70.dp
         }
 
+    /**
+     * Tamaño del touch.gif (puede ser menor que Gira).
+     * Infinix: un poco más chico para caber dentro del cintillo.
+     */
+    val touchHintSize: Dp
+        get() = when (vitrinaProfileKey) {
+            "phone_landscape" -> rotateButtonSize * 0.78f
+            else -> rotateButtonSize
+        }
+
     /** Padding inferior del hint touch.gif (sobre el cintillo frontal). */
     val touchHintBottomPadding: Dp
         get() = when (vitrinaProfileKey) {
-            // Phone: un poco por encima del borde inferior / logo.
-            "phone_landscape" -> maxHeight * 0.10f
+            // Infinix: subir para quedar dentro del cintillo (antes 0.05H se salía abajo).
+            "phone_landscape" -> maxHeight * 0.11f
             "tv_32", "tv_42", "tv_66", "tablet_landscape" -> maxHeight * 0.055f
             else -> maxHeight * 0.04f
         }
 
     /**
      * Offset horizontal del touch desde el centro del cintillo frontal.
-     * Negativo = izquierda del centro (casi centrado, no 100% en el medio).
+     * Negativo = izquierda. Tablet/TV66: −1%W extra vs calibración previa.
      */
     val touchHintCenterXOffset: Dp
         get() = when (vitrinaProfileKey) {
-            "phone_landscape" -> -(rotateButtonSize * 0.45f)
-            "tv_66" -> -(rotateButtonSize * 0.40f)
-            "tv_32", "tv_42", "tablet_landscape" -> -(rotateButtonSize * 0.42f)
-            else -> -(rotateButtonSize * 0.40f)
+            "phone_landscape" -> -(maxWidth * 0.10f)
+            "tv_66" -> -(maxWidth * 0.09f)
+            "tv_32", "tv_42", "tablet_landscape" -> -(maxWidth * 0.10f)
+            else -> -(maxWidth * 0.08f)
         }
 
     /** Borde derecho del cilindro 3D — botón Nuestra Historia (padding ≥ 0). */
@@ -644,7 +659,8 @@ data class IntroLayoutMetrics(
             "phone_landscape" -> 0.dp
             "tv_32" -> 36.dp
             "tv_42", "tablet_landscape" -> 88.dp
-            "tv_66" -> 110.dp
+            // TV66: en captura quedaba en el aire a la derecha — más adentro.
+            "tv_66" -> 168.dp
             else -> 24.dp
         }
 
@@ -661,9 +677,23 @@ data class IntroLayoutMetrics(
                 -(pull + dragHandleWidth) - 8.dp
             }
             "tv_42", "tablet_landscape" -> (-18).dp
-            "tv_66" -> (-22).dp
+            "tv_66" -> (-36).dp
             "tv_32" -> (-14).dp
             else -> (-8).dp
+        }
+
+    /**
+     * Ms para un giro idle completo (360°).
+     * Mismos °/s se ven más rápidos en pantallas grandes (más px en el borde);
+     * por eso tablet/TV usan duración mayor que phone.
+     */
+    val idleFullRotationMs: Int
+        get() = when (vitrinaProfileKey) {
+            "phone_landscape", "phone_portrait" -> 60_000
+            "tv_32" -> 85_000
+            "tv_42", "tablet_landscape" -> 95_000
+            "tv_66" -> 110_000
+            else -> 75_000
         }
 
     /** Desplazamiento vertical del botón girar hacia el estante medio (+ = abajo). */

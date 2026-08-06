@@ -40,8 +40,8 @@ object VitrinaConstants {
     const val STUDIO_IBL_INTENSITY = 10_000f
 
     /**
-     * Rotación idle continua: milisegundos para un giro completo (360°).
-     * Más alto = más lento. Antes 30s; se sube para lectura más calmada en kiosk.
+     * Baseline de rotación idle (phone). Tablet/TV usan [IntroLayoutMetrics.idleFullRotationMs]
+     * porque el mismo °/s se percibe más rápido en pantallas grandes.
      */
     const val IDLE_FULL_ROTATION_MS = 60_000
 

@@ -108,7 +108,14 @@ fun VitrinaModelViewer(
         baseRotationHandle.setBaseDegrees(displayRotationDegrees)
         rotationAnim.snapTo(displayRotationDegrees)
     }
-    LaunchedEffect(targetRotationDegrees, rotationAnimationSpec, sceneActive, isDragging, isUserActive) {
+    LaunchedEffect(
+        targetRotationDegrees,
+        rotationAnimationSpec,
+        sceneActive,
+        isDragging,
+        isUserActive,
+        layoutMetrics.idleFullRotationMs,
+    ) {
         if (isDragging) return@LaunchedEffect
         if (!sceneActive) {
             rotationAnim.snapTo(targetRotationDegrees)
@@ -116,14 +123,14 @@ fun VitrinaModelViewer(
             return@LaunchedEffect
         }
         if (!isUserActive) {
-            // Rotación continua, lenta e infinita cuando el usuario está inactivo.
-            // Velocidad uniforme en todos los dispositivos ([IDLE_FULL_ROTATION_MS] por 360°).
+            // Rotación continua idle. Duración por perfil: pantallas grandes
+            // usan más ms/360° porque el mismo °/s se percibe más rápido (más px en el borde).
             val startAngle = rotationAnim.value
             rotationAnim.animateTo(
                 targetValue = startAngle - 360f,
                 animationSpec = infiniteRepeatable(
                     animation = tween(
-                        durationMillis = VitrinaConstants.IDLE_FULL_ROTATION_MS,
+                        durationMillis = layoutMetrics.idleFullRotationMs,
                         easing = LinearEasing,
                     ),
                     repeatMode = RepeatMode.Restart
