@@ -679,9 +679,10 @@ data class IntroLayoutMetrics(
                 val pull = if (pullTowardCylinder > 72.dp) pullTowardCylinder else 72.dp
                 -(pull + dragHandleWidth) - 8.dp
             }
-            // Fire: +5.dp hacia la derecha (estaba muy adentro). Damasco sin cambio.
+            // Fire: más a la derecha (borde exterior del estante, cuadro rojo).
+            // Damasco mantiene pull hacia el cilindro.
             "tv_42", "tablet_landscape" ->
-                if (isTv42LargeCanvas) (-18).dp else (-13).dp
+                if (isTv42LargeCanvas) (-18).dp else 12.dp
             "tv_66" -> (-36).dp
             "tv_32" -> (-14).dp
             else -> (-8).dp
