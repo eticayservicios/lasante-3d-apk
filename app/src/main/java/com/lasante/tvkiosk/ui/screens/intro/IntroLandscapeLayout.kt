@@ -150,30 +150,20 @@ fun IntroResponsiveLayout(
                     .zIndex(20f),
             )
 
-            // Rail derecho: BadgeHistoria + logo en la misma columna (centrados entre sí).
-            val pullUp = metrics.historiaRailTopPullUp
-            val railHeight = metrics.maxHeight - metrics.verticalPadding * 2 + pullUp
-            val badgeBlockH = if (showVitrinaControls) metrics.historiaBadgeHeight else 0.dp
-            val logoH = (railHeight - badgeBlockH - metrics.verticalLogoHeightReduction)
-                .coerceAtLeast(0.dp)
-            val logoW = logoH * (229f / 1004f)
+            // Rail derecho: BadgeHistoria arriba; logo = altura de vitrina, centrado con ella.
+            val logoH = metrics.vitrinaVisualHeight.coerceAtLeast(48.dp)
+            val logoW = (logoH * (229f / 1004f)).coerceAtLeast(12.dp)
             val railWidth = maxOf(metrics.historiaBadgeWidth, logoW)
-            Column(
+            Box(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
+                    .align(Alignment.CenterEnd)
                     .padding(end = metrics.logoEndPadding)
-                    .offset(y = -pullUp)
+                    .offset(y = metrics.vitrinaCenterYOffset)
                     .width(railWidth)
-                    .height(railHeight)
+                    .height(logoH)
                     .zIndex(15f),
-                horizontalAlignment = Alignment.CenterHorizontally,
+                contentAlignment = Alignment.Center,
             ) {
-                if (showVitrinaControls) {
-                    HistoriaBadgeButton(
-                        metrics = metrics,
-                        onClick = onVideoClick,
-                    )
-                }
                 AsyncImage(
                     model = "file:///android_asset/vitrina/ui/logo_la_sante_vertical.png",
                     contentDescription = null,
@@ -181,6 +171,18 @@ fun IntroResponsiveLayout(
                         .height(logoH)
                         .width(logoW),
                     contentScale = ContentScale.Fit,
+                )
+            }
+            if (showVitrinaControls) {
+                val pullUp = metrics.historiaRailTopPullUp
+                HistoriaBadgeButton(
+                    metrics = metrics,
+                    onClick = onVideoClick,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(end = metrics.logoEndPadding)
+                        .offset(y = -pullUp)
+                        .zIndex(16f),
                 )
             }
         }

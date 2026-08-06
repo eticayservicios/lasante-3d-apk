@@ -108,6 +108,11 @@ object VitrinaAnchorResolver {
             resolved.isNotEmpty() -> "SLOT_CATEGORIA"
             else -> "NONE"
         }
+        Log.i(
+            "VitrinaDiag",
+            "ANCHORS mode=$mode count=${resolved.size} " +
+                resolved.joinToString { "${it.index}:${it.name}@${it.bearingDegrees.format()}°" },
+        )
         Log.d(
             TAG,
             "units mode=$mode anchors=${resolved.size}/${VitrinaConstants.UNIT_COUNT} names=${resolved.map { it.name }}",
@@ -153,11 +158,34 @@ object VitrinaAnchorResolver {
                 else -> null
             } ?: return@mapIndexedNotNull null
 
-            val bearing = VitrinaRotation.bearingDegrees(center.x, center.z)
+            val aabbBearing = VitrinaRotation.bearingDegrees(center.x, center.z)
+            val meshBearing = VitrinaConstants.UNIT_MESH_BEARING_DEGREES.getOrNull(index)
+            val bearing = meshBearing ?: aabbBearing
+            if (meshBearing != null) {
+                val delta = kotlin.math.abs(meshBearing - aabbBearing)
+                val wrapped = minOf(delta, 360f - delta)
+                if (wrapped > 5f) {
+                    Log.w(
+                        TAG,
+                        "BEARING_MISMATCH $name index=$index mesh=$meshBearing aabb=$aabbBearing " +
+                            "delta=$wrapped (usando mesh)",
+                    )
+                }
+            }
+            // Posición radial con bearing canónico (evita hotspot/rotación cruzados).
+            val radius = kotlin.math.hypot(center.x.toDouble(), center.z.toDouble())
+                .toFloat()
+                .coerceAtLeast(0.85f)
+            val rad = Math.toRadians(bearing.toDouble())
+            val anchored = Position(
+                x = (kotlin.math.sin(rad) * radius).toFloat(),
+                y = center.y,
+                z = (kotlin.math.cos(rad) * radius).toFloat(),
+            )
             VitrinaResolvedUnitAnchor(
                 index = index,
                 name = name,
-                position = center,
+                position = anchored,
                 bearingDegrees = bearing,
                 source = VitrinaSlotSource.GLTF_ANCHOR,
             )

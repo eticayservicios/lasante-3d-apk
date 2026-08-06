@@ -277,11 +277,13 @@ data class IntroLayoutMetrics(
      */
     val bubblesRowTopInScene: Dp
         get() = when (vitrinaProfileKey) {
-            "phone_landscape" -> 2.dp + maxHeight * 0.05f
+            // Infinix: −15.dp subir bloque PRODUCTOS ESTRELLAS + burbujas.
+            "phone_landscape" -> (2.dp + maxHeight * 0.05f) - 15.dp
             "phone_portrait" -> 8.dp
-            "tv_42", "tablet_landscape" -> 30.dp + maxHeight * 0.06f
-            // TV66: aire flotante vs cilindro (−3%H vs 0.11 previo).
-            "tv_66" -> 30.dp + maxHeight * 0.08f
+            // −10.dp: subir un chilín el bloque PRODUCTOS ESTRELLAS + burbujas.
+            "tv_42", "tablet_landscape" -> 20.dp + maxHeight * 0.06f
+            // TV66: aire flotante vs cilindro (−3%H vs 0.11 previo); −10.dp igual que TV42.
+            "tv_66" -> 20.dp + maxHeight * 0.08f
             "tv_32" -> 10.dp
             "short_height" -> 6.dp
             "expanded" -> 10.dp
@@ -531,6 +533,37 @@ data class IntroLayoutMetrics(
         }
 
     /**
+     * Altura visual de la vitrina (misma caja 3D que [IntroVitrina] × factor de framing
+     * del cilindro). El logo La Santé debe medir esto para quedar al ras tope/base.
+     */
+    val vitrinaVisualHeight: Dp
+        get() {
+            val sceneH = maxHeight * sceneHeightFraction
+            val fill = when (vitrinaProfileKey) {
+                "phone_landscape" -> 0.82f
+                // Fire: más corto. Damasco: un poco menos para que la é no se salga del tope.
+                "tv_42", "tablet_landscape" -> if (isTv42LargeCanvas) 0.74f else 0.72f
+                "tv_66" -> 0.76f
+                else -> 0.78f
+            }
+            val trim = when {
+                vitrinaProfileKey == "tv_42" || vitrinaProfileKey == "tablet_landscape" ->
+                    if (isTv42LargeCanvas) 6.dp else 6.dp
+                else -> 3.dp
+            }
+            return ((sceneH * fill) - trim).coerceAtLeast(48.dp)
+        }
+
+    /**
+     * Offset Y del centro de la vitrina vs centro de pantalla
+     * (misma fórmula que el cilindro en IntroVitrina).
+     */
+    val vitrinaCenterYOffset: Dp
+        get() = maxHeight * vitrinaVerticalBias +
+            vitrinaVerticalOffsetAdjustment +
+            vitrinaCylinderNudgeDown
+
+    /**
      * Resta altura al logo vertical dentro del rail (dp).
      * Phone: 10. Damasco: 45 (badge más grande + logo un poco más corto).
      */
@@ -540,6 +573,12 @@ data class IntroLayoutMetrics(
             isTv42LargeCanvas -> 45.dp
             else -> 0.dp
         }
+
+    /**
+     * @deprecated Preferir [vitrinaVisualHeight] para el logo.
+     */
+    val verticalLogoMaxHeight: Dp
+        get() = vitrinaVisualHeight
 
     val vitrinaVerticalBias: Float
         get() = when (vitrinaProfileKey) {

@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalDensity
 @Composable
 fun VitrinaActiveUnitTapLayer(
     activeIndex: Int,
+    activeUnitId: String,
     projectedUnits: Map<Int, FeaturedSlotScreenPoint>,
     enabled: Boolean,
     tapEnabled: Boolean,
@@ -32,7 +33,9 @@ fun VitrinaActiveUnitTapLayer(
 
     val density = LocalDensity.current
     val glbIndex = VitrinaGlbMapping.glbIndexFor(activeIndex)
-    val targetUnitId = VitrinaGlbMapping.navigationUnitIdFor(glbIndex)
+    val mappedUnitId = VitrinaGlbMapping.navigationUnitIdFor(glbIndex)
+    // Tap = misma unidad que productos/burbujas (no recalcular por si el mapa diverge).
+    val targetUnitId = activeUnitId.ifBlank { mappedUnitId }
     val topFrac = unitTapTopFraction(metrics)
     val bottomFrac = unitTapBottomFraction(metrics)
     val widthFrac = unitTapWidthFraction(metrics)
@@ -57,10 +60,10 @@ fun VitrinaActiveUnitTapLayer(
                             pos.x in tapLeft..tapRight &&
                                 pos.y in tapTop..tapBottom
                         if (!inUnitFace) return@vitrinaTapOrHorizontalDragGesture
-                        android.util.Log.d(
-                            "VitrinaTap",
-                            "UNIT_FACE_TAP activeIndex=$activeIndex glbIndex=$glbIndex " +
-                                "targetUnitId=$targetUnitId top=$topFrac bottom=$bottomFrac",
+                        android.util.Log.i(
+                            "VitrinaDiag",
+                            "TAP activeIndex=$activeIndex glbNode=${VitrinaGlbMapping.glbNodeNameFor(activeIndex)} " +
+                                "activeUnitId=$activeUnitId mappedUnitId=$mappedUnitId → navigate=$targetUnitId",
                         )
                         onUnitClick(targetUnitId)
                     },

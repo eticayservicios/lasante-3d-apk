@@ -65,26 +65,37 @@ object VitrinaConstants {
 
     val FEATURED_ANCHOR_NAMES = listOf("featured_1", "featured_2", "featured_3", "featured_4")
     /**
-     * Nodos GLB en orden angular del cilindro (pasos de ~72°).
-     * Secuencia física del mesh: genericos → primary → specialty → phq → hospital.
-     * Misma secuencia que [VitrinaGlbMapping.orderedNavigationUnitIds].
+     * Nodos GLB en orden angular (~72°). Tras intercambiar paneles PHQ/Specialty
+     * en el atlas, el texto visible en cada paso es:
+     * genericos → primary → PHQ (nodo specialty_care) → Specialty (nodo phq_consumo) → hospital.
+     * IDs de negocio: [VitrinaGlbMapping.orderedNavigationUnitIds].
      */
     val UNIT_GLB_NODE_NAMES = listOf(
         "genericos_lasante",
         "primary_care",
-        "specialty_care",
-        "phq_consumo",
+        "specialty_care", // texto cintillo: PHQ Consumo (atlas)
+        "phq_consumo", // texto cintillo: Specialty Care (atlas)
         "hospital_care",
     )
     /**
-     * Empties radiales (export nuevo). Preferidos para tap/rotación porque
-     * [UNIT_GLB_NODE_NAMES] suelen compartir la misma transform del cintillo.
+     * Bearing XZ (grados) del centro de cada cintillo, medido sobre el mesh Draco.
+     * Misma orden que [UNIT_GLB_NODE_NAMES].
+     */
+    val UNIT_MESH_BEARING_DEGREES = listOf(
+        90.417f, // genericos_lasante
+        162.405f, // primary_care
+        -125.590f, // specialty_care (texto PHQ)
+        -53.566f, // phq_consumo (texto Specialty)
+        18.440f, // hospital_care
+    )
+    /**
+     * Empties radiales en el mismo orden angular que [UNIT_GLB_NODE_NAMES].
      */
     val UNIT_SLOT_CATEGORIA_NAMES = listOf(
         "slot_categoria_1",
         "slot_categoria_2",
-        "slot_categoria_3",
-        "slot_categoria_4",
+        "slot_categoria_3", // cara PHQ (nodo specialty_care)
+        "slot_categoria_4", // cara Specialty (nodo phq_consumo)
         "slot_categoria_5",
     )
     /** @deprecated Usar [UNIT_GLB_NODE_NAMES]. */
@@ -94,8 +105,8 @@ object VitrinaConstants {
     val UNIT_ACCENT_COLORS = listOf(
         Color(0xFF26A641), // genericos
         Color(0xFF2448D8), // primary
-        Color(0xFF7B2CBF), // specialty_care
-        Color(0xFFFF9800), // phq_consumo
+        Color(0xFFFF9800), // PHQ (texto en nodo specialty_care)
+        Color(0xFF7B2CBF), // Specialty (texto en nodo phq_consumo)
         Color(0xFFE53935), // hospital
     )
 

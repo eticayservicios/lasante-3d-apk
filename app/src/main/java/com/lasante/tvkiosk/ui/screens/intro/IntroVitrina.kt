@@ -76,6 +76,14 @@ fun BusinessUnitVitrina(
             "VitrinaBubbles",
             "unit=${activeVitrinaUnit.unit.id} glbIndex=$glbIndex products=${unitProducts.size}",
         )
+        android.util.Log.i(
+            "VitrinaDiag",
+            "ACTIVE index=$activeIndex glbIndex=$glbIndex " +
+                "node=${VitrinaGlbMapping.glbNodeNameFor(activeIndex)} " +
+                "unitId=${activeVitrinaUnit.unit.id} " +
+                "navMapped=${VitrinaGlbMapping.navigationUnitIdFor(glbIndex)} " +
+                "products=${unitProducts.size}",
+        )
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -154,6 +162,7 @@ fun BusinessUnitVitrina(
                         // Una sola capa para todos los perfiles: evita pelea cuerpo vs cintillo.
                         VitrinaActiveUnitTapLayer(
                             activeIndex = activeIndex,
+                            activeUnitId = activeVitrinaUnit.unit.id,
                             projectedUnits = projectedUnits,
                             enabled = bubblesVisible && vitrinaInteractionEnabled,
                             tapEnabled = unitTapEnabled,

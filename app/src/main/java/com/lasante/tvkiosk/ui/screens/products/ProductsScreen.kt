@@ -243,16 +243,41 @@ fun ProductsScreen(
             val gridMaxWidth = grid.maxContentWidth
             val badgeWidth = uiMetrics.badgeHeight * TreatmentUiMetrics.BADGE_WIDTH_TO_HEIGHT
             val titleStartGap = badgeWidth + when {
-                isPhoneLandscape -> 18.dp
-                isTv66 -> 28.dp
-                isTv42 -> 22.dp
-                else -> 20.dp
+                // Infinix: título más a la derecha (badge intacto).
+                isPhoneLandscape -> 30.dp
+                isTv66 -> 40.dp
+                isTv42 -> 34.dp
+                else -> 32.dp
             }
             val searchBarWidth = when (profile.tier) {
-                DeviceProfileTier.TV_REGULAR -> 256.dp
-                DeviceProfileTier.TV_LARGE -> 360.dp
-                DeviceProfileTier.COMPACT_LANDSCAPE -> 168.dp
-                else -> if (profile.isLandscape) 220.dp else 150.dp
+                DeviceProfileTier.TV_REGULAR -> 300.dp
+                DeviceProfileTier.TV_LARGE -> 420.dp
+                DeviceProfileTier.COMPACT_LANDSCAPE -> 196.dp
+                else -> if (profile.isLandscape) 256.dp else 175.dp
+            }
+            val filterToSearchGap = when {
+                isPhoneLandscape -> 10.dp
+                isTv66 -> 16.dp
+                isTv42 -> 14.dp
+                else -> 12.dp
+            }
+            val searchToNavGap = when {
+                isPhoneLandscape -> 12.dp
+                isTv66 -> 20.dp
+                isTv42 -> 16.dp
+                else -> 14.dp
+            }
+            val searchBarHeight = when {
+                isTv42 -> 32.dp
+                isPhoneLandscape -> 28.dp
+                isLandscape -> 30.dp
+                else -> 28.dp
+            }
+            val filterIconSize = when {
+                isTv42 -> 30.dp
+                isPhoneLandscape -> 24.dp
+                isLandscape -> 28.dp
+                else -> 26.dp
             }
 
             Box(modifier = Modifier.fillMaxSize()) {
@@ -273,7 +298,7 @@ fun ProductsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = contentPadding),
-                            verticalAlignment = Alignment.CenterVertically,
+                            verticalAlignment = Alignment.Top,
                         ) {
                             LaSanteScreenTitle(
                                 text = DisplayTitles.resolve(treatmentName),
@@ -288,96 +313,114 @@ fun ProductsScreen(
                                 fontFamily = MaterialTheme.typography.bodyLarge.fontFamily,
                                 fontWeight = FontWeight.Light,
                                 allCaps = false,
-                                modifier = Modifier.padding(start = titleStartGap),
+                                modifier = Modifier
+                                    .padding(start = titleStartGap)
+                                    .padding(top = (searchBarHeight - 22.dp).coerceAtLeast(0.dp) / 2),
                             )
 
                             Spacer(modifier = Modifier.weight(1f))
 
                             Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(
-                                    if (isPhoneLandscape) 6.dp else 8.dp,
-                                ),
+                                verticalAlignment = Alignment.Top,
                             ) {
+                                val filterTopPad =
+                                    ((searchBarHeight - filterIconSize) / 2).coerceAtLeast(0.dp)
                                 AsyncImage(
                                     model = "file:///android_asset/vitrina/ui/filter_button.png",
                                     contentDescription = "Filtrar",
                                     modifier = Modifier
-                                        .size(
-                                            when {
-                                                isTv42 -> 30.dp
-                                                isPhoneLandscape -> 24.dp
-                                                isLandscape -> 28.dp
-                                                else -> 26.dp
-                                            },
-                                        )
+                                        .padding(top = filterTopPad)
+                                        .size(filterIconSize)
                                         .clickableWithSound { showFilterSheet = true },
                                     contentScale = ContentScale.Fit,
                                 )
 
-                                Box(
-                                    modifier = Modifier
-                                        .width(searchBarWidth)
-                                        .height(
-                                            when {
-                                                isTv42 -> 32.dp
-                                                isPhoneLandscape -> 28.dp
-                                                isLandscape -> 30.dp
-                                                else -> 28.dp
-                                            },
-                                        )
-                                        .shadow(elevation = 2.dp, shape = RoundedCornerShape(50.dp))
-                                        .clip(RoundedCornerShape(50.dp))
-                                        .background(
-                                            Brush.horizontalGradient(
-                                                colors = listOf(Color(0xFFF8F8F8), Color(0xFFD0D0D0)),
-                                            ),
-                                        )
-                                        .padding(horizontal = if (isLandscape) 10.dp else 8.dp),
-                                    contentAlignment = Alignment.CenterStart,
+                                Spacer(modifier = Modifier.width(filterToSearchGap))
+
+                                // Buscador + Ordenar: misma columna, ordenar al ras derecho del buscador.
+                                Column(
+                                    modifier = Modifier.width(searchBarWidth),
+                                    horizontalAlignment = Alignment.End,
                                 ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    ) {
-                                        AsyncImage(
-                                            model = "file:///android_asset/vitrina/ui/search_icon.png",
-                                            contentDescription = null,
-                                            modifier = Modifier.size(if (isLandscape) 16.dp else 14.dp),
-                                            contentScale = ContentScale.Fit,
-                                        )
-                                        BasicTextField(
-                                            value = searchQuery,
-                                            onValueChange = { searchQuery = it },
-                                            textStyle = TextStyle(
-                                                color = LaSanteText,
-                                                fontSize = if (isTv66) 13.sp else if (isLandscape) 12.sp else 11.sp,
-                                            ),
-                                            cursorBrush = SolidColor(LaSanteGreen),
-                                            modifier = Modifier.weight(1f),
-                                            singleLine = true,
-                                            decorationBox = { innerTextField ->
-                                                if (searchQuery.isEmpty()) {
-                                                    Text(
-                                                        "Buscar Producto",
-                                                        color = LaSanteTextSecondary,
-                                                        fontSize = if (isTv66) 13.sp else if (isLandscape) 12.sp else 11.sp,
-                                                    )
-                                                }
-                                                innerTextField()
-                                            },
-                                        )
-                                        if (isSearching) {
-                                            CircularProgressIndicator(
-                                                modifier = Modifier.size(12.dp),
-                                                strokeWidth = 2.dp,
-                                                color = LaSanteGreen,
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(searchBarHeight)
+                                            .shadow(elevation = 2.dp, shape = RoundedCornerShape(50.dp))
+                                            .clip(RoundedCornerShape(50.dp))
+                                            .background(
+                                                Brush.horizontalGradient(
+                                                    colors = listOf(Color(0xFFF8F8F8), Color(0xFFD0D0D0)),
+                                                ),
                                             )
+                                            .padding(horizontal = if (isLandscape) 10.dp else 8.dp),
+                                        contentAlignment = Alignment.CenterStart,
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        ) {
+                                            AsyncImage(
+                                                model = "file:///android_asset/vitrina/ui/search_icon.png",
+                                                contentDescription = null,
+                                                modifier = Modifier.size(if (isLandscape) 16.dp else 14.dp),
+                                                contentScale = ContentScale.Fit,
+                                            )
+                                            BasicTextField(
+                                                value = searchQuery,
+                                                onValueChange = { searchQuery = it },
+                                                textStyle = TextStyle(
+                                                    color = LaSanteText,
+                                                    fontSize = if (isTv66) 13.sp else if (isLandscape) 12.sp else 11.sp,
+                                                ),
+                                                cursorBrush = SolidColor(LaSanteGreen),
+                                                modifier = Modifier.weight(1f),
+                                                singleLine = true,
+                                                decorationBox = { innerTextField ->
+                                                    if (searchQuery.isEmpty()) {
+                                                        Text(
+                                                            "Buscar Producto",
+                                                            color = LaSanteTextSecondary,
+                                                            fontSize = if (isTv66) 13.sp else if (isLandscape) 12.sp else 11.sp,
+                                                        )
+                                                    }
+                                                    innerTextField()
+                                                },
+                                            )
+                                            if (isSearching) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(12.dp),
+                                                    strokeWidth = 2.dp,
+                                                    color = LaSanteGreen,
+                                                )
+                                            }
                                         }
                                     }
+
+                                    ProductsSortButton(
+                                        sortOrder = sortOrder,
+                                        onSortClick = {
+                                            sortOrder = when (sortOrder) {
+                                                SortOrder.NONE -> SortOrder.AZ
+                                                SortOrder.AZ -> SortOrder.ZA
+                                                SortOrder.ZA -> SortOrder.NONE
+                                            }
+                                        },
+                                        isLandscape = isLandscape,
+                                        isTv66 = isTv66,
+                                        isTv42 = isTv42,
+                                        modifier = Modifier.padding(
+                                            top = if (isPhoneLandscape) 4.dp else 5.dp,
+                                        ),
+                                    )
                                 }
 
+                                Spacer(modifier = Modifier.width(searchToNavGap))
+
+                                val navTopPad =
+                                    ((searchBarHeight - buttonSize) / 2).coerceAtLeast(0.dp)
                                 Row(
+                                    modifier = Modifier.padding(top = navTopPad),
                                     horizontalArrangement = Arrangement.spacedBy(nav.buttonSpacing),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
@@ -395,31 +438,6 @@ fun ProductsScreen(
                                     )
                                 }
                             }
-                        }
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(
-                                    start = contentPadding,
-                                    end = contentPadding,
-                                    top = if (isPhoneLandscape) 4.dp else 5.dp,
-                                ),
-                            horizontalArrangement = Arrangement.End,
-                        ) {
-                            ProductsSortButton(
-                                sortOrder = sortOrder,
-                                onSortClick = {
-                                    sortOrder = when (sortOrder) {
-                                        SortOrder.NONE -> SortOrder.AZ
-                                        SortOrder.AZ -> SortOrder.ZA
-                                        SortOrder.ZA -> SortOrder.NONE
-                                    }
-                                },
-                                isLandscape = isLandscape,
-                                isTv66 = isTv66,
-                                isTv42 = isTv42,
-                            )
                         }
 
                         Box(
@@ -508,9 +526,8 @@ fun ProductsScreen(
                         .offset {
                             IntOffset(
                                 0,
-                                if (isPhoneLandscape) (-10).dp.roundToPx()
-                                else if (isTv42) (-6).dp.roundToPx()
-                                else 0,
+                                // Infinix: sin pull-up (como antes del ajuste del header).
+                                if (isTv42) (-6).dp.roundToPx() else 0,
                             )
                         }
                         .padding(

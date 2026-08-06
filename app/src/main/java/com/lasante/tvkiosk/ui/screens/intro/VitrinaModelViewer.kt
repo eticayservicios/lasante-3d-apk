@@ -261,7 +261,7 @@ fun VitrinaModelViewer(
         swapMaterials = VitrinaSwapMaterials(matOn!!, matOff!!, glassOn!!, glassOff!!)
     }
 
-    LaunchedEffect(baseInstance, swapMaterials, activeIndex, isUserActive, targetRotationDegrees, unitAnchors) {
+    LaunchedEffect(baseInstance, swapMaterials, activeIndex, isUserActive, targetRotationDegrees) {
         val instance = baseInstance ?: return@LaunchedEffect
         val mats = swapMaterials ?: return@LaunchedEffect
         val renderableManager = engine.renderableManager
@@ -275,19 +275,10 @@ fun VitrinaModelViewer(
                 targetRotationDegrees,
             )
             val close = abs(rotationAnim.value - alignedTarget) < 1.0f
-            // Encender el mesh cuya bearing queda al frente (no confiar solo en activeIndex
-            // si hubo desfase angular specialty/phq).
-            val frontIndex = if (unitAnchors.isNotEmpty()) {
-                unitAnchors.minByOrNull { anchor ->
-                    val faceRot = VitrinaRotation.modelRotationYForBearing(anchor.bearingDegrees)
-                    val aligned = VitrinaRotation.nearestEquivalentAngle(rotationAnim.value, faceRot)
-                    abs(rotationAnim.value - aligned)
-                }?.index ?: activeIndex
-            } else {
-                activeIndex
-            }
             // Idle auto-giro → todo apagado. Usuario activo + cara al frente → ON.
-            val activeNode = if (close && isUserActive) frontIndex else -1
+            // Usar activeIndex (no “front by bearing”): si el AABB mentía, frontIndex
+            // encendía la hermana (specialty↔phq) y dejaba la frontal apagada.
+            val activeNode = if (close && isUserActive) activeIndex else -1
             val glassLit = close && isUserActive
             Triple(activeNode, glassLit, close)
         }
@@ -295,32 +286,60 @@ fun VitrinaModelViewer(
             .collect { (activeNodeIndex, glassLit, close) ->
                 val litName = VitrinaConstants.UNIT_GLB_NODE_NAMES
                     .getOrNull(activeNodeIndex) ?: "none"
-                android.util.Log.d(
-                    "VitrinaMaterials",
-                    "Swap activeNode=$activeNodeIndex lit=$litName glassLit=$glassLit " +
-                        "close=$close userActive=$isUserActive activeIndex=$activeIndex " +
-                        "rot=${"%.1f".format(rotationAnim.value)} " +
+                val navId = if (activeNodeIndex >= 0) {
+                    VitrinaGlbMapping.navigationUnitIdFor(activeNodeIndex)
+                } else {
+                    "none"
+                }
+                android.util.Log.i(
+                    "VitrinaDiag",
+                    "LIGHT close=$close userActive=$isUserActive activeIndex=$activeIndex " +
+                        "litIndex=$activeNodeIndex litNode=$litName navId=$navId " +
+                        "unitId=$activeUnitId rot=${"%.1f".format(rotationAnim.value)} " +
                         "target=${"%.1f".format(targetRotationDegrees)}",
                 )
-                VitrinaConstants.UNIT_GLB_NODE_NAMES.forEachIndexed { index, nodeName ->
-                    val entity = instance.model.getFirstEntityByName(nodeName)
-                    if (entity != 0 && renderableManager.hasComponent(entity)) {
-                        val ri = renderableManager.getInstance(entity)
-                        if (ri != 0) {
-                            val desired = if (index == activeNodeIndex) mats.matOn else mats.matOff
-                            renderableManager.setMaterialInstanceAt(ri, 0, desired)
+                try {
+                    VitrinaConstants.UNIT_GLB_NODE_NAMES.forEachIndexed { index, nodeName ->
+                        val entity = instance.model.getFirstEntityByName(nodeName)
+                        if (entity != 0 && renderableManager.hasComponent(entity)) {
+                            val ri = renderableManager.getInstance(entity)
+                            if (ri != 0) {
+                                val on = index == activeNodeIndex
+                                val desired = if (on) mats.matOn else mats.matOff
+                                renderableManager.setMaterialInstanceAt(ri, 0, desired)
+                                if (index == activeNodeIndex || index == 2 || index == 3) {
+                                    android.util.Log.d(
+                                        "VitrinaDiag",
+                                        "  set $nodeName entity=$entity → ${if (on) "ON" else "OFF"}",
+                                    )
+                                }
+                            } else {
+                                android.util.Log.w("VitrinaDiag", "  $nodeName ri=0")
+                            }
+                        } else {
+                            android.util.Log.w(
+                                "VitrinaDiag",
+                                "  $nodeName entity=$entity missing renderable",
+                            )
                         }
                     }
-                }
-                listOf("Cylinder", "Cylinder.002").forEach { nodeName ->
-                    val entity = instance.model.getFirstEntityByName(nodeName)
-                    if (entity != 0 && renderableManager.hasComponent(entity)) {
-                        val ri = renderableManager.getInstance(entity)
-                        if (ri != 0) {
-                            val desired = if (glassLit) mats.glassOn else mats.glassOff
-                            renderableManager.setMaterialInstanceAt(ri, 0, desired)
+                    listOf("Cylinder", "Cylinder.002").forEach { nodeName ->
+                        val entity = instance.model.getFirstEntityByName(nodeName)
+                        if (entity != 0 && renderableManager.hasComponent(entity)) {
+                            val ri = renderableManager.getInstance(entity)
+                            if (ri != 0) {
+                                val desired = if (glassLit) mats.glassOn else mats.glassOff
+                                renderableManager.setMaterialInstanceAt(ri, 0, desired)
+                            }
                         }
                     }
+                } catch (t: Throwable) {
+                    // No tumbar Intro en Fire/low-end si Filament rechaza un swap.
+                    android.util.Log.e(
+                        "VitrinaDiag",
+                        "Material swap failed lit=$litName glassLit=$glassLit",
+                        t,
+                    )
                 }
             }
     }
