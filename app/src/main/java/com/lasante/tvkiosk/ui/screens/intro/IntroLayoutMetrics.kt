@@ -472,6 +472,8 @@ data class IntroLayoutMetrics(
      */
     val socialCenterYOffset: Dp
         get() = when (vitrinaProfileKey) {
+            // Infinix: bajar ~10%H para centrar respecto a la vitrina (antes quedaban muy arriba).
+            "phone_landscape" -> maxHeight * 0.10f
             "tv_66" -> {
                 val paddedCenterShift = -(maxHeight * vitrinaInsetBottomFraction * 0.5f)
                 paddedCenterShift +
@@ -592,9 +594,13 @@ data class IntroLayoutMetrics(
 
     val rotateButtonSize: Dp
         get() = when (vitrinaProfileKey) {
-            "phone_landscape" -> 54.dp
+            // Infinix: gira = touch (mismo tamaño; antes gira se veía mucho más grande).
+            "phone_landscape" -> 42.dp
             "short_height" -> 64.dp
-            "tv_32", "tv_42", "tablet_landscape" -> 78.dp
+            // Fire (tv42 baseline): −5%. Damasco canvas alto mantiene 78.
+            "tv_42", "tablet_landscape" ->
+                if (isTv42LargeCanvas) 78.dp else 78.dp * 0.95f
+            "tv_32" -> 78.dp
             // TV66: +30% vs baseline 78 (gira / historia / touch).
             "tv_66" -> 78.dp * 1.30f
             "expanded" -> 88.dp
@@ -602,35 +608,32 @@ data class IntroLayoutMetrics(
             else -> 70.dp
         }
 
-    /**
-     * Tamaño del touch.gif (puede ser menor que Gira).
-     * Infinix: un poco más chico para caber dentro del cintillo.
-     */
+    /** Touch y gira comparten tamaño en todos los perfiles. */
     val touchHintSize: Dp
-        get() = when (vitrinaProfileKey) {
-            "phone_landscape" -> rotateButtonSize * 0.78f
-            else -> rotateButtonSize
-        }
+        get() = rotateButtonSize
 
     /** Padding inferior del hint touch.gif (sobre el cintillo frontal). */
     val touchHintBottomPadding: Dp
         get() = when (vitrinaProfileKey) {
-            // Infinix: subir para quedar dentro del cintillo (antes 0.05H se salía abajo).
-            "phone_landscape" -> maxHeight * 0.11f
-            "tv_32", "tv_42", "tv_66", "tablet_landscape" -> maxHeight * 0.055f
+            // Infinix: bajar respecto a 0.11H (~0.7%+ para que se note dentro del cintillo).
+            "phone_landscape" -> maxHeight * 0.100f
+            // Fire: −2%H vs 0.055 (pegaba al estante/borde). Damasco/TV66 sin cambio.
+            "tv_42", "tablet_landscape" ->
+                if (isTv42LargeCanvas) maxHeight * 0.055f else maxHeight * 0.035f
+            "tv_32", "tv_66" -> maxHeight * 0.055f
             else -> maxHeight * 0.04f
         }
 
     /**
      * Offset horizontal del touch desde el centro del cintillo frontal.
-     * Negativo = izquierda. Tablet/TV66: −1%W extra vs calibración previa.
+     * Negativo = izquierda. Tablet/TV/Fire: −1%W respecto a la calibración anterior.
      */
     val touchHintCenterXOffset: Dp
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> -(maxWidth * 0.10f)
-            "tv_66" -> -(maxWidth * 0.09f)
-            "tv_32", "tv_42", "tablet_landscape" -> -(maxWidth * 0.10f)
-            else -> -(maxWidth * 0.08f)
+            "tv_66" -> -(maxWidth * 0.10f)
+            "tv_32", "tv_42", "tablet_landscape" -> -(maxWidth * 0.11f)
+            else -> -(maxWidth * 0.09f)
         }
 
     /** Borde derecho del cilindro 3D — botón Nuestra Historia (padding ≥ 0). */
@@ -699,9 +702,15 @@ data class IntroLayoutMetrics(
     /** Desplazamiento vertical del botón girar hacia el estante medio (+ = abajo). */
     val rotateButtonCenterYOffset: Dp
         get() = when (vitrinaProfileKey) {
-            "phone_landscape" -> maxHeight * sceneHeightFraction * 0.01f
+            // Infinix: +3.dp previo + 2.dp más.
+            "phone_landscape" -> maxHeight * sceneHeightFraction * 0.01f + 5.dp
             "tv_32" -> maxHeight * sceneHeightFraction * 0.02f
-            "tv_42", "tv_66", "tablet_landscape" -> maxHeight * sceneHeightFraction * 0.035f - 5.dp
+            // Fire: +2.dp extra (como Infinix). Damasco/TV66 sin el +2.
+            "tv_42", "tablet_landscape" -> {
+                val base = maxHeight * sceneHeightFraction * 0.035f - 5.dp
+                if (isTv42LargeCanvas) base else base + 2.dp
+            }
+            "tv_66" -> maxHeight * sceneHeightFraction * 0.035f - 5.dp
             "expanded" -> maxHeight * sceneHeightFraction * 0.04f
             else -> maxHeight * sceneHeightFraction * 0.04f
         }
