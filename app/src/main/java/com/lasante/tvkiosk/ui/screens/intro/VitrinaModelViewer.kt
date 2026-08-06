@@ -11,13 +11,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.lasante.tvkiosk.ui.theme.LaSanteGreen
 import com.lasante.tvkiosk.ui.utils.modalBackdropBlur
+import com.google.android.filament.MaterialInstance
+import kotlinx.coroutines.flow.distinctUntilChanged
+import androidx.compose.runtime.snapshotFlow
 import io.github.sceneview.SceneView
 import io.github.sceneview.SurfaceType
 import io.github.sceneview.environment.Environment
@@ -30,9 +36,14 @@ import io.github.sceneview.rememberEnvironment
 import io.github.sceneview.rememberEnvironmentLoader
 import io.github.sceneview.rememberMainLightNode
 import io.github.sceneview.safeDestroySkybox
-import com.google.android.filament.MaterialInstance
+import kotlin.math.abs
 
-@Composable
+private data class VitrinaSwapMaterials(
+    val matOn: MaterialInstance,
+    val matOff: MaterialInstance,
+    val glassOn: MaterialInstance,
+    val glassOff: MaterialInstance,
+)@Composable
 fun VitrinaModelViewer(
     activeUnitId: String,
     activeIndex: Int,
@@ -209,90 +220,109 @@ fun VitrinaModelViewer(
         )
     }
 
-    // Intercambio dinámico de materiales para el cintillo y el acrílico de la vitrina.
-    // Durante el giro constante lento:
-    // - Las secciones del cintillo se muestran apagadas (MAT_SECCION_OFF).
-    // - El acrílico de la vitrina se muestra apagado (material GLASS tradicional con opacidad esmerilada de piso).
-    // Al detenerse por touch:
-    // - La sección activa del cintillo se ilumina con MAT_SECCION_ON.
-    // - El acrílico cambia a GLASS.on (con brillo sutil emisivo para indicar que la vitrina está encendida/activa).
-    LaunchedEffect(baseInstance, activeIndex, rotationAnim.value, targetRotationDegrees, isUserActive) {
-        val instance = baseInstance ?: return@LaunchedEffect
-        val renderableManager = engine.renderableManager
+    // Intercambio dinámico de materiales para el cintillo y el acrílico.
+    // Filament solo instancia materiales referenciados por ≥1 mesh del GLB.
+    var swapMaterials by remember(baseInstance) { mutableStateOf<VitrinaSwapMaterials?>(null) }
 
+    LaunchedEffect(baseInstance) {
+        val instance = baseInstance ?: run {
+            swapMaterials = null
+            return@LaunchedEffect
+        }
         var matOn: MaterialInstance? = null
         var matOff: MaterialInstance? = null
         var glassOn: MaterialInstance? = null
         var glassOff: MaterialInstance? = null
-
         val materialInstances = instance.getMaterialInstances()
         materialInstances.forEachIndexed { idx, mat ->
-            val name = try { mat.getName() ?: "" } catch (e: Exception) { "" }
-            
+            val name = try { mat.getName() ?: "" } catch (_: Exception) { "" }
             android.util.Log.d("VitrinaMaterials", "MaterialInstance[$idx]: name='$name'")
-            
-            if (name == "MAT_SECCION_ON") matOn = mat
-            if (name == "MAT_SECCION_OFF") matOff = mat
-            if (name == "GLASS.on") glassOn = mat
-            if (name == "GLASS") glassOff = mat
+            when (name) {
+                "MAT_SECCION_ON" -> matOn = mat
+                "MAT_SECCION_OFF" -> matOff = mat
+                "GLASS.on" -> glassOn = mat
+                "GLASS" -> glassOff = mat
+            }
         }
-
-        // Fallback por índice estable si la API de nombres de gltfio devuelve vacío (seguridad 100% infalible)
-        if (matOn == null && materialInstances.size > 18) {
-            matOn = materialInstances[18]
-            android.util.Log.w("VitrinaMaterials", "Fallback index 18 usado para MAT_SECCION_ON")
-        }
-        if (matOff == null && materialInstances.size > 19) {
-            matOff = materialInstances[19]
-            android.util.Log.w("VitrinaMaterials", "Fallback index 19 usado para MAT_SECCION_OFF")
-        }
-        if (glassOn == null && materialInstances.size > 17) {
-            glassOn = materialInstances[17]
-            android.util.Log.w("VitrinaMaterials", "Fallback index 17 usado para GLASS.on")
-        }
-        if (glassOff == null && materialInstances.size > 16) {
-            glassOff = materialInstances[16]
-            android.util.Log.w("VitrinaMaterials", "Fallback index 16 usado para GLASS")
-        }
-
         if (matOn == null || matOff == null || glassOn == null || glassOff == null) {
-            android.util.Log.e("VitrinaMaterials", "ERROR: No se pudieron encontrar todos los materiales! matOn=$matOn, matOff=$matOff, glassOn=$glassOn, glassOff=$glassOff")
+            android.util.Log.e(
+                "VitrinaMaterials",
+                "Materiales incompletos (¿OFF sin mesh en GLB?). " +
+                    "matOn=$matOn matOff=$matOff glassOn=$glassOn glassOff=$glassOff " +
+                    "count=${materialInstances.size}",
+            )
+            swapMaterials = null
             return@LaunchedEffect
         }
-
-        val isCloseToTarget = kotlin.math.abs(rotationAnim.value - targetRotationDegrees) < 1.0f
-        val activeNodeIndex = if (isCloseToTarget && isUserActive) activeIndex else -1
-
-        android.util.Log.d(
+        android.util.Log.i(
             "VitrinaMaterials",
-            "Swapping... isUserActive=$isUserActive, isCloseToTarget=$isCloseToTarget, activeIndex=$activeIndex -> activeNodeIndex=$activeNodeIndex"
+            "Materiales listos ON/OFF + GLASS/GLASS.on (count=${materialInstances.size})",
         )
+        swapMaterials = VitrinaSwapMaterials(matOn!!, matOff!!, glassOn!!, glassOff!!)
+    }
 
-        // 1. Alternar cintillo
-        VitrinaConstants.UNIT_GLB_NODE_NAMES.forEachIndexed { index, nodeName ->
-            val entity = instance.model.getFirstEntityByName(nodeName)
-            if (entity != 0 && renderableManager.hasComponent(entity)) {
-                val renderableInstance = renderableManager.getInstance(entity)
-                if (renderableInstance != 0) {
-                    val desiredMat = if (index == activeNodeIndex) matOn!! else matOff!!
-                    renderableManager.setMaterialInstanceAt(renderableInstance, 0, desiredMat)
+    LaunchedEffect(baseInstance, swapMaterials, activeIndex, isUserActive, targetRotationDegrees, unitAnchors) {
+        val instance = baseInstance ?: return@LaunchedEffect
+        val mats = swapMaterials ?: return@LaunchedEffect
+        val renderableManager = engine.renderableManager
+
+        // Solo reaccionar cuando cambia el estado relevante (no cada frame del Animatable).
+        snapshotFlow {
+            // Tras idle infinito el Animatable puede estar en −360/−720/…; hay que
+            // comparar con el target equivalente más cercano o nunca llega a “close”.
+            val alignedTarget = VitrinaRotation.nearestEquivalentAngle(
+                rotationAnim.value,
+                targetRotationDegrees,
+            )
+            val close = abs(rotationAnim.value - alignedTarget) < 1.0f
+            // Encender el mesh cuya bearing queda al frente (no confiar solo en activeIndex
+            // si hubo desfase angular specialty/phq).
+            val frontIndex = if (unitAnchors.isNotEmpty()) {
+                unitAnchors.minByOrNull { anchor ->
+                    val faceRot = VitrinaRotation.modelRotationYForBearing(anchor.bearingDegrees)
+                    val aligned = VitrinaRotation.nearestEquivalentAngle(rotationAnim.value, faceRot)
+                    abs(rotationAnim.value - aligned)
+                }?.index ?: activeIndex
+            } else {
+                activeIndex
+            }
+            // Idle auto-giro → todo apagado. Usuario activo + cara al frente → ON.
+            val activeNode = if (close && isUserActive) frontIndex else -1
+            val glassLit = close && isUserActive
+            Triple(activeNode, glassLit, close)
+        }
+            .distinctUntilChanged()
+            .collect { (activeNodeIndex, glassLit, close) ->
+                val litName = VitrinaConstants.UNIT_GLB_NODE_NAMES
+                    .getOrNull(activeNodeIndex) ?: "none"
+                android.util.Log.d(
+                    "VitrinaMaterials",
+                    "Swap activeNode=$activeNodeIndex lit=$litName glassLit=$glassLit " +
+                        "close=$close userActive=$isUserActive activeIndex=$activeIndex " +
+                        "rot=${"%.1f".format(rotationAnim.value)} " +
+                        "target=${"%.1f".format(targetRotationDegrees)}",
+                )
+                VitrinaConstants.UNIT_GLB_NODE_NAMES.forEachIndexed { index, nodeName ->
+                    val entity = instance.model.getFirstEntityByName(nodeName)
+                    if (entity != 0 && renderableManager.hasComponent(entity)) {
+                        val ri = renderableManager.getInstance(entity)
+                        if (ri != 0) {
+                            val desired = if (index == activeNodeIndex) mats.matOn else mats.matOff
+                            renderableManager.setMaterialInstanceAt(ri, 0, desired)
+                        }
+                    }
+                }
+                listOf("Cylinder", "Cylinder.002").forEach { nodeName ->
+                    val entity = instance.model.getFirstEntityByName(nodeName)
+                    if (entity != 0 && renderableManager.hasComponent(entity)) {
+                        val ri = renderableManager.getInstance(entity)
+                        if (ri != 0) {
+                            val desired = if (glassLit) mats.glassOn else mats.glassOff
+                            renderableManager.setMaterialInstanceAt(ri, 0, desired)
+                        }
+                    }
                 }
             }
-        }
-
-        // 2. Alternar vidrio/acrílico (GLASS cuando gira, GLASS.on cuando se detiene)
-        // Cylinder (nodo 40) y Cylinder.002 (nodo 41) representan las partes de acrílico de la vitrina
-        listOf("Cylinder", "Cylinder.002").forEach { nodeName ->
-            val entity = instance.model.getFirstEntityByName(nodeName)
-            if (entity != 0 && renderableManager.hasComponent(entity)) {
-                val renderableInstance = renderableManager.getInstance(entity)
-                if (renderableInstance != 0) {
-                    val desiredGlass = if (isCloseToTarget && isUserActive) glassOn!! else glassOff!!
-                    renderableManager.setMaterialInstanceAt(renderableInstance, 0, desiredGlass)
-                    android.util.Log.d("VitrinaMaterials", "Set cylinder '$nodeName' to material: " + (if (desiredGlass === glassOn) "GLASS.on" else "GLASS"))
-                }
-            }
-        }
     }
 
     Box(modifier = modifier) {

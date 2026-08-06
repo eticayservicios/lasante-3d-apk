@@ -65,20 +65,15 @@ object VitrinaConstants {
 
     val FEATURED_ANCHOR_NAMES = listOf("featured_1", "featured_2", "featured_3", "featured_4")
     /**
-     * Nodos GLB en orden de rotación 0…4.
-     *
-     * En este export el nombre del nodo NO coincide con el texto del cintillo:
-     * - mesh `specialty_care` → texto “PHQ Consumo”
-     * - mesh `phq_consumo` → texto “Specialty Care”
-     * Por eso el orden de nodos para la secuencia visual deseada
-     * (…→ PHQ → Specialty →…) usa specialty_care y luego phq_consumo.
-     * Los IDs reales van en [VitrinaGlbMapping.orderedNavigationUnitIds].
+     * Nodos GLB en orden angular del cilindro (pasos de ~72°).
+     * Secuencia física del mesh: genericos → primary → specialty → phq → hospital.
+     * Misma secuencia que [VitrinaGlbMapping.orderedNavigationUnitIds].
      */
     val UNIT_GLB_NODE_NAMES = listOf(
         "genericos_lasante",
         "primary_care",
-        "specialty_care", // texto cintillo: PHQ Consumo
-        "phq_consumo", // texto cintillo: Specialty Care
+        "specialty_care",
+        "phq_consumo",
         "hospital_care",
     )
     /**
@@ -99,8 +94,8 @@ object VitrinaConstants {
     val UNIT_ACCENT_COLORS = listOf(
         Color(0xFF26A641), // genericos
         Color(0xFF2448D8), // primary
-        Color(0xFFFF9800), // phq_consumo
         Color(0xFF7B2CBF), // specialty_care
+        Color(0xFFFF9800), // phq_consumo
         Color(0xFFE53935), // hospital
     )
 
