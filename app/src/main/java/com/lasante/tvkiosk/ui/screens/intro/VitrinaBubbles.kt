@@ -78,7 +78,8 @@ fun VitrinaBubblesRow(
     val badgeHeight = metrics.bubblesBadgeHeight
     val connectorStroke = metrics.bubblesConnectorStroke
     val dotSize = metrics.bubblesDotSize
-    val badgeOffsetX = metrics.bubblesBadgeStartOffset
+    // Centro del badge = centro de la columna de redes (mitad de los iconos).
+    val badgeCenterTargetX = metrics.bubblesBadgeCenterXInRow
 
     BoxWithConstraints(
         modifier = modifier
@@ -88,6 +89,7 @@ fun VitrinaBubblesRow(
         val density = LocalDensity.current
         val rowWidth = maxWidth
         var measuredBadgeWidth by remember { mutableStateOf(badgeHeight * 4.2f) }
+        val badgeOffsetX = badgeCenterTargetX - measuredBadgeWidth / 2f
 
         // Burbujas: misma geometría que antes (fracción original, centradas en la vitrina).
         val clusterWidth = rowWidth * metrics.bubblesRowWidthFraction
@@ -99,7 +101,7 @@ fun VitrinaBubblesRow(
         val bubblesStart = clusterStart + (clusterWidth - bubblesContentWidth) / 2f
         val bubblesEnd = bubblesStart + bubblesContentWidth
 
-        // Badge puede ir a la izquierda del contenedor (offset negativo) para ras de redes.
+        // Badge puede ir a la izquierda del contenedor (offset negativo) para centrar en redes.
         val badgeEnd = badgeOffsetX + measuredBadgeWidth
         val lineStart = badgeEnd.coerceAtMost(bubblesStart)
         val lineEnd = bubblesEnd
@@ -171,7 +173,7 @@ fun VitrinaBubblesRow(
                 }
             }
 
-            // Badge al ras del margen de redes (compensa inset + handle).
+            // Badge centrado en la columna de redes (mitad de los iconos).
             ProductosEstrellasInlineBadge(
                 height = badgeHeight,
                 modifier = Modifier

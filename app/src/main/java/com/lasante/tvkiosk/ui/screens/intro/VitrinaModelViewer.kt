@@ -20,7 +20,6 @@ import com.lasante.tvkiosk.ui.theme.LaSanteGreen
 import com.lasante.tvkiosk.ui.utils.modalBackdropBlur
 import io.github.sceneview.SceneView
 import io.github.sceneview.SurfaceType
-import io.github.sceneview.createEnvironment
 import io.github.sceneview.environment.Environment
 import io.github.sceneview.math.Position
 import io.github.sceneview.math.Scale
@@ -61,16 +60,21 @@ fun VitrinaModelViewer(
     val modelLoader = filamentSession.modelLoader
     val sceneLifecycle = rememberVitrinaSceneLifecycle(renderingEnabled = filamentRenderingEnabled)
     val environmentLoader = rememberEnvironmentLoader(engine)
-    // Entorno/luz por defecto de SceneView: sin IBL custom, sin teñir el albedo del GLB.
+    // IBL de estudio oscuro (KTX neutral de SceneView) SIN skybox:
+    // - El usuario sigue viendo el fondo claro de Compose (SceneView isOpaque=false).
+    // - Los reflejos/irradiance del acrílico usan un entorno más oscuro → look lechoso.
     val environment = rememberEnvironment(environmentLoader, isOpaque = false) {
-        createEnvironment(environmentLoader, isOpaque = false).let { env ->
-            env.skybox?.let { engine.safeDestroySkybox(it) }
-            Environment(
-                indirectLight = env.indirectLight,
-                skybox = null,
-                sphericalHarmonics = env.sphericalHarmonics,
-            )
-        }
+        val env = environmentLoader.createKTX1Environment(
+            iblAssetFile = VitrinaConstants.STUDIO_IBL_KTX_ASSET,
+            skyboxAssetFile = null,
+        )
+        env.skybox?.let { engine.safeDestroySkybox(it) }
+        env.indirectLight?.intensity = VitrinaConstants.STUDIO_IBL_INTENSITY
+        Environment(
+            indirectLight = env.indirectLight,
+            skybox = null,
+            sphericalHarmonics = env.sphericalHarmonics,
+        )
     }
     val baseInstance = filamentSession.baseInstance
 
@@ -113,12 +117,15 @@ fun VitrinaModelViewer(
         }
         if (!isUserActive) {
             // Rotación continua, lenta e infinita cuando el usuario está inactivo.
-            // 360 grados cada 30 segundos = velocidad lenta, uniforme y constante en todos los dispositivos.
+            // Velocidad uniforme en todos los dispositivos ([IDLE_FULL_ROTATION_MS] por 360°).
             val startAngle = rotationAnim.value
             rotationAnim.animateTo(
                 targetValue = startAngle - 360f,
                 animationSpec = infiniteRepeatable(
-                    animation = tween(durationMillis = 30000, easing = LinearEasing),
+                    animation = tween(
+                        durationMillis = VitrinaConstants.IDLE_FULL_ROTATION_MS,
+                        easing = LinearEasing,
+                    ),
                     repeatMode = RepeatMode.Restart
                 )
             ) {

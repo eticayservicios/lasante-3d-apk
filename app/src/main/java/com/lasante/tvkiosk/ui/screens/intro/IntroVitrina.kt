@@ -219,12 +219,9 @@ fun BusinessUnitVitrina(
                     },
                     size = metrics.rotateButtonSize,
                     modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(
-                            end = metrics.rotateButtonEndPadding,
-                            bottom = metrics.touchHintBottomPadding,
-                        )
-                        .offset(x = metrics.rotateButtonProtrudeOffset)
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = metrics.touchHintBottomPadding)
+                        .offset(x = metrics.touchHintCenterXOffset)
                         .zIndex(40f),
                 )
             }

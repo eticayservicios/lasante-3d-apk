@@ -223,12 +223,18 @@ data class IntroLayoutMetrics(
         }
 
     /**
-     * Offset horizontal del badge para alinear su borde izquierdo con las redes.
-     * Las redes viven en el layout exterior; las burbujas están dentro del inset + handle,
-     * así que suele ser negativo (desplaza el badge hacia la izquierda).
+     * Offset horizontal del centro del badge "PRODUCTOS ESTRELLAS" dentro de la fila
+     * de burbujas (coords del área 3D, origen = borde izquierdo de la fila).
+     * El centro del badge se alinea con el centro de la columna de redes.
+     * En [VitrinaBubblesRow] se resta la mitad del ancho medido del badge.
      */
+    val bubblesBadgeCenterXInRow: Dp
+        get() = socialStartPadding + socialIconSize / 2f -
+            maxWidth * vitrinaInsetStartFraction - dragHandleWidth
+
+    /** @deprecated Usar [bubblesBadgeCenterXInRow] + mitad del ancho medido. */
     val bubblesBadgeStartOffset: Dp
-        get() = socialStartPadding - maxWidth * vitrinaInsetStartFraction - dragHandleWidth
+        get() = bubblesBadgeCenterXInRow
 
     /** Grosor de la línea verde que une badge → burbujas. */
     val bubblesConnectorStroke: Dp
@@ -366,14 +372,15 @@ data class IntroLayoutMetrics(
         }
 
     /**
-     * Inset derecho del logo vertical y del badge Historia (~30.dp del borde en todos).
+     * Inset derecho del rail BadgeHistoria + logo vertical.
+     * Mayor = más hacia la izquierda (columna compartida más adentro).
      */
     val logoEndPadding: Dp
         get() = when (vitrinaProfileKey) {
-            "phone_landscape" -> 30.dp
-            "tv_66" -> 36.dp
-            "tv_32", "tv_42", "tablet_landscape", "expanded" -> 30.dp
-            else -> 30.dp
+            "phone_landscape" -> maxWidth * 0.055f
+            "tv_66" -> maxWidth * 0.048f
+            "tv_32", "tv_42", "tablet_landscape", "expanded" -> maxWidth * 0.052f
+            else -> maxWidth * 0.05f
         }
 
     /**
@@ -590,13 +597,25 @@ data class IntroLayoutMetrics(
             else -> 70.dp
         }
 
-    /** Padding inferior del hint touch.gif (base de la vitrina). */
+    /** Padding inferior del hint touch.gif (sobre el cintillo frontal). */
     val touchHintBottomPadding: Dp
         get() = when (vitrinaProfileKey) {
-            // Phone: subir por encima del logo La Santé.
-            "phone_landscape" -> maxHeight * 0.12f
-            "tv_32", "tv_42", "tv_66", "tablet_landscape" -> maxHeight * 0.04f
-            else -> maxHeight * 0.03f
+            // Phone: un poco por encima del borde inferior / logo.
+            "phone_landscape" -> maxHeight * 0.10f
+            "tv_32", "tv_42", "tv_66", "tablet_landscape" -> maxHeight * 0.055f
+            else -> maxHeight * 0.04f
+        }
+
+    /**
+     * Offset horizontal del touch desde el centro del cintillo frontal.
+     * Negativo = izquierda del centro (casi centrado, no 100% en el medio).
+     */
+    val touchHintCenterXOffset: Dp
+        get() = when (vitrinaProfileKey) {
+            "phone_landscape" -> -(rotateButtonSize * 0.45f)
+            "tv_66" -> -(rotateButtonSize * 0.40f)
+            "tv_32", "tv_42", "tablet_landscape" -> -(rotateButtonSize * 0.42f)
+            else -> -(rotateButtonSize * 0.40f)
         }
 
     /** Borde derecho del cilindro 3D — botón Nuestra Historia (padding ≥ 0). */
@@ -618,17 +637,15 @@ data class IntroLayoutMetrics(
 
     /**
      * Inset desde el borde derecho de la escena hasta el botón Gira.
-     * Mayor = más hacia el cilindro; menor = más afuera.
+     * Mayor = más hacia el cilindro (encima de la vitrina, de lado).
      */
     val rotateButtonEndPadding: Dp
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 0.dp
-            "tv_32" -> 8.dp
-            // Pegado al cilindro con un poco de aire (~estante medio).
-            "tv_42", "tablet_landscape" -> 40.dp
-            // TV66: más cerca de la vitrina.
-            "tv_66" -> 58.dp
-            else -> 6.dp
+            "tv_32" -> 36.dp
+            "tv_42", "tablet_landscape" -> 88.dp
+            "tv_66" -> 110.dp
+            else -> 24.dp
         }
 
     /**
@@ -638,16 +655,15 @@ data class IntroLayoutMetrics(
     val rotateButtonProtrudeOffset: Dp
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> {
-                // Anclado al borde de escena: compensar el handle derecho para no mover Infinix.
-                // -5.dp extra: pegar un poco más hacia la vitrina.
-                val pullTowardCylinder = maxWidth * 0.12f
-                val pull = if (pullTowardCylinder > 56.dp) pullTowardCylinder else 56.dp
-                -(pull + dragHandleWidth) - 5.dp
+                // Más adentro: encima del lado derecho de la vitrina.
+                val pullTowardCylinder = maxWidth * 0.16f
+                val pull = if (pullTowardCylinder > 72.dp) pullTowardCylinder else 72.dp
+                -(pull + dragHandleWidth) - 8.dp
             }
-            "tv_42", "tablet_landscape" -> 0.dp
-            "tv_66" -> (-4).dp
-            "tv_32" -> (-6).dp
-            else -> 4.dp
+            "tv_42", "tablet_landscape" -> (-18).dp
+            "tv_66" -> (-22).dp
+            "tv_32" -> (-14).dp
+            else -> (-8).dp
         }
 
     /** Desplazamiento vertical del botón girar hacia el estante medio (+ = abajo). */

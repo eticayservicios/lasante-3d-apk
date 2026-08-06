@@ -150,14 +150,20 @@ fun IntroResponsiveLayout(
                     .zIndex(20f),
             )
 
-            // Rail derecho: BadgeHistoria (tope como PRODUCTOS ESTRELLAS) + logo debajo (sin solape).
+            // Rail derecho: BadgeHistoria + logo en la misma columna (centrados entre sí).
             val pullUp = metrics.historiaRailTopPullUp
             val railHeight = metrics.maxHeight - metrics.verticalPadding * 2 + pullUp
+            val badgeBlockH = if (showVitrinaControls) metrics.historiaBadgeHeight else 0.dp
+            val logoH = (railHeight - badgeBlockH - metrics.verticalLogoHeightReduction)
+                .coerceAtLeast(0.dp)
+            val logoW = logoH * (229f / 1004f)
+            val railWidth = maxOf(metrics.historiaBadgeWidth, logoW)
             Column(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(end = metrics.logoEndPadding)
                     .offset(y = -pullUp)
+                    .width(railWidth)
                     .height(railHeight)
                     .zIndex(15f),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -168,21 +174,14 @@ fun IntroResponsiveLayout(
                         onClick = onVideoClick,
                     )
                 }
-                BoxWithConstraints(
-                    modifier = Modifier.weight(1f),
-                ) {
-                    val logoH = (maxHeight - metrics.verticalLogoHeightReduction).coerceAtLeast(0.dp)
-                    val logoW = logoH * (229f / 1004f)
-                    AsyncImage(
-                        model = "file:///android_asset/vitrina/ui/logo_la_sante_vertical.png",
-                        contentDescription = null,
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .height(logoH)
-                            .width(logoW),
-                        contentScale = ContentScale.Fit,
-                    )
-                }
+                AsyncImage(
+                    model = "file:///android_asset/vitrina/ui/logo_la_sante_vertical.png",
+                    contentDescription = null,
+                    modifier = Modifier
+                        .height(logoH)
+                        .width(logoW),
+                    contentScale = ContentScale.Fit,
+                )
             }
         }
     }

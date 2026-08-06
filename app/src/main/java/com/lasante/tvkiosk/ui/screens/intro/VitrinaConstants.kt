@@ -28,6 +28,23 @@ object VitrinaConstants {
     /** @deprecated Usar [BASE_GLB_ASSET]. */
     const val BASE_GLB_FULL = BASE_GLB_ASSET
 
+    /**
+     * IBL embebido en SceneView (neutral). Se usa solo como IndirectLight;
+     * nunca como skybox (el fondo de la app permanece claro).
+     */
+    const val STUDIO_IBL_KTX_ASSET = "environments/neutral/neutral_ibl.ktx"
+    /**
+     * Intensidad del IndirectLight. Default Filament ≈ 30000 (muy claro).
+     * Más bajo ≈ estudio oscuro: reflejos menos lavados sobre el acrílico.
+     */
+    const val STUDIO_IBL_INTENSITY = 10_000f
+
+    /**
+     * Rotación idle continua: milisegundos para un giro completo (360°).
+     * Más alto = más lento. Antes 30s; se sube para lectura más calmada en kiosk.
+     */
+    const val IDLE_FULL_ROTATION_MS = 60_000
+
     private val snappyRotationEasing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
 
     /**
