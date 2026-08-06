@@ -170,9 +170,9 @@ fun rememberVitrinaInteractionController(
 
     fun rotationForIndex(index: Int): Float {
         val safeIndex = normalizeIndex(index)
-        val bearing = VitrinaConstants.UNIT_MESH_BEARING_DEGREES.getOrNull(safeIndex)
-            ?: (safeIndex * VitrinaConstants.ROTATION_STEP_DEGREES)
-        return VitrinaRotation.modelRotationYForBearing(bearing)
+        return VitrinaRotation.modelRotationYForBearing(
+            VitrinaGlbMapping.bearingFor(safeIndex),
+        )
     }
 
     fun settleInteractive() {

@@ -1,21 +1,33 @@
 package com.lasante.tvkiosk.ui.screens.intro
 
 /**
- * Orden canónico = API/admin = caras del cilindro.
+ * Única fuente de verdad del cilindro.
  *
+ * Orden angular = API = admin:
  * Genéricos → Primary → Specialty → PHQ → Hospital.
- * Nombre de nodo GLB = texto del cintillo = ID de navegación (1:1).
+ *
+ * En el GLB: nombre de nodo = texto del cintillo = [orderedNavigationUnitIds].
+ * No invertir specialty/phq ni re-encodear Draco de esos meshes.
  */
 object VitrinaGlbMapping {
-    val orderedGlbNodeNames: List<String> = VitrinaConstants.UNIT_GLB_NODE_NAMES
-
-    val orderedNavigationUnitIds: List<String> = listOf(
-        "genericos-la-sante",
-        "primary-care",
-        "specialty-care",
-        "phq-consumo",
-        "hospital-care",
+    data class UnitFace(
+        val index: Int,
+        val nodeName: String,
+        val unitId: String,
+        val bearingDegrees: Float,
     )
+
+    val faces: List<UnitFace> = listOf(
+        UnitFace(0, "genericos_lasante", "genericos-la-sante", 90.417f),
+        UnitFace(1, "primary_care", "primary-care", 162.405f),
+        UnitFace(2, "specialty_care", "specialty-care", -125.567f),
+        UnitFace(3, "phq_consumo", "phq-consumo", -53.593f),
+        UnitFace(4, "hospital_care", "hospital-care", 18.440f),
+    )
+
+    val orderedGlbNodeNames: List<String> = faces.map { it.nodeName }
+
+    val orderedNavigationUnitIds: List<String> = faces.map { it.unitId }
 
     private val apiUnitIdToGlbIndex = orderedNavigationUnitIds
         .mapIndexed { index, unitId -> unitId to index }
@@ -36,6 +48,9 @@ object VitrinaGlbMapping {
     fun navigationUnitIdFor(glbIndex: Int): String =
         orderedNavigationUnitIds[glbIndexFor(glbIndex)]
 
+    fun bearingFor(glbIndex: Int): Float =
+        faces[glbIndexFor(glbIndex)].bearingDegrees
+
     fun orderUnitsLikeGlb(units: List<com.lasante.tvkiosk.data.VitrinaUnit>): List<com.lasante.tvkiosk.data.VitrinaUnit> {
         if (units.isEmpty()) return units
         val byId = units.associateBy { it.unit.id }
@@ -46,15 +61,14 @@ object VitrinaGlbMapping {
     }
 
     fun frontGlbIndexForRotation(rotationYDegrees: Float): Int {
-        val bearings = VitrinaConstants.UNIT_MESH_BEARING_DEGREES
         var bestIndex = 0
         var bestAbs = Float.MAX_VALUE
-        for (index in bearings.indices) {
-            val world = VitrinaRotation.normalizeDegrees(bearings[index] + rotationYDegrees)
+        for (face in faces) {
+            val world = VitrinaRotation.normalizeDegrees(face.bearingDegrees + rotationYDegrees)
             val dist = minOf(world, 360f - world)
             if (dist < bestAbs) {
                 bestAbs = dist
-                bestIndex = index
+                bestIndex = face.index
             }
         }
         return bestIndex

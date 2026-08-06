@@ -274,15 +274,12 @@ fun VitrinaModelViewer(
                 rotationAnim.value,
                 targetRotationDegrees,
             )
-            val close = abs(rotationAnim.value - alignedTarget) < 1.0f
-            // Luz = activeIndex (cara pedida) si coincide con el frente;
-            // si no, la cara realmente al frente (evita specialty↔phq apagadas).
-            val frontIndex = VitrinaGlbMapping.frontGlbIndexForRotation(rotationAnim.value)
-            val activeNode = when {
-                !close || !isUserActive -> -1
-                frontIndex == activeIndex -> activeIndex
-                else -> frontIndex
-            }
+            // Umbral un poco amplio: en specialty/phq el settle a veces quedaba a ~1–2°
+            // y la cara se quedaba apagada.
+            val close = abs(rotationAnim.value - alignedTarget) < 2.5f
+            // Luz = misma cara que rotación/nav (activeIndex). No usar front-by-bearing:
+            // ese fallback reintroducía el cruce specialty↔phq.
+            val activeNode = if (close && isUserActive) activeIndex else -1
             val glassLit = close && isUserActive
             Triple(activeNode, glassLit, close)
         }

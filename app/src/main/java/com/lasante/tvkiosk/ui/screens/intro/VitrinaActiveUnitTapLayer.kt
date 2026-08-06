@@ -34,12 +34,8 @@ fun VitrinaActiveUnitTapLayer(
     val density = LocalDensity.current
     val glbIndex = VitrinaGlbMapping.glbIndexFor(activeIndex)
     val mappedUnitId = VitrinaGlbMapping.navigationUnitIdFor(glbIndex)
-    // Preferir ID canónico de la cara (activeIndex); activeUnitId solo si coincide.
-    val targetUnitId = when {
-        activeUnitId.isNotBlank() &&
-            VitrinaGlbMapping.glbIndexForUnitId(activeUnitId) == glbIndex -> activeUnitId
-        else -> mappedUnitId
-    }
+    // Tap = ID de la cara activeIndex (1:1 con GLB), no el unitId suelto del API.
+    val targetUnitId = mappedUnitId
     val topFrac = unitTapTopFraction(metrics)
     val bottomFrac = unitTapBottomFraction(metrics)
     val widthFrac = unitTapWidthFraction(metrics)

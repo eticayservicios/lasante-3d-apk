@@ -68,25 +68,15 @@ object VitrinaConstants {
      * Nodos GLB en orden angular (~72°), igual que API/admin:
      * Genéricos → Primary → Specialty → PHQ → Hospital.
      * Nombre de nodo = texto del cintillo = ID.
+     *
+     * Mantener sincronizado con [VitrinaGlbMapping.faces].
      */
-    val UNIT_GLB_NODE_NAMES = listOf(
-        "genericos_lasante",
-        "primary_care",
-        "specialty_care",
-        "phq_consumo",
-        "hospital_care",
-    )
+    val UNIT_GLB_NODE_NAMES = VitrinaGlbMapping.orderedGlbNodeNames
     /**
-     * Bearing XZ (grados) del centro de cada cintillo, medido sobre el mesh Draco.
-     * Misma orden que [UNIT_GLB_NODE_NAMES].
+     * Bearing XZ (grados) del centro de cada cintillo.
+     * Misma orden que [UNIT_GLB_NODE_NAMES] / [VitrinaGlbMapping.faces].
      */
-    val UNIT_MESH_BEARING_DEGREES = listOf(
-        90.417f, // genericos_lasante
-        162.405f, // primary_care
-        -125.567f, // specialty_care
-        -53.593f, // phq_consumo
-        18.440f, // hospital_care
-    )
+    val UNIT_MESH_BEARING_DEGREES = VitrinaGlbMapping.faces.map { it.bearingDegrees }
     /**
      * Empties radiales en el mismo orden angular que [UNIT_GLB_NODE_NAMES].
      */
