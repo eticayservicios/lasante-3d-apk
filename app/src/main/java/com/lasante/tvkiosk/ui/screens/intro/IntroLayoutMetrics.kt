@@ -615,8 +615,8 @@ data class IntroLayoutMetrics(
     /** Padding inferior del hint touch.gif (sobre el cintillo frontal). */
     val touchHintBottomPadding: Dp
         get() = when (vitrinaProfileKey) {
-            // Infinix: bajar respecto a 0.11H (~0.7%+ para que se note dentro del cintillo).
-            "phone_landscape" -> maxHeight * 0.100f
+            // Infinix: −2.dp más abajo dentro del cintillo.
+            "phone_landscape" -> maxHeight * 0.100f - 2.dp
             // Fire: −2%H vs 0.055 (pegaba al estante/borde). Damasco/TV66 sin cambio.
             "tv_42", "tablet_landscape" ->
                 if (isTv42LargeCanvas) maxHeight * 0.055f else maxHeight * 0.035f
@@ -679,7 +679,9 @@ data class IntroLayoutMetrics(
                 val pull = if (pullTowardCylinder > 72.dp) pullTowardCylinder else 72.dp
                 -(pull + dragHandleWidth) - 8.dp
             }
-            "tv_42", "tablet_landscape" -> (-18).dp
+            // Fire: +5.dp hacia la derecha (estaba muy adentro). Damasco sin cambio.
+            "tv_42", "tablet_landscape" ->
+                if (isTv42LargeCanvas) (-18).dp else (-13).dp
             "tv_66" -> (-36).dp
             "tv_32" -> (-14).dp
             else -> (-8).dp
