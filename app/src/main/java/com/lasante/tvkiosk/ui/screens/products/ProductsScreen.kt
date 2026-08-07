@@ -266,12 +266,11 @@ fun ProductsScreen(
             val contentPadding = grid.contentPadding
             val gridMaxWidth = grid.maxContentWidth
             val badgeWidth = uiMetrics.badgeHeight * TreatmentUiMetrics.BADGE_WIDTH_TO_HEIGHT
+            // Misma fórmula que TreatmentsScreen (título dinámico CT).
             val titleStartGap = badgeWidth + when {
-                // Infinix: título más a la derecha (badge intacto).
                 isPhoneLandscape -> 48.dp
                 isTv42LargeUp -> 44.dp
                 isTv66 -> 40.dp
-                // Fire: misma corrección que CT (−2 espacios).
                 isFireTv42 -> 34.dp - FireTv42Spacing.spaces(2)
                 isTv42 -> 34.dp
                 else -> 32.dp
@@ -365,10 +364,9 @@ fun ProductsScreen(
                                 fontFamily = MaterialTheme.typography.bodyLarge.fontFamily,
                                 fontWeight = FontWeight.Light,
                                 allCaps = false,
-                                // weight: el título cede espacio; Back/Home nunca se cortan.
+                                // Misma X/Y que el título dinámico de CT (sin top pad extra).
                                 modifier = Modifier
                                     .padding(start = titleStartGap)
-                                    .padding(top = (searchBarHeight - 22.dp).coerceAtLeast(0.dp) / 2)
                                     .weight(1f),
                             )
 

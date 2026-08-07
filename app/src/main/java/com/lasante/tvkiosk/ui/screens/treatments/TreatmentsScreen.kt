@@ -243,11 +243,12 @@ private fun TreatmentsHeader(
     onBack: () -> Unit,
 ) {
     // Misma geometría de header que Products: contentPadding + titleStartGap (hueco del badge).
+    // Top: el título queda en el mismo Y al pasar de CT → Productos.
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = contentPadding),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Top,
     ) {
         LaSanteScreenTitle(
             text = DisplayTitles.resolve(unitName),
