@@ -4,23 +4,29 @@ import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.lasante.tvkiosk.ui.layout.CatalogHeaderMetrics
+import com.lasante.tvkiosk.ui.layout.DeviceProfile
+import com.lasante.tvkiosk.ui.layout.DeviceProfileResolver
+import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
 import com.lasante.tvkiosk.ui.layout.TvProfileDetector
 
 /**
- * Métricas responsivas derivadas del espacio real (ancho + alto).
- * Punto único para layout Compose y escena 3D.
+ * Métricas responsivas Intro / escena 3D.
+ * Tier TV/phone/tablet viene de [DeviceProfile] (mismo resolver que CT/Productos).
  */
 @Immutable
 data class IntroLayoutMetrics(
     val maxWidth: Dp,
     val maxHeight: Dp,
     val widthClass: WindowWidthSizeClass,
+    val profile: DeviceProfile,
     /** Forzar tv_66 en paneles 4K/Hikvision aunque reporten ~960 dp. */
     val preferTv66: Boolean = false,
 ) {
@@ -30,44 +36,45 @@ data class IntroLayoutMetrics(
     val isExpandedWidth: Boolean
         get() = widthClass == WindowWidthSizeClass.Expanded
 
-    /** Tablet en landscape (p. ej. 1280×720): no usar layout phone — recorta slots externos. */
     val isTabletLandscape: Boolean
-        get() = maxWidth > maxHeight && maxWidth >= 640.dp && maxHeight >= 400.dp
+        get() = profile.tier == DeviceProfileTier.TABLET_LANDSCAPE ||
+            (maxWidth > maxHeight && maxWidth >= 640.dp && maxHeight >= 400.dp &&
+                profile.tier != DeviceProfileTier.TV_REGULAR &&
+                profile.tier != DeviceProfileTier.TV_LARGE &&
+                profile.tier != DeviceProfileTier.COMPACT_LANDSCAPE)
 
     val isPhoneLandscape: Boolean
-        get() = maxWidth > maxHeight && maxHeight < 520.dp && !isTabletLandscape
+        get() = profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE
 
     val isPhonePortrait: Boolean
-        get() = maxHeight > maxWidth && maxWidth < 420.dp
+        get() = profile.tier == DeviceProfileTier.COMPACT_PORTRAIT
 
     val isShortHeight: Boolean
         get() = maxHeight < 440.dp
 
     val isTv: Boolean
-        get() = maxWidth >= 880.dp && maxHeight >= 480.dp && !isPhoneLandscape
+        get() = profile.tier == DeviceProfileTier.TV_REGULAR ||
+            profile.tier == DeviceProfileTier.TV_LARGE ||
+            (maxWidth >= 880.dp && maxHeight >= 480.dp && !isPhoneLandscape)
 
-    /** TV 32" ~720p (853×480 dp). */
+    /** TV 32" ~720p (853×480 dp) — raro; fallback por ancho si el tier es TV. */
     val isTv32: Boolean
-        get() = isTv && maxWidth < 900.dp
+        get() = isTv && maxWidth < 900.dp && profile.tier != DeviceProfileTier.TV_LARGE
 
-    /** TV 42" ~1080p (960×540 dp). Fire tablet y AVD Television_1080: mismo perfil. */
+    /** TV 42" / Fire / Television_1080 — [DeviceProfileTier.TV_REGULAR]. */
     val isTv42: Boolean
-        get() = isTv && maxWidth in 900.dp..1400.dp && !preferTv66
+        get() = profile.tier == DeviceProfileTier.TV_REGULAR
 
     /**
-     * Subconjunto de tv_42 con canvas alto (p. ej. Damasco TAB-T104-6 ≈1333×800).
-     * La Fire / tablet de proyecto (~961×529) queda fuera y mantiene métricas tv_42 baseline.
+     * Canvas LARGE del catálogo (Ariana / Damasco / todo TV_REGULAR).
+     * Misma regla que CT/Productos vía [CatalogHeaderMetrics.isLargeCatalogCanvas].
      */
     val isTv42LargeCanvas: Boolean
-        get() = isTv42 && maxHeight >= 700.dp
+        get() = CatalogHeaderMetrics.isLargeCatalogCanvas(profile, maxHeight)
 
-    /**
-     * TV ~65–75" / 4K. Canvas de referencia: ~1920×1080 dp
-     * (p. ej. 3840×2160 @ densidad 320). También vía [preferTv66] en paneles
-     * 4K/Hikvision que reportan ~960 dp por densidad alta.
-     */
+    /** TV ~65–75" / 4K — [DeviceProfileTier.TV_LARGE]. */
     val isTv66: Boolean
-        get() = isTv && (maxWidth > 1400.dp || preferTv66)
+        get() = profile.tier == DeviceProfileTier.TV_LARGE
 
     /** @deprecated Usar isTv42 — alias para compatibilidad en logs. */
     val isTv1080: Boolean
@@ -80,11 +87,11 @@ data class IntroLayoutMetrics(
     val vitrinaProfileKey: String
         get() = when {
             isTv32 -> "tv_32"
-            isTv42 -> "tv_42"
-            isTv66 -> "tv_66"
-            isPhoneLandscape -> "phone_landscape"
-            isTabletLandscape -> "tablet_landscape"
-            isPhonePortrait -> "phone_portrait"
+            profile.tier == DeviceProfileTier.TV_REGULAR -> "tv_42"
+            profile.tier == DeviceProfileTier.TV_LARGE -> "tv_66"
+            profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE -> "phone_landscape"
+            profile.tier == DeviceProfileTier.TABLET_LANDSCAPE -> "tablet_landscape"
+            profile.tier == DeviceProfileTier.COMPACT_PORTRAIT -> "phone_portrait"
             isShortHeight -> "short_height"
             isExpandedWidth -> "expanded"
             isTv -> "tv_unknown"
@@ -816,10 +823,19 @@ fun BoxWithConstraintsScope.introLayoutMetrics(
         density = density,
         context = context,
     )
-    return IntroLayoutMetrics(
-        maxWidth = maxWidth,
-        maxHeight = maxHeight,
-        widthClass = widthClass,
-        preferTv66 = preferTv66,
-    )
+    return remember(maxWidth, maxHeight, widthClass, preferTv66) {
+        val profile = DeviceProfileResolver.resolve(
+            maxWidth = maxWidth,
+            maxHeight = maxHeight,
+            widthClass = widthClass,
+            preferTv66 = preferTv66,
+        )
+        IntroLayoutMetrics(
+            maxWidth = maxWidth,
+            maxHeight = maxHeight,
+            widthClass = widthClass,
+            profile = profile,
+            preferTv66 = preferTv66,
+        )
+    }
 }

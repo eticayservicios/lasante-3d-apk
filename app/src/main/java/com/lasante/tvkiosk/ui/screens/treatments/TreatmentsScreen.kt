@@ -22,7 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,7 +59,6 @@ import com.lasante.tvkiosk.ui.utils.clickableWithSound
 @Composable
 fun TreatmentsScreen(
     unitName: String,
-    unitDescription: String,
     treatments: List<Treatment>,
     onBack: () -> Unit,
     onTreatmentSelected: (String) -> Unit,
@@ -214,12 +213,14 @@ private fun TherapeuticClassCard(
     val context = LocalContext.current
     val iconSizePx = with(LocalDensity.current) { iconSize.roundToPx() }
     val labelHeight = therapeuticClassLabelHeight(labelLineHeight)
-
-    LaunchedEffect(treatment.id, iconModel) {
-        android.util.Log.d(
-            "TreatmentIcon",
-            "render id=${treatment.id} name=${treatment.name} icon=$iconModel",
-        )
+    val imageRequest = remember(iconModel, iconSizePx) {
+        if (iconModel.isNullOrBlank()) null
+        else ImageRequest.Builder(context)
+            .data(iconModel)
+            .size(iconSizePx)
+            .transformations(TrimTransparentTransformation())
+            .crossfade(true)
+            .build()
     }
 
     Column(
@@ -248,29 +249,12 @@ private fun TherapeuticClassCard(
                 .padding(bottom = 6.dp),
             contentAlignment = Alignment.BottomCenter,
         ) {
-            if (!iconModel.isNullOrBlank()) {
+            if (imageRequest != null) {
                 AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(iconModel)
-                        .size(iconSizePx)
-                        .transformations(TrimTransparentTransformation())
-                        .crossfade(true)
-                        .build(),
+                    model = imageRequest,
                     contentDescription = treatment.name,
                     modifier = Modifier.fillMaxSize(iconFill),
                     contentScale = ContentScale.Fit,
-                    onSuccess = {
-                        android.util.Log.d(
-                            "TreatmentIcon",
-                            "loaded id=${treatment.id} icon=$iconModel",
-                        )
-                    },
-                    onError = { state ->
-                        android.util.Log.e(
-                            "TreatmentIcon",
-                            "error id=${treatment.id} icon=$iconModel throwable=${state.result.throwable}",
-                        )
-                    },
                 )
             }
         }

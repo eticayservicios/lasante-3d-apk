@@ -11,7 +11,6 @@ import com.lasante.tvkiosk.data.remote.RetrofitCatalogRepository
 import com.lasante.tvkiosk.media.Media3AudioPlayer
 
 // El repositorio y audioPlayer viven aquí — una sola instancia durante toda la app.
-// Para volver al mock (sin internet): reemplazar RetrofitCatalogRepository() por MockCatalogRepository()
 class LaSanteApplication : Application(), ImageLoaderFactory {
 
     val catalogRepository: CatalogRepository by lazy {

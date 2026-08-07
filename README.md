@@ -41,8 +41,7 @@ Intro → Home → Tratamientos → Productos → Detalle
 - Detalle: botón “Escuchar” reproduce un `audioUrl` (por ahora en mock está en null).
 - 3D: `ModelViewerStub` muestra el estado; aquí se enchufa SceneView.
 
-## Siguientes pasos (cuando backend entregue URLs reales)
+## Siguientes pasos
 
-1) Reemplazar `MockCatalogRepository` por un repositorio real que consuma AppSync/GraphQL.
-2) Llenar `modelUrl` (CloudFront) y `audioUrl` (CloudFront) por producto.
-3) Integrar SceneView en `ModelViewerStub`.
+1) Completar `modelUrl` / `audioUrl` (CloudFront) por producto vía API.
+2) Sustituir `ModelViewerStub` por el visor 3D de producción donde aún aplique.

@@ -262,41 +262,6 @@ fun ProductPresentationModal(
     }
 }
 
-@Composable
-fun ProductPresentationContent(
-    product: Product,
-    businessUnitName: String? = null,
-    modifier: Modifier = Modifier,
-) {
-    val modelUrl = remember(product) {
-        product.resolvePresentationGlb()
-    }
-    val fallbackImageUrl = remember(product) {
-        product.resolvePresentationImage()
-    }
-
-    Row(
-        modifier = modifier.padding(18.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        ProductModelStage(
-            modelUrl = modelUrl,
-            fallbackImageUrl = fallbackImageUrl,
-            modifier = Modifier
-                .weight(1.42f)
-                .fillMaxHeight(),
-        )
-        ProductDescriptionPanel(
-            product = product,
-            businessUnitName = businessUnitName,
-            modifier = Modifier
-                .weight(0.88f)
-                .fillMaxHeight(0.88f),
-        )
-    }
-}
-
 private fun Product.resolvePresentationGlb(): String? {
     val model = media.modelo3d
     return model.glb?.trim()?.takeIf { it.isNotBlank() }

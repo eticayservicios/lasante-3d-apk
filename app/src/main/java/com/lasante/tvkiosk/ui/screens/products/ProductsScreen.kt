@@ -58,7 +58,6 @@ import com.lasante.tvkiosk.ui.components.LaSanteBackground
 import com.lasante.tvkiosk.ui.components.RealGreenScrollBar
 import com.lasante.tvkiosk.ui.components.TreatmentIconAssets
 import com.lasante.tvkiosk.ui.components.TrimTransparentTransformation
-import com.lasante.tvkiosk.ui.layout.CatalogHeaderMetrics
 import com.lasante.tvkiosk.ui.layout.CatalogScreenTitle
 import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
 import com.lasante.tvkiosk.ui.layout.rememberCatalogLayout
@@ -76,7 +75,7 @@ private fun Product.hasImage(): Boolean =
         media.imagenes2d.miniatura != null
 
 private sealed class ProductGridVisual {
-    data class Photo(val url: String, val enlarge: Boolean = false) : ProductGridVisual()
+    data class Photo(val url: String) : ProductGridVisual()
     data object Placeholder : ProductGridVisual()
 }
 
@@ -88,16 +87,10 @@ private fun Product.gridVisual(): ProductGridVisual {
     val principal = media.imagenes2d.principal?.trim()?.takeIf { it.isNotBlank() }
     val miniatura = media.imagenes2d.miniatura?.trim()?.takeIf { it.isNotBlank() }
     val preview = media.modelo3d.vistaPrevia?.trim()?.takeIf { it.isNotBlank() }
-    val hasGlb = !media.modelo3d.glb.isNullOrBlank() ||
-        !media.modelo3d.glbFrasco.isNullOrBlank() ||
-        !media.modelo3d.glbAbrircaja.isNullOrBlank()
     return when {
         principal != null -> ProductGridVisual.Photo(principal)
-        miniatura != null -> ProductGridVisual.Photo(
-            url = miniatura,
-            enlarge = hasGlb && principal == null,
-        )
-        preview != null -> ProductGridVisual.Photo(preview, enlarge = hasGlb)
+        miniatura != null -> ProductGridVisual.Photo(miniatura)
+        preview != null -> ProductGridVisual.Photo(preview)
         else -> ProductGridVisual.Placeholder
     }
 }
@@ -105,7 +98,6 @@ private fun Product.gridVisual(): ProductGridVisual {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductsScreen(
-    unitId: String,
     treatmentName: String,
     treatmentIconUrl: String?,
     products: List<Product>,
@@ -125,11 +117,9 @@ fun ProductsScreen(
             val nav = catalog.nav
             val header = catalog.header
             val isLandscape = catalog.isLandscape
-            val isPhoneLandscape = catalog.isPhoneLandscape
             val isTv66 = catalog.isTv66
             val isTv42 = catalog.isTv42
             val isTv42LargeUp = catalog.largeCanvas
-            val isTv = isTv42 || isTv66
             val isPhone = catalog.isPhone
             val columns = when {
                 profile.tier == DeviceProfileTier.COMPACT_PORTRAIT -> 2
@@ -146,68 +136,76 @@ fun ProductsScreen(
 
             val coroutineScope = rememberCoroutineScope()
 
-            LaunchedEffect(searchQuery) {
-                if (searchQuery.length >= 3) {
-                    isSearching = true
-                    kotlinx.coroutines.delay(500)
-                    try {
-                        val localResults = products.filter {
-                            it.nombre.contains(searchQuery, ignoreCase = true) ||
-                                it.descripcion.contains(searchQuery, ignoreCase = true)
-                        }
-                        if (localResults.isNotEmpty()) {
-                            globalSearchResults = localResults
-                        } else {
-                            val result = catalogRepository.search(searchQuery, "productos")
-                            globalSearchResults = result.items.map { item ->
-                                Product(
-                                    productoId = item.id,
-                                    unidadId = "",
-                                    tratamientoId = "",
-                                    nombre = item.nombre,
-                                    descripcion = item.descripcion ?: "",
-                                    estado = "ACTIVO",
-                                    orden = 0,
-                                    media = com.lasante.tvkiosk.data.ProductMedia(
-                                        imagenes2d = com.lasante.tvkiosk.data.Images2D(null, null, emptyList()),
-                                        modelo3d = com.lasante.tvkiosk.data.Model3D(null, null, null),
-                                    ),
-                                    atributos = emptyMap(),
-                                )
-                            }
-                        }
-                    } catch (e: Exception) {
-                        globalSearchResults = products.filter {
-                            it.nombre.contains(searchQuery, ignoreCase = true) ||
-                                it.descripcion.contains(searchQuery, ignoreCase = true)
+            LaunchedEffect(searchQuery, products) {
+                if (searchQuery.length < 3) {
+                    globalSearchResults = emptyList()
+                    isSearching = false
+                    return@LaunchedEffect
+                }
+                isSearching = true
+                kotlinx.coroutines.delay(500)
+                val query = searchQuery
+                try {
+                    val localResults = products.filter {
+                        it.nombre.contains(query, ignoreCase = true) ||
+                            it.descripcion.contains(query, ignoreCase = true)
+                    }
+                    globalSearchResults = if (localResults.isNotEmpty()) {
+                        localResults
+                    } else {
+                        val result = catalogRepository.search(query, "productos")
+                        result.items.map { item ->
+                            Product(
+                                productoId = item.id,
+                                unidadId = "",
+                                tratamientoId = "",
+                                nombre = item.nombre,
+                                descripcion = item.descripcion ?: "",
+                                estado = "ACTIVO",
+                                orden = 0,
+                                media = com.lasante.tvkiosk.data.ProductMedia(
+                                    imagenes2d = com.lasante.tvkiosk.data.Images2D(null, null, emptyList()),
+                                    modelo3d = com.lasante.tvkiosk.data.Model3D(null, null, null),
+                                ),
+                                atributos = emptyMap(),
+                            )
                         }
                     }
-                    isSearching = false
+                } catch (_: Exception) {
+                    globalSearchResults = products.filter {
+                        it.nombre.contains(query, ignoreCase = true) ||
+                            it.descripcion.contains(query, ignoreCase = true)
+                    }
+                }
+                isSearching = false
+            }
+
+            val filteredProducts = remember(
+                products,
+                searchQuery,
+                globalSearchResults,
+                productFilter,
+                sortOrder,
+            ) {
+                val displayProducts = if (searchQuery.length >= 3) {
+                    globalSearchResults
                 } else {
-                    globalSearchResults = emptyList()
+                    products.filter {
+                        searchQuery.isBlank() ||
+                            it.name.contains(searchQuery, ignoreCase = true) ||
+                            it.description.contains(searchQuery, ignoreCase = true)
+                    }
                 }
-            }
-
-            val displayProducts = if (searchQuery.length >= 3) {
-                globalSearchResults
-            } else {
-                products.filter {
-                    searchQuery.isBlank() ||
-                        it.name.contains(searchQuery, ignoreCase = true) ||
-                        it.description.contains(searchQuery, ignoreCase = true)
+                val filteredByType = when (productFilter) {
+                    ProductFilter.ALL -> displayProducts
+                    ProductFilter.WITH_IMAGE -> displayProducts.filter { it.hasImage() }
+                    ProductFilter.WITHOUT_IMAGE -> displayProducts.filterNot { it.hasImage() }
                 }
-            }
-
-            val filteredByType = when (productFilter) {
-                ProductFilter.ALL -> displayProducts
-                ProductFilter.WITH_IMAGE -> displayProducts.filter { it.hasImage() }
-                ProductFilter.WITHOUT_IMAGE -> displayProducts.filterNot { it.hasImage() }
-            }
-
-            val filteredProducts = when (sortOrder) {
-                SortOrder.AZ -> filteredByType.sortedBy { it.name }
-                SortOrder.ZA -> filteredByType.sortedByDescending { it.name }
-                SortOrder.NONE -> filteredByType
+                when (sortOrder) {
+                    SortOrder.AZ -> filteredByType.sortedBy { it.name }
+                    SortOrder.ZA -> filteredByType.sortedByDescending { it.name }
+                    SortOrder.NONE -> filteredByType
+                }
             }
 
             val gridState = rememberLazyGridState()
@@ -496,6 +494,7 @@ fun ProductsScreen(
                 // Badge top-start; título separado vía titleStartGap.
                 TreatmentIconBadge(
                     iconUrl = treatmentIconUrl,
+                    metrics = catalog.ui,
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .offset {
@@ -508,11 +507,6 @@ fun ProductsScreen(
                             start = horizontalPadding + contentPadding,
                             top = 0.dp,
                         ),
-                    isPhoneLandscape = isPhoneLandscape,
-                    isTv42 = isTv42,
-                    isTv = isTv,
-                    isTv66 = isTv66,
-                    isTv42LargeUp = isTv42LargeUp,
                 )
             }
 
@@ -605,20 +599,10 @@ private fun ProductsSortButton(
 @Composable
 private fun TreatmentIconBadge(
     iconUrl: String?,
+    metrics: TreatmentUiMetrics.ProfileMetrics,
     modifier: Modifier = Modifier,
-    isPhoneLandscape: Boolean = false,
-    isTv42: Boolean = false,
-    isTv: Boolean = false,
-    isTv66: Boolean = false,
-    isTv42LargeUp: Boolean = false,
 ) {
     val iconModel = TreatmentIconAssets.resolve(iconUrl = iconUrl)
-    val metrics = when {
-        isTv66 -> TreatmentUiMetrics.tv66
-        isTv42LargeUp || isTv42 -> TreatmentUiMetrics.tv42Large
-        isPhoneLandscape -> TreatmentUiMetrics.phoneLandscape
-        else -> TreatmentUiMetrics.tv42
-    }
     val badgeHeight = metrics.badgeHeight
     val badgeWidth = badgeHeight * TreatmentUiMetrics.BADGE_WIDTH_TO_HEIGHT
     val iconSize = metrics.badgeIconSize

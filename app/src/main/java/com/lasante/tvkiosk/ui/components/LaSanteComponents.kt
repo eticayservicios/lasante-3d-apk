@@ -1,13 +1,19 @@
 package com.lasante.tvkiosk.ui.components
 
-import android.content.res.Configuration
-import androidx.compose.foundation.border
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,35 +23,27 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.layout.ContentScale
-import coil.compose.AsyncImage
-import coil.decode.SvgDecoder
-import coil.request.ImageRequest
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
+import coil.compose.AsyncImage
+import coil.decode.SvgDecoder
+import coil.request.ImageRequest
 import com.lasante.tvkiosk.ui.theme.LaSanteBackground
-import com.lasante.tvkiosk.ui.utils.SoundManager
 import com.lasante.tvkiosk.ui.theme.LaSanteGreen
-import com.lasante.tvkiosk.ui.theme.LaSanteText
-import androidx.compose.ui.text.TextStyle 
+import com.lasante.tvkiosk.ui.utils.SoundManager
 
 @Composable
 fun LaSanteBackground(
@@ -108,85 +106,6 @@ fun GreenNavButton(
             contentDescription = contentDescription,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Fit
-        )
-    }
-}
-
-@Composable
-fun LaSanteNavigationHeader(
-    onBack: () -> Unit,
-    onHome: () -> Unit,
-    modifier: Modifier = Modifier,
-    verticalAlignment: Alignment.Vertical = Alignment.CenterVertically,
-    content: @Composable RowScope.() -> Unit = {},
-) {
-    val configuration = LocalConfiguration.current
-    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-    val buttonSize = if (isLandscape) 40.dp else 34.dp
-
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(
-                horizontal = if (isLandscape) 36.dp else 22.dp,
-                vertical = if (isLandscape) 18.dp else 14.dp
-            ),
-        verticalAlignment = verticalAlignment,
-        horizontalArrangement = Arrangement.spacedBy(if (isLandscape) 14.dp else 10.dp)
-    ) {
-        GreenNavButton(
-            assetPath = "svg/ui/Before.svg",
-            contentDescription = "Volver",
-            onClick = onBack,
-            size = buttonSize
-        )
-        GreenNavButton(
-            assetPath = "svg/ui/Home.svg",
-            contentDescription = "Inicio",
-            onClick = onHome,
-            size = buttonSize
-        )
-        content()
-    }
-}
-
-// Header estándar unificado para todas las pantallas
-@Composable
-fun LaSanteHeader(
-    onBack: () -> Unit,
-    onHome: () -> Unit,
-    modifier: Modifier = Modifier,
-    buttonSize: Dp = 48.dp,
-    content: @Composable RowScope.() -> Unit = {},
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 20.dp), // Padding consistente
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        GreenNavButton(
-            assetPath = "svg/ui/Before.svg",
-            contentDescription = "Volver",
-            onClick = onBack,
-            size = buttonSize
-        )
-        
-        // Espacio central para buscador o títulos específicos
-        Row(
-            modifier = Modifier.weight(1f).padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            content()
-        }
-
-        GreenNavButton(
-            assetPath = "svg/ui/Home.svg",
-            contentDescription = "Inicio",
-            onClick = onHome,
-            size = buttonSize
         )
     }
 }

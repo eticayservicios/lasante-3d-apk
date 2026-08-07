@@ -75,7 +75,6 @@ fun ProductsRoute(
                     .modalBackdropBlur(selectedProduct != null),
             ) {
                 ProductsScreen(
-                    unitId            = unitId,
                     treatmentName     = state.data.treatmentName,
                     treatmentIconUrl  = state.data.treatmentIconUrl,
                     products          = state.data.products,

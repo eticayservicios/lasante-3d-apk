@@ -26,11 +26,8 @@ object TreatmentUiMetrics {
     data class ProfileMetrics(
         val badgeHeight: Dp,
         val badgeIconSize: Dp,
-        val badgeIconTop: Dp,
         val cardIconSize: Dp,
-        val cardMaxWidth: Dp,
         val navButtonSize: Dp,
-        val navEndInset: Dp = 0.dp,
         val cardLabelFontSize: TextUnit = 12.sp,
         val cardLabelLineHeight: TextUnit = 14.sp,
         val cardIconFill: Float = CARD_ICON_FILL,
@@ -40,9 +37,7 @@ object TreatmentUiMetrics {
     val tv42 = ProfileMetrics(
         badgeHeight = 64.dp,
         badgeIconSize = 28.dp,
-        badgeIconTop = 6.dp,
         cardIconSize = 320.dp,
-        cardMaxWidth = 260.dp,
         navButtonSize = 38.dp,
         cardLabelFontSize = scaledSp(12.sp),
         cardLabelLineHeight = scaledSp(14.sp),
@@ -53,9 +48,7 @@ object TreatmentUiMetrics {
     val phoneLandscape = ProfileMetrics(
         badgeHeight = 46.dp,
         badgeIconSize = 22.dp,
-        badgeIconTop = 5.dp,
         cardIconSize = 240.dp,
-        cardMaxWidth = 200.dp,
         navButtonSize = 32.dp,
         cardLabelFontSize = scaledSp(12.sp),
         cardLabelLineHeight = scaledSp(14.sp),
@@ -64,9 +57,7 @@ object TreatmentUiMetrics {
     val phonePortrait = ProfileMetrics(
         badgeHeight = 62.dp,
         badgeIconSize = 26.dp,
-        badgeIconTop = 6.dp,
         cardIconSize = 240.dp,
-        cardMaxWidth = 200.dp,
         navButtonSize = 35.dp,
         cardLabelFontSize = scaledSp(13.sp),
         cardLabelLineHeight = scaledSp(15.sp),
@@ -75,9 +66,7 @@ object TreatmentUiMetrics {
     val tv42Large = ProfileMetrics(
         badgeHeight = 78.dp,
         badgeIconSize = 38.dp,
-        badgeIconTop = 7.dp,
         cardIconSize = 560.dp,
-        cardMaxWidth = 360.dp,
         navButtonSize = 52.dp,
         cardLabelFontSize = scaledSp(20.sp),
         cardLabelLineHeight = scaledSp(23.sp),
@@ -85,16 +74,11 @@ object TreatmentUiMetrics {
         cardAspectRatio = 1.12f,
     )
 
-    val tv: ProfileMetrics get() = tv42
-
     val tv66 = ProfileMetrics(
         badgeHeight = 100.dp,
         badgeIconSize = 44.dp,
-        badgeIconTop = 9.dp,
         cardIconSize = 640.dp,
-        cardMaxWidth = 400.dp,
         navButtonSize = 60.dp,
-        navEndInset = 90.dp,
         cardLabelFontSize = scaledSp(24.sp),
         cardLabelLineHeight = scaledSp(28.sp),
         cardIconFill = CARD_ICON_FILL_LARGE,

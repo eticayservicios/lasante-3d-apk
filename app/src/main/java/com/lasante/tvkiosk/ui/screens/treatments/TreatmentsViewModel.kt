@@ -15,7 +15,6 @@ import kotlinx.coroutines.withContext
 
 data class TreatmentsData(
     val unitName: String,
-    val unitDescription: String,
     val treatments: List<Treatment>,
 )
 
@@ -30,7 +29,6 @@ class TreatmentsViewModel(
     private val cache = mutableMapOf<String, TreatmentsData>()
     private var warmCacheStarted = false
 
-    /** Precarga en background tras el home; no bloquea la vitrina. */
     fun warmCache() {
         if (warmCacheStarted) return
         warmCacheStarted = true
@@ -79,7 +77,6 @@ class TreatmentsViewModel(
             .filterNot { it.id.endsWith("-vitrina") }
         return TreatmentsData(
             unitName = DisplayTitles.resolve(unit?.name, unitId),
-            unitDescription = unit?.description.orEmpty(),
             treatments = treatments,
         )
     }

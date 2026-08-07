@@ -36,7 +36,6 @@ fun TreatmentsRoute(
         is UiState.Error -> ErrorScreen(message = state.message, onRetry = { retryKey++ })
         is UiState.Success -> TreatmentsScreen(
             unitName = state.data.unitName,
-            unitDescription = state.data.unitDescription,
             treatments = state.data.treatments,
             onBack = onBack,
             onTreatmentSelected = onTreatmentSelected,
