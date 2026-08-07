@@ -45,9 +45,10 @@ import com.lasante.tvkiosk.data.DisplayTitles
 import com.lasante.tvkiosk.data.Treatment
 import com.lasante.tvkiosk.ui.components.GreenNavButton
 import com.lasante.tvkiosk.ui.components.LaSanteBackground
-import com.lasante.tvkiosk.ui.components.LaSanteScreenTitle
 import com.lasante.tvkiosk.ui.components.TreatmentIconAssets
 import com.lasante.tvkiosk.ui.components.TrimTransparentTransformation
+import com.lasante.tvkiosk.ui.layout.CatalogHeaderMetrics
+import com.lasante.tvkiosk.ui.layout.CatalogScreenTitle
 import com.lasante.tvkiosk.ui.layout.DeviceProfileResolver
 import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
 import com.lasante.tvkiosk.ui.layout.FireTv42Spacing
@@ -85,39 +86,30 @@ fun TreatmentsScreen(
             val grid = screenMetrics.grid
             val nav = screenMetrics.nav
             val profile = screenMetrics.profile
-            // Damasco (~1333×800) / TV 66 — mockup grande. Fire (~961×529) e Infinix = baseline.
-            val isLargeCanvas =
-                profile.tier == DeviceProfileTier.TV_LARGE ||
-                    (profile.tier == DeviceProfileTier.TV_REGULAR && maxHeight >= 700.dp)
+            // TV1080/Fire = mismas medidas catalog que Ariana (LARGE, btn 52).
+            val isLargeCanvas = CatalogHeaderMetrics.isLargeCatalogCanvas(profile, maxHeight)
             val uiMetrics = TreatmentUiMetrics.forProfile(profile, largeCanvas = isLargeCanvas)
-            // Mockup grande / Fire TV42 = 4 cols (nombres legibles). Infinix mantiene 5.
+            // Mockup grande / TV42 = 4 cols (nombres legibles). Infinix mantiene 5.
             val columns = when {
                 isLargeCanvas -> 4
                 profile.tier == DeviceProfileTier.TV_REGULAR -> 4
                 else -> grid.columns
             }
             val topPadding = grid.topPadding
-            val isPhoneLandscape = profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE
-            val isTv66 = profile.tier == DeviceProfileTier.TV_LARGE
-            val isTv42 = profile.tier == DeviceProfileTier.TV_REGULAR
-            // Fire / Television_1080 (no Damasco).
-            val isFireTv42 = isTv42 && !isLargeCanvas
+            val header = CatalogHeaderMetrics.resolve(
+                profile = profile,
+                uiMetrics = uiMetrics,
+                largeCanvas = isLargeCanvas,
+                isLandscape = profile.isLandscape,
+            )
+            val isFireTv42 = header.isFireTv42
 
             // Mismos márgenes que Products — el título dinámico debe caer en el mismo X.
             val horizontalPadding = grid.horizontalPadding
             val gridContentPadding = grid.contentPadding
             val gridMaxWidth = grid.maxContentWidth
-            val badgeWidth = uiMetrics.badgeHeight * TreatmentUiMetrics.BADGE_WIDTH_TO_HEIGHT
-            val titleStartGap = badgeWidth + when {
-                isPhoneLandscape -> 48.dp
-                isLargeCanvas -> 44.dp
-                isTv66 -> 40.dp
-                // Fire: título principal −2 espacios (barra espaciadora).
-                isFireTv42 -> 34.dp - FireTv42Spacing.spaces(2)
-                isTv42 -> 34.dp
-                else -> 32.dp
-            }
-            val principalTitleSp = nav.titleFontSize.value.toInt() + 2
+            val principalTitleSp =
+                (((nav.titleFontSize.value + 2f) * 0.95f).toInt()).coerceAtLeast(1)
             // Fire: cards (botones de clase) 2 espacios más abajo.
             val gridTopExtra = if (isFireTv42) FireTv42Spacing.spaces(2) else 0.dp
 
@@ -156,13 +148,9 @@ fun TreatmentsScreen(
                     TreatmentsHeader(
                         unitName = unitName,
                         navMetrics = nav,
-                        navButtonSize = if (isFireTv42) {
-                            uiMetrics.navButtonSize * 0.95f
-                        } else {
-                            uiMetrics.navButtonSize
-                        },
+                        navButtonSize = header.navButtonSize,
                         contentPadding = gridContentPadding,
-                        titleStartGap = titleStartGap,
+                        titleStartGap = header.titleStartGap,
                         onBack = onBack,
                     )
 
@@ -170,16 +158,8 @@ fun TreatmentsScreen(
 
                     Text(
                         text = "Clase terapéutica",
-                        fontSize = when {
-                            isLargeCanvas && profile.tier == DeviceProfileTier.TV_LARGE -> 34.sp
-                            isLargeCanvas -> 28.sp
-                            profile.tier == DeviceProfileTier.TV_LARGE -> 34.sp
-                            // Fire: mismo tamaño que el título principal.
-                            isFireTv42 -> principalTitleSp.sp
-                            profile.tier == DeviceProfileTier.TV_REGULAR -> 26.sp
-                            profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE -> 18.sp
-                            else -> if (profile.isWide) 28.sp else 20.sp
-                        },
+                        // Mismo tamaño que el título dinámico principal.
+                        fontSize = principalTitleSp.sp,
                         fontWeight = FontWeight.Medium,
                         style = MaterialTheme.typography.bodyMedium.copy(
                             brush = Brush.horizontalGradient(
@@ -242,28 +222,17 @@ private fun TreatmentsHeader(
     titleStartGap: Dp = 0.dp,
     onBack: () -> Unit,
 ) {
-    // Misma geometría de header que Products: contentPadding + titleStartGap (hueco del badge).
-    // Top: el título queda en el mismo Y al pasar de CT → Productos.
+    // Misma geometría que Products: CatalogScreenTitle + Top.
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = contentPadding),
         verticalAlignment = Alignment.Top,
     ) {
-        LaSanteScreenTitle(
+        CatalogScreenTitle(
             text = DisplayTitles.resolve(unitName),
-            fontSize = navMetrics.titleFontSize.value.toInt() + 2,
-            textColor = LaSanteText,
-            underlineBrush = Brush.horizontalGradient(
-                listOf(Color(0xFF8FA88A), Color(0xFFD5D8D2), Color.White),
-            ),
-            underlineWidth = navMetrics.titleUnderlineWidth,
-            underlineMatchTextWidth = true,
-            textAlign = TextAlign.Start,
-            fontFamily = MaterialTheme.typography.bodyLarge.fontFamily,
-            fontWeight = FontWeight.Light,
-            allCaps = false,
-            modifier = Modifier.padding(start = titleStartGap),
+            nav = navMetrics,
+            titleStartGap = titleStartGap,
         )
 
         Spacer(modifier = Modifier.weight(1f))

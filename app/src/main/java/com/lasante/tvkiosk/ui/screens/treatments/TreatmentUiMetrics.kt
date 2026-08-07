@@ -96,8 +96,8 @@ object TreatmentUiMetrics {
         cardMaxWidth = 360.dp,
         navButtonSize = 52.dp,
         navEndInset = 0.dp,
-        cardLabelFontSize = 20.sp,
-        cardLabelLineHeight = 23.sp,
+        cardLabelFontSize = 20.sp * 0.9f * 0.95f,
+        cardLabelLineHeight = 23.sp * 0.9f * 0.95f,
         cardIconFill = CARD_ICON_FILL_LARGE,
         // Más ancho que alto → menos vacío vertical, icono ocupa casi todo.
         cardAspectRatio = 1.12f,
