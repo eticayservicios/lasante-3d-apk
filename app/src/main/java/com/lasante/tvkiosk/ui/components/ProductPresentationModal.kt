@@ -55,8 +55,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.lasante.tvkiosk.data.Product
 import com.lasante.tvkiosk.ui.screens.intro.VitrinaAssets
 import com.lasante.tvkiosk.ui.theme.LaSanteGreen
@@ -138,14 +141,18 @@ fun ProductPresentationModal(
     val modelUrl = remember(product) {
         product.resolvePresentationGlb()
     }
+    val fallbackImageUrl = remember(product) {
+        product.resolvePresentationImage()
+    }
 
-    LaunchedEffect(product.productoId, modelUrl) {
+    LaunchedEffect(product.productoId, modelUrl, fallbackImageUrl) {
         Log.d(
             "ProductModal3D",
             "product=${product.productoId} name=${product.nombre} " +
                 "glb=${product.media.modelo3d.glb} " +
                 "glbAbrircaja=${product.media.modelo3d.glbAbrircaja} " +
-                "glbFrasco=${product.media.modelo3d.glbFrasco} selected=$modelUrl",
+                "glbFrasco=${product.media.modelo3d.glbFrasco} selected=$modelUrl " +
+                "fallbackImage=$fallbackImageUrl",
         )
     }
 
@@ -186,6 +193,7 @@ fun ProductPresentationModal(
                     ) {
                         ProductModelStage(
                             modelUrl = modelUrl,
+                            fallbackImageUrl = fallbackImageUrl,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(1.25f),
@@ -218,6 +226,7 @@ fun ProductPresentationModal(
                         ) {
                             ProductModelStage(
                                 modelUrl = modelUrl,
+                                fallbackImageUrl = fallbackImageUrl,
                                 modifier = Modifier
                                     .weight(layout.modelWeight)
                                     .fillMaxHeight(),
@@ -262,6 +271,9 @@ fun ProductPresentationContent(
     val modelUrl = remember(product) {
         product.resolvePresentationGlb()
     }
+    val fallbackImageUrl = remember(product) {
+        product.resolvePresentationImage()
+    }
 
     Row(
         modifier = modifier.padding(18.dp),
@@ -270,6 +282,7 @@ fun ProductPresentationContent(
     ) {
         ProductModelStage(
             modelUrl = modelUrl,
+            fallbackImageUrl = fallbackImageUrl,
             modifier = Modifier
                 .weight(1.42f)
                 .fillMaxHeight(),
@@ -292,14 +305,27 @@ private fun Product.resolvePresentationGlb(): String? {
         ?: VitrinaAssets.resolveProductGlb(this, 0)
 }
 
+private fun Product.resolvePresentationImage(): String? {
+    return media.imagenes2d.miniatura?.trim()?.takeIf { it.isNotBlank() }
+        ?: media.imagenes2d.principal?.trim()?.takeIf { it.isNotBlank() }
+        ?: media.modelo3d.vistaPrevia?.trim()?.takeIf { it.isNotBlank() }
+}
+
 @Composable
 private fun ProductModelStage(
     modelUrl: String?,
+    fallbackImageUrl: String? = null,
     modifier: Modifier = Modifier,
     scaleToUnits: Float = 1.38f,
 ) {
+    val hasGlb = !modelUrl.isNullOrBlank()
+    val context = LocalContext.current
     var renderModel by remember(modelUrl) { mutableStateOf(false) }
-    LaunchedEffect(modelUrl) {
+    LaunchedEffect(modelUrl, hasGlb) {
+        if (!hasGlb) {
+            renderModel = false
+            return@LaunchedEffect
+        }
         renderModel = false
         delay(MODAL_3D_DEFER_MS)
         renderModel = true
@@ -309,25 +335,43 @@ private fun ProductModelStage(
         modifier = modifier,
         contentAlignment = Alignment.Center,
     ) {
-        if (renderModel) {
-            ModelViewerStub(
-                modifier = Modifier.fillMaxSize(),
-                modelUrl = modelUrl,
-                scaleToUnits = scaleToUnits,
-            )
-        } else {
-            CircularProgressIndicator(color = LaSanteGreen)
+        when {
+            hasGlb && renderModel -> {
+                ModelViewerStub(
+                    modifier = Modifier.fillMaxSize(),
+                    modelUrl = modelUrl,
+                    scaleToUnits = scaleToUnits,
+                )
+            }
+            hasGlb -> {
+                CircularProgressIndicator(color = LaSanteGreen)
+            }
+            !fallbackImageUrl.isNullOrBlank() -> {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(fallbackImageUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 12.dp, vertical = 16.dp),
+                    contentScale = ContentScale.Fit,
+                )
+            }
         }
-        Text(
-            text = "ARRASTRA PARA GIRAR EL PRODUCTO",
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 8.dp),
-            style = MaterialTheme.typography.labelSmall,
-            color = LaSanteText.copy(alpha = 0.35f),
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-        )
+        if (hasGlb) {
+            Text(
+                text = "ARRASTRA PARA GIRAR EL PRODUCTO",
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 8.dp),
+                style = MaterialTheme.typography.labelSmall,
+                color = LaSanteText.copy(alpha = 0.35f),
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }
 
