@@ -46,8 +46,8 @@ object TreatmentUiMetrics {
     /** TV 42" / Fire baseline. */
     val tv42 = ProfileMetrics(
         badgeHeight = 64.dp,
-        badgeIconSize = 36.dp,
-        badgeIconTop = 2.dp,
+        badgeIconSize = 28.dp,
+        badgeIconTop = 6.dp,
         cardIconSize = 320.dp,
         cardMaxWidth = 260.dp,
         navButtonSize = 38.dp,
@@ -60,8 +60,8 @@ object TreatmentUiMetrics {
     /** Infinix / phone landscape. */
     val phoneLandscape = ProfileMetrics(
         badgeHeight = 46.dp,
-        badgeIconSize = 27.dp,
-        badgeIconTop = 2.dp,
+        badgeIconSize = 22.dp,
+        badgeIconTop = 5.dp,
         cardIconSize = 240.dp,
         cardMaxWidth = 200.dp,
         navButtonSize = 32.dp,
@@ -74,8 +74,8 @@ object TreatmentUiMetrics {
     /** Phone portrait (~360×800 dp). */
     val phonePortrait = ProfileMetrics(
         badgeHeight = 62.dp,
-        badgeIconSize = 31.5.dp,
-        badgeIconTop = 2.dp,
+        badgeIconSize = 26.dp,
+        badgeIconTop = 6.dp,
         cardIconSize = 240.dp,
         cardMaxWidth = 200.dp,
         navButtonSize = 35.dp,
@@ -87,8 +87,8 @@ object TreatmentUiMetrics {
     /** Damasco / canvas alto — iconos y textos más grandes (mockup). */
     val tv42Large = ProfileMetrics(
         badgeHeight = 64.dp,
-        badgeIconSize = 36.dp,
-        badgeIconTop = 2.dp,
+        badgeIconSize = 28.dp,
+        badgeIconTop = 6.dp,
         cardIconSize = 520.dp,
         cardMaxWidth = 360.dp,
         navButtonSize = 38.dp,
@@ -107,8 +107,8 @@ object TreatmentUiMetrics {
     /** TV 66". */
     val tv66 = ProfileMetrics(
         badgeHeight = 91.dp,
-        badgeIconSize = 39.6.dp,
-        badgeIconTop = 4.dp,
+        badgeIconSize = 32.dp,
+        badgeIconTop = 8.dp,
         cardIconSize = 560.dp,
         cardMaxWidth = 400.dp,
         navButtonSize = 53.dp,

@@ -295,8 +295,8 @@ private fun TherapeuticClassCard(
             modifier = Modifier
                 .weight(1f, fill = true)
                 .fillMaxWidth()
-                .padding(bottom = 2.dp),
-            contentAlignment = Alignment.Center,
+                .padding(bottom = 10.dp),
+            contentAlignment = Alignment.BottomCenter,
         ) {
             if (!iconModel.isNullOrBlank()) {
                 AsyncImage(
