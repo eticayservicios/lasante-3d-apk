@@ -87,13 +87,15 @@ jobs:
           aws s3 cp app/build/outputs/apk/debug/app-debug.apk \
             s3://$S3_BUCKET/android/debug/$APK_NAME \
             --content-type application/vnd.android.package-archive \
-            --content-disposition "$CONTENT_DISPOSITION"
+            --content-disposition "$CONTENT_DISPOSITION" \
+            --cache-control "no-cache, max-age=0"
 
           # Actualizar latest
           aws s3 cp app/build/outputs/apk/debug/app-debug.apk \
             s3://$S3_BUCKET/android/debug/$LATEST_APK_NAME \
             --content-type application/vnd.android.package-archive \
-            --content-disposition "$CONTENT_DISPOSITION"
+            --content-disposition "$CONTENT_DISPOSITION" \
+            --cache-control "no-cache, max-age=0"
 
           # Generar manifest JSON con metadata
           cat > manifest.json << EOF
@@ -110,7 +112,9 @@ jobs:
           }
           EOF
 
-          aws s3 cp manifest.json s3://$S3_BUCKET/android/debug/manifest.json
+          aws s3 cp manifest.json s3://$S3_BUCKET/android/debug/manifest.json \
+            --content-type application/json \
+            --cache-control "no-cache, max-age=0"
 
           echo "✅ APK debug subido: $APK_NAME"
 
@@ -132,13 +136,15 @@ jobs:
           aws s3 cp app/build/outputs/apk/release/app-release.apk \
             s3://$S3_BUCKET/android/release/$APK_NAME \
             --content-type application/vnd.android.package-archive \
-            --content-disposition "$CONTENT_DISPOSITION"
+            --content-disposition "$CONTENT_DISPOSITION" \
+            --cache-control "no-cache, max-age=0"
 
           # Actualizar latest
           aws s3 cp app/build/outputs/apk/release/app-release.apk \
             s3://$S3_BUCKET/android/release/$LATEST_APK_NAME \
             --content-type application/vnd.android.package-archive \
-            --content-disposition "$CONTENT_DISPOSITION"
+            --content-disposition "$CONTENT_DISPOSITION" \
+            --cache-control "no-cache, max-age=0"
 
           # Generar manifest JSON
           cat > manifest.json << EOF
@@ -155,7 +161,9 @@ jobs:
           }
           EOF
 
-          aws s3 cp manifest.json s3://$S3_BUCKET/android/release/manifest.json
+          aws s3 cp manifest.json s3://$S3_BUCKET/android/release/manifest.json \
+            --content-type application/json \
+            --cache-control "no-cache, max-age=0"
 
           echo "✅ APK release subido: $APK_NAME"
 

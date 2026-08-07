@@ -12,8 +12,8 @@ android {
         applicationId = "com.lasante.tvkiosk"
         minSdk = 28
         targetSdk = 35
-        versionCode = 6
-        versionName = "5.0.1"
+        versionCode = 7
+        versionName = "5.0.2"
 
         vectorDrawables {
             useSupportLibrary = true
