@@ -145,8 +145,10 @@
   }
 
   function fallbackTreatmentIcon(img, slug) {
+    // Solo CloudFront — sin assets locales.
     img.onerror = null;
-    img.src = ASSET_BASE + 'svg/clases-terapeuticas/' + slug + '.png';
+    img.removeAttribute('src');
+    img.alt = slug + ' (CDN)';
   }
   const HOSPITAL_ICONS = [
     { slug: 'antiinfeccioso', label: 'Antiinfeccioso' },

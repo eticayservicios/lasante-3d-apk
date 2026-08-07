@@ -47,6 +47,7 @@ import com.lasante.tvkiosk.ui.components.GreenNavButton
 import com.lasante.tvkiosk.ui.components.LaSanteBackground
 import com.lasante.tvkiosk.ui.components.LaSanteScreenTitle
 import com.lasante.tvkiosk.ui.components.TreatmentIconAssets
+import com.lasante.tvkiosk.ui.components.TrimTransparentTransformation
 import com.lasante.tvkiosk.ui.layout.DeviceProfileResolver
 import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
 import com.lasante.tvkiosk.ui.layout.SharedNavMetrics
@@ -259,11 +260,7 @@ private fun TherapeuticClassCard(
     aspectRatio: Float,
     onClick: () -> Unit,
 ) {
-    val iconModel = TreatmentIconAssets.resolve(
-        id = treatment.id,
-        name = treatment.name,
-        iconUrl = treatment.media.icono,
-    )
+    val iconModel = TreatmentIconAssets.resolve(iconUrl = treatment.media.icono)
     val context = LocalContext.current
     val iconSizePx = with(LocalDensity.current) { iconSize.roundToPx() }
     val labelHeight = therapeuticClassLabelHeight(labelLineHeight)
@@ -301,28 +298,31 @@ private fun TherapeuticClassCard(
                 .padding(bottom = 2.dp),
             contentAlignment = Alignment.Center,
         ) {
-            AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(iconModel)
-                    .size(iconSizePx)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = treatment.name,
-                modifier = Modifier.fillMaxSize(iconFill),
-                contentScale = ContentScale.Fit,
-                onSuccess = {
-                    android.util.Log.d(
-                        "TreatmentIcon",
-                        "loaded id=${treatment.id} icon=$iconModel",
-                    )
-                },
-                onError = { state ->
-                    android.util.Log.e(
-                        "TreatmentIcon",
-                        "error id=${treatment.id} icon=$iconModel throwable=${state.result.throwable}",
-                    )
-                },
-            )
+            if (!iconModel.isNullOrBlank()) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(iconModel)
+                        .size(iconSizePx)
+                        .transformations(TrimTransparentTransformation())
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = treatment.name,
+                    modifier = Modifier.fillMaxSize(iconFill),
+                    contentScale = ContentScale.Fit,
+                    onSuccess = {
+                        android.util.Log.d(
+                            "TreatmentIcon",
+                            "loaded id=${treatment.id} icon=$iconModel",
+                        )
+                    },
+                    onError = { state ->
+                        android.util.Log.e(
+                            "TreatmentIcon",
+                            "error id=${treatment.id} icon=$iconModel throwable=${state.result.throwable}",
+                        )
+                    },
+                )
+            }
         }
 
         Box(

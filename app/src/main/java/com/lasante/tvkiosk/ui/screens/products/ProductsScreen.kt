@@ -56,6 +56,7 @@ import com.lasante.tvkiosk.ui.components.LaSanteBackground
 import com.lasante.tvkiosk.ui.components.LaSanteScreenTitle
 import com.lasante.tvkiosk.ui.components.RealGreenScrollBar
 import com.lasante.tvkiosk.ui.components.TreatmentIconAssets
+import com.lasante.tvkiosk.ui.components.TrimTransparentTransformation
 import com.lasante.tvkiosk.ui.layout.DeviceProfileResolver
 import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
 import com.lasante.tvkiosk.ui.layout.TvProfileDetector
@@ -650,7 +651,11 @@ private fun TreatmentIconBadge(
         )
         if (!iconModel.isNullOrBlank()) {
             AsyncImage(
-                model = iconModel,
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(iconModel)
+                    .transformations(TrimTransparentTransformation())
+                    .crossfade(true)
+                    .build(),
                 contentDescription = null,
                 modifier = Modifier
                     .padding(top = iconTopPadding.coerceAtLeast(0.dp))
