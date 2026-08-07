@@ -129,13 +129,15 @@ object DeviceProfileResolver {
                 topPadding = 58.dp,
             )
             DeviceProfileTier.TV_REGULAR -> SharedGridMetrics(
-                columns = 5,
-                horizontalPadding = if (w >= 1200.dp) 16.dp else 20.dp,
+                // Fire / Television_1080 (~960×540): 4 cols = cards más anchos, menos truncate.
+                columns = 4,
+                horizontalPadding = if (w >= 1200.dp) 16.dp else 28.dp,
                 // Damasco (~1333) usa más ancho; Fire (~961) queda en 911.
                 maxContentWidth = if (w >= 1200.dp) 1180.dp else 911.dp,
                 contentPadding = 8.dp,
-                cardSpacing = if (w >= 1200.dp) 12.dp else 14.dp,
-                topPadding = 54.dp,
+                cardSpacing = if (w >= 1200.dp) 12.dp else 16.dp,
+                // Fire ~540H: 54.dp comía la 2.ª fila. Damasco canvas alto mantiene aire.
+                topPadding = if (w >= 1200.dp) 54.dp else 28.dp,
             )
             DeviceProfileTier.TABLET_LANDSCAPE -> SharedGridMetrics(
                 columns = if (profile.maxWidth >= 900.dp) 5 else 4,

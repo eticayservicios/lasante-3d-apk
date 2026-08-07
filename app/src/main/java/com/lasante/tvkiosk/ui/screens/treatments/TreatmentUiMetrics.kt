@@ -43,7 +43,7 @@ object TreatmentUiMetrics {
         val cardAspectRatio: Float = 1f,
     )
 
-    /** TV 42" / Fire baseline. */
+    /** TV 42" / Fire / Television_1080 baseline. */
     val tv42 = ProfileMetrics(
         badgeHeight = 64.dp,
         badgeIconSize = 28.dp,
@@ -52,9 +52,9 @@ object TreatmentUiMetrics {
         cardMaxWidth = 260.dp,
         navButtonSize = 38.dp,
         navEndInset = 0.dp,
-        cardLabelFontSize = 13.sp,
-        cardLabelLineHeight = 15.sp,
-        cardIconFill = CARD_ICON_FILL,
+        cardLabelFontSize = 12.sp,
+        cardLabelLineHeight = 14.sp,
+        cardIconFill = 0.62f,
     )
 
     /** Infinix / phone landscape. */

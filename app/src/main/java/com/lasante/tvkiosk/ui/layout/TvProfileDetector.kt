@@ -9,11 +9,15 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * Detecta paneles TV grandes ~65–75" / 4K (Hikvision, Android TV 4K, AVD de TV).
+ * Detecta paneles TV grandes ~65–75" / 4K (Hikvision, Android TV 4K).
  *
- * Canvas de referencia para métricas `tv_66`: ~1920×1080 dp
- * (p. ej. 3840×2160 @ densidad 320). Si el panel reporta ~960×540 dp por
- * densidad alta (640), igual fuerza `tv_66` para no caer en `tv_42`.
+ * Perfiles:
+ * - **tv_42 / Fire / 1080p**: canvas ~960×540 dp (o tablet similar). NO usar tv_66.
+ * - **tv_66**: canvas muy ancho (>1400 dp), TV leanback 4K, Hikvision, o 4K
+ *   “comprimido” por densidad alta (≥400 dpi con ≥2560 px).
+ *
+ * Importante: tablets 2K (p. ej. 2560×1600 @ 240–320 dpi) NO son tv_66;
+ * si no, se ven “todo granote” como el bug del emulador 1080 mal tipado.
  */
 object TvProfileDetector {
 
@@ -23,6 +27,7 @@ object TvProfileDetector {
         density: Density,
         context: Context,
     ): Boolean {
+        // Canvas Compose ya enorme (p. ej. 4K @ dens 320 → ~1920 dp).
         if (maxWidth > 1400.dp) return true
 
         val isTvSized = maxWidth >= 880.dp && maxHeight >= 480.dp && maxWidth > maxHeight
@@ -31,13 +36,20 @@ object TvProfileDetector {
         val widthPx = with(density) { maxWidth.toPx() }
         val heightPx = with(density) { maxHeight.toPx() }
         val longSidePx = maxOf(widthPx, heightPx)
-        val shortSidePx = minOf(widthPx, heightPx)
-        val is4kPhysical = longSidePx >= 2560f || (longSidePx >= 1920f && shortSidePx >= 1000f)
+        val densityDpi = density.density * 160f
 
-        if (isHikvisionDevice() && isTvSized) return true
-        if (isTelevisionUi(context) && is4kPhysical) return true
-        // Panel kiosco 4K sin leanback (algunos SO comerciales).
-        if (is4kPhysical && longSidePx >= 2560f) return true
+        // 4K nativo, o 4K reportando ~960 dp por dens ≥400 (kiosco/TV).
+        val isTrue4k = longSidePx >= 3840f
+        val isDensityCompressed4k = longSidePx >= 2560f && densityDpi >= 400f
+
+        // Paneles comerciales Hikvision (siempre tv_66 en tamaño TV).
+        if (isHikvisionDevice()) return true
+
+        // Android TV / leanback solo si es 4K de verdad (no Full HD 1920).
+        if (isTelevisionUi(context) && (isTrue4k || isDensityCompressed4k)) return true
+
+        // Kiosco 4K sin leanback (densidad alta). NO aplica a tablets 2K @ 240–320 dpi.
+        if (isTrue4k || isDensityCompressed4k) return true
 
         return false
     }

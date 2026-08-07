@@ -89,8 +89,12 @@ fun TreatmentsScreen(
                 profile.tier == DeviceProfileTier.TV_LARGE ||
                     (profile.tier == DeviceProfileTier.TV_REGULAR && maxHeight >= 700.dp)
             val uiMetrics = TreatmentUiMetrics.forProfile(profile, largeCanvas = isLargeCanvas)
-            // Mockup grande = 4 cols (cards/iconos más grandes). Fire/Infinix mantienen 5.
-            val columns = if (isLargeCanvas) 4 else grid.columns
+            // Mockup grande / Fire TV42 = 4 cols (nombres legibles). Infinix mantiene 5.
+            val columns = when {
+                isLargeCanvas -> 4
+                profile.tier == DeviceProfileTier.TV_REGULAR -> 4
+                else -> grid.columns
+            }
             val topPadding = grid.topPadding
             val isPhoneLandscape = profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE
             val isTv66 = profile.tier == DeviceProfileTier.TV_LARGE
@@ -122,7 +126,8 @@ fun TreatmentsScreen(
             val claseTerapeuticaGap = when {
                 isLargeCanvas -> 26.dp
                 profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE -> 14.dp
-                profile.tier == DeviceProfileTier.TV_REGULAR -> 16.dp
+                // Fire / Television_1080: menos aire vertical para que quepan 2 filas.
+                profile.tier == DeviceProfileTier.TV_REGULAR -> 10.dp
                 profile.tier == DeviceProfileTier.TV_LARGE -> 26.dp
                 else -> if (profile.isWide) 18.dp else 14.dp
             }
@@ -355,8 +360,8 @@ private fun TherapeuticClassCard(
     }
 }
 
-/** Altura del rótulo (~1.35 líneas) — máxima área para el icono. */
+/** Altura del rótulo (~2 líneas) — evita truncate en TV42/Fire. */
 @Composable
 private fun therapeuticClassLabelHeight(lineHeight: TextUnit): Dp {
-    return with(LocalDensity.current) { (lineHeight.toPx() * 1.35f).toDp() }
+    return with(LocalDensity.current) { (lineHeight.toPx() * 2.1f).toDp() }
 }
