@@ -186,10 +186,10 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 26.dp
             "phone_portrait" -> 28.dp
-            // Damasco: 43. Fire/TV1080: 26. Otros tablet_landscape: baseline 30 (no Infinix/phone).
+            // Damasco: 43. Fire/TV1080: +10% vs 26 → 29. Otros tablet: 30.
             "tv_42", "tablet_landscape" -> when {
                 isTv42LargeCanvas -> 43.dp
-                isTv42 -> 26.dp
+                isTv42 -> 29.dp
                 else -> 30.dp
             }
             "tv_66" -> 64.dp
@@ -498,10 +498,14 @@ data class IntroLayoutMetrics(
             else -> bubblesBadgeTopPullUp
         }
 
-    /** Inset izquierdo de redes — Fire acerca un poco a la vitrina; Damasco/TV66 10%. */
+    /**
+     * Inset izquierdo de redes.
+     * Fire/TV1080: un poco más a la derecha para alinear centro con PRODUCTOS ESTRELLAS
+     * (el badge sigue el mismo eje vía [bubblesBadgeCenterXInRow]).
+     */
     val socialStartPadding: Dp
         get() = when {
-            isTv42 && !isTv42LargeCanvas -> maxWidth * 0.07f
+            isTv42 && !isTv42LargeCanvas -> maxWidth * 0.095f
             else -> maxWidth * 0.10f
         }
 
@@ -696,9 +700,9 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             // Infinix: −2.dp más abajo dentro del cintillo.
             "phone_landscape" -> maxHeight * 0.100f - 2.dp
-            // Fire/TV1080: −5.dp. Damasco/otros: sin ese offset.
+            // Fire/TV1080: −7.dp (bajar touch ~2.dp más). Damasco/otros: sin ese offset.
             "tv_42", "tablet_landscape" ->
-                if (isTv42 && !isTv42LargeCanvas) maxHeight * 0.055f - 5.dp
+                if (isTv42 && !isTv42LargeCanvas) maxHeight * 0.055f - 7.dp
                 else maxHeight * 0.055f
             "tv_32", "tv_66" -> maxHeight * 0.055f
             else -> maxHeight * 0.04f
@@ -790,8 +794,11 @@ data class IntroLayoutMetrics(
             // Infinix: +3.dp previo + 2.dp más.
             "phone_landscape" -> maxHeight * sceneHeightFraction * 0.01f + 5.dp
             "tv_32" -> maxHeight * sceneHeightFraction * 0.02f
-            // Fire/Damasco/TV66: misma fórmula (sin +2 extra en Fire).
-            "tv_42", "tablet_landscape" -> maxHeight * sceneHeightFraction * 0.035f - 5.dp
+            // Damasco: base. Fire/TV1080: +2.dp para alinear con la línea del estante.
+            "tv_42", "tablet_landscape" -> {
+                val base = maxHeight * sceneHeightFraction * 0.035f - 5.dp
+                if (isTv42 && !isTv42LargeCanvas) base + 2.dp else base
+            }
             "tv_66" -> maxHeight * sceneHeightFraction * 0.035f - 5.dp
             "expanded" -> maxHeight * sceneHeightFraction * 0.04f
             else -> maxHeight * sceneHeightFraction * 0.04f

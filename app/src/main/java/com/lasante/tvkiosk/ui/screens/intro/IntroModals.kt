@@ -189,15 +189,20 @@ fun IntroSocialQrModal(
             .zIndex(140f),
         contentAlignment = Alignment.Center,
     ) {
+        // Cuadrado en todos los perfiles (ya no landscape ancho). QR +10% vs 220.dp.
+        val qrSize = 242.dp
         Card(
             modifier = Modifier
-                .fillMaxWidth(0.82f)
+                .fillMaxHeight(0.78f)
+                .aspectRatio(1f)
                 .clickable(enabled = false) { },
             shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
         ) {
             Column(
-                modifier = Modifier.padding(28.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 22.dp, vertical = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Row(
@@ -215,14 +220,21 @@ fun IntroSocialQrModal(
                         Icon(Icons.Default.Close, contentDescription = "Cerrar")
                     }
                 }
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 val qrBitmap = remember(url) { generateQrBitmap(url) }
-                Image(
-                    bitmap = qrBitmap.asImageBitmap(),
-                    contentDescription = null,
-                    modifier = Modifier.size(220.dp),
-                )
-                Spacer(modifier = Modifier.height(16.dp))
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Image(
+                        bitmap = qrBitmap.asImageBitmap(),
+                        contentDescription = null,
+                        modifier = Modifier.size(qrSize),
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "Escanea para abrir $label",
                     fontSize = 15.sp,
