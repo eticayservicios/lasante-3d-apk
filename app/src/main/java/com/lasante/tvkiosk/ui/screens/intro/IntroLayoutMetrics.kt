@@ -186,8 +186,12 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 26.dp
             "phone_portrait" -> 28.dp
-            // Damasco canvas alto: mantiene 43. Fire/Television_1080: −20% vs 30.
-            "tv_42", "tablet_landscape" -> if (isTv42LargeCanvas) 43.dp else 24.dp
+            // Damasco: 43. Fire/TV1080: 26. Otros tablet_landscape: baseline 30 (no Infinix/phone).
+            "tv_42", "tablet_landscape" -> when {
+                isTv42LargeCanvas -> 43.dp
+                isTv42 -> 26.dp
+                else -> 30.dp
+            }
             "tv_66" -> 64.dp
             "tv_32" -> 34.dp
             "short_height" -> 26.dp
@@ -296,8 +300,12 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 54.dp
             "phone_portrait" -> 81.dp
-            // Damasco: 109. Fire/Television_1080: −20% vs 80 (burbujas productos estrellas).
-            "tv_42", "tablet_landscape" -> if (isTv42LargeCanvas) 109.dp else 64.dp
+            // Damasco: 109. Fire/TV1080: 70. Otros tablet: 80.
+            "tv_42", "tablet_landscape" -> when {
+                isTv42LargeCanvas -> 109.dp
+                isTv42 -> 70.dp
+                else -> 80.dp
+            }
             // TV66: +50% vs baseline 89 (+20% sobre el 1.25 previo, para verlo en emulador).
             "tv_66" -> 89.dp * 1.50f
             "tv_32" -> 81.dp
@@ -381,9 +389,11 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> maxWidth * 0.055f
             "tv_66" -> maxWidth * 0.048f
-            // Fire / Television_1080: más aire al borde derecho (overscan TV).
-            "tv_42", "tablet_landscape" ->
-                if (isTv42LargeCanvas) maxWidth * 0.052f else maxWidth * 0.07f
+            // Fire/TV1080: 0.07. Damasco/otros tablet: 0.052.
+            "tv_42", "tablet_landscape" -> when {
+                isTv42 && !isTv42LargeCanvas -> maxWidth * 0.07f
+                else -> maxWidth * 0.052f
+            }
             "tv_32", "expanded" -> maxWidth * 0.052f
             else -> maxWidth * 0.05f
         }
@@ -399,8 +409,11 @@ data class IntroLayoutMetrics(
             // TV42/tablet: +28% baseline; Damasco canvas alto +40%.
             // Fire/Television_1080: −5% adicional sobre el badge (feedback pergamino).
             "tv_32" -> 72.dp * 1.20f
-            "tv_42", "tablet_landscape" ->
-                if (isTv42LargeCanvas) 72.dp * 1.40f else 72.dp * 1.28f * 0.95f
+            "tv_42", "tablet_landscape" -> when {
+                isTv42LargeCanvas -> 72.dp * 1.40f
+                isTv42 -> 72.dp * 1.28f * 0.95f // Fire/TV1080 −5%
+                else -> 72.dp * 1.28f
+            }
             // TV66: mismo ancho que el logo vertical (dos bloques alineados).
             "tv_66" -> {
                 val logoAspect = 229f / 1004f
@@ -420,8 +433,11 @@ data class IntroLayoutMetrics(
             "phone_landscape" -> 34.dp
             "short_height" -> 40.dp
             "tv_32" -> 48.dp * 1.20f
-            "tv_42", "tablet_landscape" ->
-                if (isTv42LargeCanvas) 48.dp * 1.40f else 48.dp * 1.28f * 0.95f
+            "tv_42", "tablet_landscape" -> when {
+                isTv42LargeCanvas -> 48.dp * 1.40f
+                isTv42 -> 48.dp * 1.28f * 0.95f
+                else -> 48.dp * 1.28f
+            }
             "tv_66" -> historiaBadgeHeight * 0.58f
             "expanded" -> 54.dp
             "tv_unknown" -> 50.dp
@@ -430,8 +446,7 @@ data class IntroLayoutMetrics(
 
     /**
      * Inset superior del gif (pergamino) dentro del badge.
-     * Fire: más bajo para centrarlo (en captura quedaba pegado arriba).
-     * Damasco/TV66: sin cambio (funcionan bien).
+     * Solo Fire/TV1080: más bajo para centrarlo. Damasco/TV66/Infinix: sin cambio.
      */
     val historiaBadgeIconTop: Dp
         get() = when {
@@ -443,8 +458,12 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             // Phone: +30% vs baseline 24.
             "phone_landscape" -> 24.dp * 1.30f
-            // Damasco: 48. Fire/Television_1080: −20% vs 39 (redes).
-            "tv_42", "tablet_landscape" -> if (isTv42LargeCanvas) 48.dp else 31.dp
+            // Damasco: 48. Fire/TV1080: 37. Otros tablet: 39.
+            "tv_42", "tablet_landscape" -> when {
+                isTv42LargeCanvas -> 48.dp
+                isTv42 -> 37.dp
+                else -> 39.dp
+            }
             // TV66: mismo tamaño que Gira / Touch.
             "tv_66" -> rotateButtonSize
             "tv_32" -> 46.dp
@@ -456,7 +475,11 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             // TV66: redes más grandes → más aire vertical que TV42 (30.dp).
             "tv_66" -> 42.dp
-            "tv_42", "tablet_landscape" -> if (isTv42LargeCanvas) 34.dp else 24.dp
+            "tv_42", "tablet_landscape" -> when {
+                isTv42LargeCanvas -> 34.dp
+                isTv42 -> 24.dp // Fire: spacing fijo aunque redes crezcan
+                else -> 30.dp
+            }
             else -> 30.dp
         }
 
@@ -650,9 +673,12 @@ data class IntroLayoutMetrics(
             // Infinix: gira = touch (mismo tamaño; antes gira se veía mucho más grande).
             "phone_landscape" -> 42.dp
             "short_height" -> 64.dp
-            // Fire (tv42 baseline): −5%. Damasco canvas alto mantiene 78.
-            "tv_42", "tablet_landscape" ->
-                if (isTv42LargeCanvas) 78.dp else 78.dp * 0.95f
+            // Fire/TV1080: −5%. Damasco: 78. Otros tablet: 78.
+            "tv_42", "tablet_landscape" -> when {
+                isTv42LargeCanvas -> 78.dp
+                isTv42 -> 78.dp * 0.95f
+                else -> 78.dp
+            }
             "tv_32" -> 78.dp
             // TV66: +30% vs baseline 78 (gira / historia / touch).
             "tv_66" -> 78.dp * 1.30f
@@ -670,8 +696,10 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             // Infinix: −2.dp más abajo dentro del cintillo.
             "phone_landscape" -> maxHeight * 0.100f - 2.dp
-            // Fire: igual que Damasco (manito sobre unidad de negocio / cintillo).
-            "tv_42", "tablet_landscape" -> maxHeight * 0.055f
+            // Fire/TV1080: −5.dp. Damasco/otros: sin ese offset.
+            "tv_42", "tablet_landscape" ->
+                if (isTv42 && !isTv42LargeCanvas) maxHeight * 0.055f - 5.dp
+                else maxHeight * 0.055f
             "tv_32", "tv_66" -> maxHeight * 0.055f
             else -> maxHeight * 0.04f
         }
@@ -731,8 +759,12 @@ data class IntroLayoutMetrics(
                 val pull = if (pullTowardCylinder > 72.dp) pullTowardCylinder else 72.dp
                 -(pull + dragHandleWidth) - 8.dp
             }
-            // Fire: misma ancla que Damasco (−18 hacia el cilindro). Antes +12 lo sacaba al borde.
-            "tv_42", "tablet_landscape" -> (-18).dp
+            // Damasco: −18. Fire/TV1080: −8. Otros tablet: +12 (baseline previo).
+            "tv_42", "tablet_landscape" -> when {
+                isTv42LargeCanvas -> (-18).dp
+                isTv42 -> (-8).dp
+                else -> 12.dp
+            }
             "tv_66" -> (-36).dp
             "tv_32" -> (-14).dp
             else -> (-8).dp

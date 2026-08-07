@@ -55,6 +55,8 @@ object TreatmentUiMetrics {
         cardLabelFontSize = 12.sp,
         cardLabelLineHeight = 14.sp,
         cardIconFill = 0.62f,
+        // Un poco más ancho que alto ≈ −10.dp de alto en cards típicos.
+        cardAspectRatio = 1.07f,
     )
 
     /** Infinix / phone landscape. */
