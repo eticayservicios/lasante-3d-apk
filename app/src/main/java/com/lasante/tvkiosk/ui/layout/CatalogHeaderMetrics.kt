@@ -7,6 +7,8 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -16,23 +18,45 @@ import androidx.compose.ui.unit.sp
 import com.lasante.tvkiosk.ui.components.LaSanteScreenTitle
 import com.lasante.tvkiosk.ui.screens.treatments.TreatmentUiMetrics
 import com.lasante.tvkiosk.ui.theme.LaSanteText
+import kotlin.math.roundToInt
 
 /**
- * Geometría compartida del header CT ↔ Productos.
+ * Layout de catálogo (CT + Productos): una sola resolución por canvas.
  *
- * Catálogo LARGE (btn 52, search 280, title gap large): TV_REGULAR completo
- * (TV1080 / Fire / Ariana 1137×711 / Damasco) y TV_LARGE.
- * 1 “espacio” = [FireTv42Spacing.KeyboardSpace] (Poppins U+0020 @ 24.sp ≈ 6.408.dp).
- *
- * [isFireTv42] queda false en catálogo TV_REGULAR (misma geometría que Ariana LARGE).
+ * 1 “espacio” = [FireTv42Spacing.KeyboardSpace] ≈ 6.408.dp.
  */
+@Immutable
+data class CatalogLayout(
+    val profile: DeviceProfile,
+    val grid: SharedGridMetrics,
+    val nav: SharedNavMetrics,
+    val ui: TreatmentUiMetrics.ProfileMetrics,
+    val header: CatalogHeaderMetrics,
+) {
+    val largeCanvas: Boolean get() = header.isLargeCanvas
+    val isPhoneLandscape: Boolean get() = header.isPhoneLandscape
+    val isTv42: Boolean get() = header.isTv42
+    val isTv66: Boolean get() = header.isTv66
+    val isLandscape: Boolean get() = profile.isLandscape
+    val isPhone: Boolean
+        get() = profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE ||
+            profile.tier == DeviceProfileTier.COMPACT_PORTRAIT
+
+    /** Título dinámico y “Clase terapéutica”. */
+    val titleSp: Int get() = CatalogHeaderMetrics.catalogTitleSp(nav.titleFontSize.value)
+
+    val horizontalPadding: Dp get() = grid.horizontalPadding
+    val contentPadding: Dp get() = grid.contentPadding
+    val gridMaxWidth: Dp get() = grid.maxContentWidth
+    val topPadding: Dp get() = grid.topPadding
+}
+
 @Immutable
 data class CatalogHeaderMetrics(
     val isPhoneLandscape: Boolean,
     val isTv42: Boolean,
     val isTv66: Boolean,
     val isLargeCanvas: Boolean,
-    val isFireTv42: Boolean,
     val badgeWidth: Dp,
     val titleStartGap: Dp,
     val navButtonSize: Dp,
@@ -44,16 +68,20 @@ data class CatalogHeaderMetrics(
     val sortTopGap: Dp,
     val searchIconSize: Dp,
     val searchFontSize: TextUnit,
+    val scrollEndNudge: Dp,
 ) {
-    /** Padding para centrar un control de [controlSize] en la altura del buscador. */
     fun centerOnSearchBar(controlSize: Dp): Dp =
         ((searchBarHeight - controlSize) / 2).coerceAtLeast(0.dp)
 
     companion object {
-        /**
-         * Catálogo: TV1080/Fire alineado a Ariana (1137×711, LARGE, btn 52).
-         * Antes Fire quedaba fuera por altura &lt; 700.dp.
-         */
+        private const val TITLE_SCALE = 0.95f
+        private const val FILTER_SCALE = 0.95f * 0.95f
+        private const val SCROLL_NUDGE_SPACES = 10
+        private const val FILTER_SEARCH_EXTRA_SPACES = 3
+
+        fun catalogTitleSp(navTitleSp: Float): Int =
+            ((navTitleSp + 2f) * TITLE_SCALE).roundToInt().coerceAtLeast(1)
+
         fun isLargeCatalogCanvas(profile: DeviceProfile, canvasHeight: Dp): Boolean =
             when (profile.tier) {
                 DeviceProfileTier.TV_LARGE,
@@ -71,23 +99,13 @@ data class CatalogHeaderMetrics(
             val isPhoneLandscape = profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE
             val isTv66 = profile.tier == DeviceProfileTier.TV_LARGE
             val isTv42 = profile.tier == DeviceProfileTier.TV_REGULAR
-            // Catálogo TV_REGULAR siempre large → offsets Fire de header quedan inactivos.
-            val isFireTv42 = isTv42 && !largeCanvas
             val badgeWidth = uiMetrics.badgeHeight * TreatmentUiMetrics.BADGE_WIDTH_TO_HEIGHT
 
-            // phone 48 · large (TV1080/Ariana/Damasco) 44 · fire residual 34−2esp · tv42 34 · else 32
             val titleExtra = when {
                 isPhoneLandscape -> 48.dp
                 largeCanvas -> 44.dp
-                isFireTv42 -> 34.dp - FireTv42Spacing.spaces(2)
                 isTv42 -> 34.dp
                 else -> 32.dp
-            }
-
-            val navButtonSize = if (isFireTv42) {
-                uiMetrics.navButtonSize * 0.95f
-            } else {
-                uiMetrics.navButtonSize
             }
 
             val searchBarWidth = when {
@@ -105,22 +123,25 @@ data class CatalogHeaderMetrics(
                 isLandscape -> 30.dp
                 else -> 28.dp
             }
-            val filterIconSize = when {
-                // Ariana/LARGE: 44 −5% −5% (segundo ajuste).
-                largeCanvas -> 44.dp * 0.95f * 0.95f
-                isFireTv42 -> 30.dp * 0.95f
+            val filterBase = when {
+                largeCanvas -> 44.dp
                 isTv42 -> 30.dp
                 isPhoneLandscape -> 24.dp
                 isLandscape -> 28.dp
                 else -> 26.dp
             }
+            val filterSearchExtra =
+                if (isPhoneLandscape || isLandscape || largeCanvas || isTv42 || isTv66) {
+                    FireTv42Spacing.spaces(FILTER_SEARCH_EXTRA_SPACES)
+                } else {
+                    0.dp
+                }
             val filterToSearchGap = when {
                 isPhoneLandscape -> 10.dp
                 largeCanvas -> 16.dp
-                isFireTv42 -> 14.dp + FireTv42Spacing.spaces(3)
                 isTv42 -> 14.dp
                 else -> 12.dp
-            }
+            } + filterSearchExtra
             val searchToNavGap = when {
                 isPhoneLandscape -> 12.dp
                 largeCanvas -> 16.dp
@@ -149,24 +170,58 @@ data class CatalogHeaderMetrics(
                 isTv42 = isTv42,
                 isTv66 = isTv66,
                 isLargeCanvas = largeCanvas,
-                isFireTv42 = isFireTv42,
                 badgeWidth = badgeWidth,
                 titleStartGap = badgeWidth + titleExtra,
-                navButtonSize = navButtonSize,
+                navButtonSize = uiMetrics.navButtonSize,
                 searchBarWidth = searchBarWidth,
                 searchBarHeight = searchBarHeight,
-                filterIconSize = filterIconSize,
+                filterIconSize = filterBase * FILTER_SCALE,
                 filterToSearchGap = filterToSearchGap,
                 searchToNavGap = searchToNavGap,
                 sortTopGap = sortTopGap,
                 searchIconSize = searchIconSize,
                 searchFontSize = searchFontSize,
+                scrollEndNudge = FireTv42Spacing.spaces(SCROLL_NUDGE_SPACES),
             )
         }
     }
 }
 
-/** Título principal compartido CT ↔ Productos (misma X/Y). */
+/** Resuelve perfil + grid + header de catálogo (CT y Productos). */
+@Composable
+fun rememberCatalogLayout(maxWidth: Dp, maxHeight: Dp): CatalogLayout {
+    val density = LocalDensity.current
+    val context = LocalContext.current
+    val preferTv66 = TvProfileDetector.isTv66Candidate(
+        maxWidth = maxWidth,
+        maxHeight = maxHeight,
+        density = density,
+        context = context,
+    )
+    return remember(maxWidth, maxHeight, preferTv66) {
+        val screen = DeviceProfileResolver.screenMetrics(
+            maxWidth = maxWidth,
+            maxHeight = maxHeight,
+            preferTv66 = preferTv66,
+        )
+        val largeCanvas = CatalogHeaderMetrics.isLargeCatalogCanvas(screen.profile, maxHeight)
+        val ui = TreatmentUiMetrics.forProfile(screen.profile, largeCanvas = largeCanvas)
+        val header = CatalogHeaderMetrics.resolve(
+            profile = screen.profile,
+            uiMetrics = ui,
+            largeCanvas = largeCanvas,
+            isLandscape = screen.profile.isLandscape,
+        )
+        CatalogLayout(
+            profile = screen.profile,
+            grid = screen.grid,
+            nav = screen.nav,
+            ui = ui,
+            header = header,
+        )
+    }
+}
+
 @Composable
 fun CatalogScreenTitle(
     text: String,
@@ -174,10 +229,9 @@ fun CatalogScreenTitle(
     titleStartGap: Dp,
     modifier: Modifier = Modifier,
 ) {
-    val titleSp = ((nav.titleFontSize.value + 2f) * 0.95f).toInt().coerceAtLeast(1)
     LaSanteScreenTitle(
         text = text,
-        fontSize = titleSp,
+        fontSize = CatalogHeaderMetrics.catalogTitleSp(nav.titleFontSize.value),
         textColor = LaSanteText,
         underlineBrush = Brush.horizontalGradient(
             listOf(Color(0xFF8FA88A), Color(0xFFD5D8D2), Color.White),
@@ -188,7 +242,6 @@ fun CatalogScreenTitle(
         fontFamily = MaterialTheme.typography.bodyLarge.fontFamily,
         fontWeight = FontWeight.Light,
         allCaps = false,
-        // Solo start gap — sin weight ni top pad (misma X/Y CT ↔ Productos).
         modifier = modifier.padding(start = titleStartGap),
     )
 }

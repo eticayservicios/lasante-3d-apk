@@ -60,10 +60,8 @@ import com.lasante.tvkiosk.ui.components.TreatmentIconAssets
 import com.lasante.tvkiosk.ui.components.TrimTransparentTransformation
 import com.lasante.tvkiosk.ui.layout.CatalogHeaderMetrics
 import com.lasante.tvkiosk.ui.layout.CatalogScreenTitle
-import com.lasante.tvkiosk.ui.layout.DeviceProfileResolver
 import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
-import com.lasante.tvkiosk.ui.layout.FireTv42Spacing
-import com.lasante.tvkiosk.ui.layout.TvProfileDetector
+import com.lasante.tvkiosk.ui.layout.rememberCatalogLayout
 import com.lasante.tvkiosk.ui.screens.treatments.TreatmentUiMetrics
 import com.lasante.tvkiosk.ui.theme.*
 import com.lasante.tvkiosk.ui.utils.clickableWithSound
@@ -122,44 +120,22 @@ fun ProductsScreen(
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val canvasWidth = maxWidth
             val canvasHeight = maxHeight
-            val preferTv66 = TvProfileDetector.isTv66Candidate(
-                maxWidth = canvasWidth,
-                maxHeight = canvasHeight,
-                density = LocalDensity.current,
-                context = LocalContext.current,
-            )
-            val screenMetrics = DeviceProfileResolver.screenMetrics(
-                maxWidth = canvasWidth,
-                maxHeight = canvasHeight,
-                preferTv66 = preferTv66,
-            )
-            val profile = screenMetrics.profile
-            val grid = screenMetrics.grid
-            val nav = screenMetrics.nav
-            val isLandscape = profile.isLandscape
-            val isPhoneLandscape = profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE
-            val isTv66 = profile.tier == DeviceProfileTier.TV_LARGE
-            val isTv42 = profile.tier == DeviceProfileTier.TV_REGULAR
-            // TV1080/Fire = mismas medidas catalog que Ariana (LARGE, btn 52).
-            val isTv42LargeUp = CatalogHeaderMetrics.isLargeCatalogCanvas(profile, canvasHeight)
-            val uiMetrics = TreatmentUiMetrics.forProfile(profile, largeCanvas = isTv42LargeUp)
+            val catalog = rememberCatalogLayout(canvasWidth, canvasHeight)
+            val profile = catalog.profile
+            val nav = catalog.nav
+            val header = catalog.header
+            val isLandscape = catalog.isLandscape
+            val isPhoneLandscape = catalog.isPhoneLandscape
+            val isTv66 = catalog.isTv66
+            val isTv42 = catalog.isTv42
+            val isTv42LargeUp = catalog.largeCanvas
             val isTv = isTv42 || isTv66
-            val header = CatalogHeaderMetrics.resolve(
-                profile = profile,
-                uiMetrics = uiMetrics,
-                largeCanvas = isTv42LargeUp,
-                isLandscape = isLandscape,
-            )
-            val isFireTv42 = header.isFireTv42
-            val isPhone = profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE ||
-                profile.tier == DeviceProfileTier.COMPACT_PORTRAIT
-            // Mínimo 4 productos por fila en landscape / TV.
+            val isPhone = catalog.isPhone
             val columns = when {
                 profile.tier == DeviceProfileTier.COMPACT_PORTRAIT -> 2
-                else -> if (profile.isLandscape) 4 else 2
+                else -> if (isLandscape) 4 else 2
             }
             val buttonSize = header.navButtonSize
-            val topPadding = grid.topPadding
 
             var searchQuery by remember { mutableStateOf("") }
             var sortOrder by remember { mutableStateOf(SortOrder.NONE) }
@@ -241,19 +217,9 @@ fun ProductsScreen(
             }
 
             val showScrollbar = filteredProducts.isNotEmpty()
-
-            val horizontalPadding = grid.horizontalPadding
-            val contentPadding = grid.contentPadding
-            val gridMaxWidth = grid.maxContentWidth
-            val titleStartGap = header.titleStartGap
-            val searchBarWidth = header.searchBarWidth
-            val filterToSearchGap = header.filterToSearchGap
-            val searchToNavGap = header.searchToNavGap
-            val sortTopGap = header.sortTopGap
-            val searchBarHeight = header.searchBarHeight
-            val filterIconSize = header.filterIconSize
-            val searchIconSize = header.searchIconSize
-            val searchFontSize = header.searchFontSize
+            val horizontalPadding = catalog.horizontalPadding
+            val contentPadding = catalog.contentPadding
+            val gridMaxWidth = catalog.gridMaxWidth
 
             Box(modifier = Modifier.fillMaxSize()) {
                 if (BuildConfig.DEBUG) {
@@ -272,7 +238,7 @@ fun ProductsScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(top = topPadding),
+                        .padding(top = catalog.topPadding),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Column(
@@ -288,27 +254,23 @@ fun ProductsScreen(
                                 .padding(horizontal = contentPadding),
                             verticalAlignment = Alignment.Top,
                         ) {
-                            // Misma geometría que CT: título wrap + Spacer; sin weight en el título.
                             CatalogScreenTitle(
                                 text = DisplayTitles.resolve(treatmentName),
                                 nav = nav,
-                                titleStartGap = titleStartGap,
+                                titleStartGap = header.titleStartGap,
                             )
 
                             Spacer(modifier = Modifier.weight(1f))
 
-                            Row(
-                                // Filtro y Back/Home centrados en searchBarHeight.
-                                verticalAlignment = Alignment.Top,
-                            ) {
+                            Row(verticalAlignment = Alignment.Top) {
                                 val filterContext = LocalContext.current
-                                val filterTopPad = header.centerOnSearchBar(filterIconSize)
+                                val filterTopPad = header.centerOnSearchBar(header.filterIconSize)
                                 AsyncImage(
                                     model = "file:///android_asset/vitrina/ui/filter_button.png",
                                     contentDescription = "Filtrar",
                                     modifier = Modifier
                                         .padding(top = filterTopPad)
-                                        .size(filterIconSize)
+                                        .size(header.filterIconSize)
                                         .clickable(
                                             interactionSource = remember { MutableInteractionSource() },
                                             indication = null,
@@ -320,17 +282,16 @@ fun ProductsScreen(
                                     contentScale = ContentScale.Fit,
                                 )
 
-                                Spacer(modifier = Modifier.width(filterToSearchGap))
+                                Spacer(modifier = Modifier.width(header.filterToSearchGap))
 
-                                // Buscador + Ordenar: misma columna; ancho tope, puede encogerse.
                                 Column(
-                                    modifier = Modifier.widthIn(max = searchBarWidth),
+                                    modifier = Modifier.widthIn(max = header.searchBarWidth),
                                     horizontalAlignment = Alignment.End,
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .width(searchBarWidth)
-                                            .height(searchBarHeight)
+                                            .width(header.searchBarWidth)
+                                            .height(header.searchBarHeight)
                                             .shadow(elevation = 2.dp, shape = RoundedCornerShape(50.dp))
                                             .clip(RoundedCornerShape(50.dp))
                                             .background(
@@ -348,7 +309,7 @@ fun ProductsScreen(
                                             AsyncImage(
                                                 model = "file:///android_asset/vitrina/ui/search_icon.png",
                                                 contentDescription = null,
-                                                modifier = Modifier.size(searchIconSize),
+                                                modifier = Modifier.size(header.searchIconSize),
                                                 contentScale = ContentScale.Fit,
                                             )
                                             BasicTextField(
@@ -356,7 +317,7 @@ fun ProductsScreen(
                                                 onValueChange = { searchQuery = it },
                                                 textStyle = TextStyle(
                                                     color = LaSanteText,
-                                                    fontSize = searchFontSize,
+                                                    fontSize = header.searchFontSize,
                                                 ),
                                                 cursorBrush = SolidColor(LaSanteGreen),
                                                 modifier = Modifier.weight(1f),
@@ -366,7 +327,7 @@ fun ProductsScreen(
                                                         Text(
                                                             "Buscar Producto",
                                                             color = LaSanteTextSecondary,
-                                                            fontSize = searchFontSize,
+                                                            fontSize = header.searchFontSize,
                                                         )
                                                     }
                                                     innerTextField()
@@ -397,11 +358,11 @@ fun ProductsScreen(
                                         isTv66 = isTv66,
                                         isTv42 = isTv42,
                                         isTv42LargeUp = isTv42LargeUp,
-                                        modifier = Modifier.padding(top = sortTopGap),
+                                        modifier = Modifier.padding(top = header.sortTopGap),
                                     )
                                 }
 
-                                Spacer(modifier = Modifier.width(searchToNavGap))
+                                Spacer(modifier = Modifier.width(header.searchToNavGap))
 
                                 val navTopPad = header.centerOnSearchBar(buttonSize)
                                 Row(
@@ -425,7 +386,6 @@ fun ProductsScreen(
                             }
                         }
 
-                        // Scroll en la grilla (como antes), centrado bajo el botón Back (mockup).
                         val scrollRailWidth = when {
                             isTv42LargeUp -> 48.dp
                             isLandscape -> 36.dp
@@ -437,9 +397,8 @@ fun ProductsScreen(
                         }
                         val scrollEndInset = contentPadding + buttonSize + nav.buttonSpacing +
                             (buttonSize - scrollRailWidth) / 2
-                        // Scroll +10 espacios a la derecha (menos inset desde el borde).
                         val scrollEndPad =
-                            (scrollEndInset - FireTv42Spacing.spaces(10)).coerceAtLeast(0.dp)
+                            (scrollEndInset - header.scrollEndNudge).coerceAtLeast(0.dp)
 
                         Box(
                             modifier = Modifier
@@ -541,13 +500,7 @@ fun ProductsScreen(
                         .align(Alignment.TopStart)
                         .offset {
                             IntOffset(
-                                // Fire: badge −2 espacios (izquierda).
-                                x = if (isFireTv42) {
-                                    (-FireTv42Spacing.spaces(2)).roundToPx()
-                                } else {
-                                    0
-                                },
-                                // Infinix: sin pull-up (como antes del ajuste del header).
+                                x = 0,
                                 y = if (isTv42) (-6).dp.roundToPx() else 0,
                             )
                         }
@@ -661,14 +614,10 @@ private fun TreatmentIconBadge(
 ) {
     val iconModel = TreatmentIconAssets.resolve(iconUrl = iconUrl)
     val metrics = when {
-        isTv42LargeUp && isTv66 -> TreatmentUiMetrics.tv66
-        isTv42LargeUp -> TreatmentUiMetrics.tv42Large
-        else -> TreatmentUiMetrics.profile(
-            isPhoneLandscape = isPhoneLandscape,
-            isTv66 = isTv66,
-            isTv42 = isTv42,
-            isTv = isTv,
-        )
+        isTv66 -> TreatmentUiMetrics.tv66
+        isTv42LargeUp || isTv42 -> TreatmentUiMetrics.tv42Large
+        isPhoneLandscape -> TreatmentUiMetrics.phoneLandscape
+        else -> TreatmentUiMetrics.tv42
     }
     val badgeHeight = metrics.badgeHeight
     val badgeWidth = badgeHeight * TreatmentUiMetrics.BADGE_WIDTH_TO_HEIGHT

@@ -49,11 +49,9 @@ import com.lasante.tvkiosk.ui.components.TreatmentIconAssets
 import com.lasante.tvkiosk.ui.components.TrimTransparentTransformation
 import com.lasante.tvkiosk.ui.layout.CatalogHeaderMetrics
 import com.lasante.tvkiosk.ui.layout.CatalogScreenTitle
-import com.lasante.tvkiosk.ui.layout.DeviceProfileResolver
 import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
-import com.lasante.tvkiosk.ui.layout.FireTv42Spacing
 import com.lasante.tvkiosk.ui.layout.SharedNavMetrics
-import com.lasante.tvkiosk.ui.layout.TvProfileDetector
+import com.lasante.tvkiosk.ui.layout.rememberCatalogLayout
 import com.lasante.tvkiosk.ui.theme.LaSanteGreen
 import com.lasante.tvkiosk.ui.theme.LaSanteText
 import com.lasante.tvkiosk.ui.utils.clickableWithSound
@@ -72,85 +70,46 @@ fun TreatmentsScreen(
 
     LaSanteBackground {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val preferTv66 = TvProfileDetector.isTv66Candidate(
-                maxWidth = maxWidth,
-                maxHeight = maxHeight,
-                density = LocalDensity.current,
-                context = LocalContext.current,
-            )
-            val screenMetrics = DeviceProfileResolver.screenMetrics(
-                maxWidth = maxWidth,
-                maxHeight = maxHeight,
-                preferTv66 = preferTv66,
-            )
-            val grid = screenMetrics.grid
-            val nav = screenMetrics.nav
-            val profile = screenMetrics.profile
-            // TV1080/Fire = mismas medidas catalog que Ariana (LARGE, btn 52).
-            val isLargeCanvas = CatalogHeaderMetrics.isLargeCatalogCanvas(profile, maxHeight)
-            val uiMetrics = TreatmentUiMetrics.forProfile(profile, largeCanvas = isLargeCanvas)
-            // Mockup grande / TV42 = 4 cols (nombres legibles). Infinix mantiene 5.
+            val catalog = rememberCatalogLayout(maxWidth, maxHeight)
+            val profile = catalog.profile
+            val header = catalog.header
+            val ui = catalog.ui
+
             val columns = when {
-                isLargeCanvas -> 4
-                profile.tier == DeviceProfileTier.TV_REGULAR -> 4
-                else -> grid.columns
+                catalog.largeCanvas || profile.tier == DeviceProfileTier.TV_REGULAR -> 4
+                else -> catalog.grid.columns
             }
-            val topPadding = grid.topPadding
-            val header = CatalogHeaderMetrics.resolve(
-                profile = profile,
-                uiMetrics = uiMetrics,
-                largeCanvas = isLargeCanvas,
-                isLandscape = profile.isLandscape,
-            )
-            val isFireTv42 = header.isFireTv42
-
-            // Mismos márgenes que Products — el título dinámico debe caer en el mismo X.
-            val horizontalPadding = grid.horizontalPadding
-            val gridContentPadding = grid.contentPadding
-            val gridMaxWidth = grid.maxContentWidth
-            val principalTitleSp =
-                (((nav.titleFontSize.value + 2f) * 0.95f).toInt()).coerceAtLeast(1)
-            // Fire: cards (botones de clase) 2 espacios más abajo.
-            val gridTopExtra = if (isFireTv42) FireTv42Spacing.spaces(2) else 0.dp
-
-            // Gutters bien visibles en todos los perfiles.
             val cardSpacing = when {
-                isLargeCanvas -> 32.dp
+                catalog.largeCanvas || profile.tier == DeviceProfileTier.TV_LARGE -> 32.dp
                 profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE -> 14.dp
                 profile.tier == DeviceProfileTier.TV_REGULAR -> 22.dp
-                profile.tier == DeviceProfileTier.TV_LARGE -> 32.dp
                 else -> 18.dp
             }
-
-            // Mismo margen arriba y abajo (como antes del 15% — ese quedó excesivo).
             val claseTerapeuticaGap = when {
-                isLargeCanvas -> 26.dp
+                catalog.largeCanvas || profile.tier == DeviceProfileTier.TV_LARGE -> 26.dp
                 profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE -> 14.dp
-                // Fire / Television_1080: menos aire vertical para que quepan 2 filas.
                 profile.tier == DeviceProfileTier.TV_REGULAR -> 10.dp
-                profile.tier == DeviceProfileTier.TV_LARGE -> 26.dp
                 else -> if (profile.isWide) 18.dp else 14.dp
             }
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = topPadding),
+                    .padding(top = catalog.topPadding),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .widthIn(max = gridMaxWidth)
+                        .widthIn(max = catalog.gridMaxWidth)
                         .fillMaxWidth()
-                        .padding(horizontal = horizontalPadding),
+                        .padding(horizontal = catalog.horizontalPadding),
                 ) {
                     TreatmentsHeader(
                         unitName = unitName,
-                        navMetrics = nav,
-                        navButtonSize = header.navButtonSize,
-                        contentPadding = gridContentPadding,
-                        titleStartGap = header.titleStartGap,
+                        nav = catalog.nav,
+                        header = header,
+                        contentPadding = catalog.contentPadding,
                         onBack = onBack,
                     )
 
@@ -158,8 +117,7 @@ fun TreatmentsScreen(
 
                     Text(
                         text = "Clase terapéutica",
-                        // Mismo tamaño que el título dinámico principal.
-                        fontSize = principalTitleSp.sp,
+                        fontSize = catalog.titleSp.sp,
                         fontWeight = FontWeight.Medium,
                         style = MaterialTheme.typography.bodyMedium.copy(
                             brush = Brush.horizontalGradient(
@@ -170,7 +128,7 @@ fun TreatmentsScreen(
                         color = Color.Unspecified,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = gridContentPadding),
+                            .padding(horizontal = catalog.contentPadding),
                     )
 
                     Spacer(modifier = Modifier.height(claseTerapeuticaGap))
@@ -183,9 +141,9 @@ fun TreatmentsScreen(
                                 .fillMaxSize()
                                 .align(Alignment.TopCenter),
                             contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                                start = gridContentPadding,
-                                end = gridContentPadding,
-                                top = gridTopExtra,
+                                start = catalog.contentPadding,
+                                end = catalog.contentPadding,
+                                top = 0.dp,
                                 bottom = if (profile.isWide) 24.dp else 16.dp,
                             ),
                             verticalArrangement = Arrangement.spacedBy(cardSpacing),
@@ -197,11 +155,11 @@ fun TreatmentsScreen(
                             ) { treatment ->
                                 TherapeuticClassCard(
                                     treatment = treatment,
-                                    iconSize = uiMetrics.cardIconSize,
-                                    labelFontSize = uiMetrics.cardLabelFontSize,
-                                    labelLineHeight = uiMetrics.cardLabelLineHeight,
-                                    iconFill = uiMetrics.cardIconFill,
-                                    aspectRatio = uiMetrics.cardAspectRatio,
+                                    iconSize = ui.cardIconSize,
+                                    labelFontSize = ui.cardLabelFontSize,
+                                    labelLineHeight = ui.cardLabelLineHeight,
+                                    iconFill = ui.cardIconFill,
+                                    aspectRatio = ui.cardAspectRatio,
                                     onClick = { onTreatmentSelected(treatment.id) },
                                 )
                             }
@@ -216,13 +174,11 @@ fun TreatmentsScreen(
 @Composable
 private fun TreatmentsHeader(
     unitName: String,
-    navMetrics: SharedNavMetrics,
-    navButtonSize: Dp,
+    nav: SharedNavMetrics,
+    header: CatalogHeaderMetrics,
     contentPadding: Dp = 0.dp,
-    titleStartGap: Dp = 0.dp,
     onBack: () -> Unit,
 ) {
-    // Misma geometría que Products: CatalogScreenTitle + Top.
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -231,17 +187,15 @@ private fun TreatmentsHeader(
     ) {
         CatalogScreenTitle(
             text = DisplayTitles.resolve(unitName),
-            nav = navMetrics,
-            titleStartGap = titleStartGap,
+            nav = nav,
+            titleStartGap = header.titleStartGap,
         )
-
         Spacer(modifier = Modifier.weight(1f))
-
         GreenNavButton(
             assetPath = "svg/ui/Before.svg",
             contentDescription = "Volver",
             onClick = onBack,
-            size = navButtonSize,
+            size = header.navButtonSize,
         )
     }
 }
