@@ -18,7 +18,6 @@ fun TreatmentsRoute(
     catalogRepository: CatalogRepository,
     unitId: String,
     onBack: () -> Unit,
-    onHome: () -> Unit,
     onTreatmentSelected: (String) -> Unit,
 ) {
     val activity = LocalContext.current as androidx.activity.ComponentActivity
@@ -40,7 +39,6 @@ fun TreatmentsRoute(
             unitDescription = state.data.unitDescription,
             treatments = state.data.treatments,
             onBack = onBack,
-            onHome = onHome,
             onTreatmentSelected = onTreatmentSelected,
         )
     }

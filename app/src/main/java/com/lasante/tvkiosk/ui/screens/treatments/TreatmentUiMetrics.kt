@@ -10,14 +10,20 @@ import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
 
 /**
  * Métricas de badge (etiqueta) y cards de clases terapéuticas.
- * Icono protagonista (~88% del cuadrado) en todos los perfiles — mockup Clase terapéutica.
+ * Icono protagonista en todos los perfiles — mockup Clase terapéutica.
+ *
+ * [tv42] = Fire / TV 42 baseline (~961×529).
+ * [tv42Large] = Damasco / canvas alto — iconos y rótulos más grandes.
  */
 object TreatmentUiMetrics {
     /** treatment_badge_shadow.png — 509×706 px recortado. */
     const val BADGE_WIDTH_TO_HEIGHT = 509f / 706f
 
-    /** Fracción del área cuadrada que ocupa el icono (margen tipo mockup). */
-    const val CARD_ICON_FILL = 0.94f
+    /** Fracción del área de icono (Fire / Infinix). */
+    const val CARD_ICON_FILL = 0.98f
+
+    /** Icono casi a tope en Damasco / TV grande. */
+    const val CARD_ICON_FILL_LARGE = 0.995f
 
     @Immutable
     data class ProfileMetrics(
@@ -32,6 +38,23 @@ object TreatmentUiMetrics {
         val navEndInset: Dp = 0.dp,
         val cardLabelFontSize: TextUnit = 12.sp,
         val cardLabelLineHeight: TextUnit = 14.sp,
+        val cardIconFill: Float = CARD_ICON_FILL,
+        /** width/height del card. 1f = cuadrado (mockup). */
+        val cardAspectRatio: Float = 1f,
+    )
+
+    /** TV 42" / Fire baseline. */
+    val tv42 = ProfileMetrics(
+        badgeHeight = 64.dp,
+        badgeIconSize = 51.dp,
+        badgeIconTop = 0.dp,
+        cardIconSize = 320.dp,
+        cardMaxWidth = 260.dp,
+        navButtonSize = 38.dp,
+        navEndInset = 0.dp,
+        cardLabelFontSize = 13.sp,
+        cardLabelLineHeight = 15.sp,
+        cardIconFill = CARD_ICON_FILL,
     )
 
     /** Infinix / phone landscape. */
@@ -39,12 +62,13 @@ object TreatmentUiMetrics {
         badgeHeight = 46.dp,
         badgeIconSize = 37.dp,
         badgeIconTop = 0.dp,
-        cardIconSize = 200.dp,
+        cardIconSize = 240.dp,
         cardMaxWidth = 200.dp,
         navButtonSize = 32.dp,
         navEndInset = 0.dp,
         cardLabelFontSize = 12.sp,
         cardLabelLineHeight = 14.sp,
+        cardIconFill = CARD_ICON_FILL,
     )
 
     /** Phone portrait (~360×800 dp). */
@@ -52,24 +76,28 @@ object TreatmentUiMetrics {
         badgeHeight = 62.dp,
         badgeIconSize = 44.dp,
         badgeIconTop = 0.dp,
-        cardIconSize = 200.dp,
+        cardIconSize = 240.dp,
         cardMaxWidth = 200.dp,
         navButtonSize = 35.dp,
         cardLabelFontSize = 13.sp,
         cardLabelLineHeight = 15.sp,
+        cardIconFill = CARD_ICON_FILL,
     )
 
-    /** TV 42" / Fire / Damasco (tv_42). */
-    val tv42 = ProfileMetrics(
+    /** Damasco / canvas alto — iconos y textos más grandes (mockup). */
+    val tv42Large = ProfileMetrics(
         badgeHeight = 64.dp,
         badgeIconSize = 51.dp,
         badgeIconTop = 0.dp,
-        cardIconSize = 260.dp,
-        cardMaxWidth = 260.dp,
+        cardIconSize = 520.dp,
+        cardMaxWidth = 360.dp,
         navButtonSize = 38.dp,
         navEndInset = 0.dp,
-        cardLabelFontSize = 13.sp,
-        cardLabelLineHeight = 15.sp,
+        cardLabelFontSize = 17.sp,
+        cardLabelLineHeight = 19.sp,
+        cardIconFill = CARD_ICON_FILL_LARGE,
+        // Más ancho que alto → menos vacío vertical, icono ocupa casi todo.
+        cardAspectRatio = 1.18f,
     )
 
     /** @deprecated Alias de [tv42]. */
@@ -81,20 +109,26 @@ object TreatmentUiMetrics {
         badgeHeight = 91.dp,
         badgeIconSize = 56.dp,
         badgeIconTop = 0.dp,
-        cardIconSize = 300.dp,
-        cardMaxWidth = 300.dp,
+        cardIconSize = 560.dp,
+        cardMaxWidth = 400.dp,
         navButtonSize = 53.dp,
         navEndInset = 90.dp,
-        cardLabelFontSize = 20.sp,
-        cardLabelLineHeight = 24.sp,
+        cardLabelFontSize = 22.sp,
+        cardLabelLineHeight = 26.sp,
+        cardIconFill = CARD_ICON_FILL_LARGE,
+        cardAspectRatio = 1.18f,
     )
 
-    fun forProfile(profile: DeviceProfile): ProfileMetrics = when (profile.tier) {
+    fun forProfile(
+        profile: DeviceProfile,
+        largeCanvas: Boolean = false,
+    ): ProfileMetrics = when (profile.tier) {
         DeviceProfileTier.COMPACT_LANDSCAPE -> phoneLandscape
         DeviceProfileTier.COMPACT_PORTRAIT -> phonePortrait
         DeviceProfileTier.TV_LARGE -> tv66
-        DeviceProfileTier.TV_REGULAR -> tv42
-        DeviceProfileTier.TABLET_LANDSCAPE, DeviceProfileTier.DEFAULT -> if (profile.isWide) tv42 else phonePortrait
+        DeviceProfileTier.TV_REGULAR -> if (largeCanvas) tv42Large else tv42
+        DeviceProfileTier.TABLET_LANDSCAPE, DeviceProfileTier.DEFAULT ->
+            if (largeCanvas) tv42Large else if (profile.isWide) tv42 else phonePortrait
     }
 
     /** @deprecated Usar [forProfile]. */

@@ -134,6 +134,8 @@ fun ProductsScreen(
             val isPhoneLandscape = profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE
             val isTv66 = profile.tier == DeviceProfileTier.TV_LARGE
             val isTv42 = profile.tier == DeviceProfileTier.TV_REGULAR
+            // Damasco / canvas alto (~1333×800) y TV 66"+ — buscador más ancho y más aire.
+            val isTv42LargeUp = (isTv42 && maxHeight >= 700.dp) || isTv66
             val isTv = isTv42 || isTv66
             val isPhone = profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE ||
                 profile.tier == DeviceProfileTier.COMPACT_PORTRAIT
@@ -249,23 +251,30 @@ fun ProductsScreen(
                 isTv42 -> 34.dp
                 else -> 32.dp
             }
-            val searchBarWidth = when (profile.tier) {
-                DeviceProfileTier.TV_REGULAR -> 300.dp
-                DeviceProfileTier.TV_LARGE -> 420.dp
-                DeviceProfileTier.COMPACT_LANDSCAPE -> 196.dp
-                else -> if (profile.isLandscape) 256.dp else 175.dp
+            val searchBarWidth = when {
+                isTv66 -> 480.dp
+                isTv42LargeUp -> 400.dp
+                isTv42 -> 300.dp
+                isPhoneLandscape -> 196.dp
+                profile.isLandscape -> 256.dp
+                else -> 175.dp
             }
             val filterToSearchGap = when {
                 isPhoneLandscape -> 10.dp
-                isTv66 -> 16.dp
+                isTv42LargeUp -> 28.dp
                 isTv42 -> 14.dp
                 else -> 12.dp
             }
             val searchToNavGap = when {
                 isPhoneLandscape -> 12.dp
-                isTv66 -> 20.dp
+                isTv42LargeUp -> 32.dp
                 isTv42 -> 16.dp
                 else -> 14.dp
+            }
+            val sortTopGap = when {
+                isPhoneLandscape -> 4.dp
+                isTv42LargeUp -> 12.dp
+                else -> 5.dp
             }
             val searchBarHeight = when {
                 isTv42 -> 32.dp
@@ -409,9 +418,7 @@ fun ProductsScreen(
                                         isLandscape = isLandscape,
                                         isTv66 = isTv66,
                                         isTv42 = isTv42,
-                                        modifier = Modifier.padding(
-                                            top = if (isPhoneLandscape) 4.dp else 5.dp,
-                                        ),
+                                        modifier = Modifier.padding(top = sortTopGap),
                                     )
                                 }
 

@@ -75,7 +75,6 @@ fun LaSanteNavHost(
                     catalogRepository = catalogRepository,
                     unitId = unitId,
                     onBack = { navController.popBackStack() },
-                    onHome = { navController.navigateToIntroHome() },
                     onTreatmentSelected = { treatmentId ->
                         navController.navigate("${Routes.PRODUCTS}/$unitId/$treatmentId")
                     },

@@ -1,6 +1,5 @@
 package com.lasante.tvkiosk.ui.screens.treatments
 
-import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -20,6 +19,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,7 +32,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -42,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.lasante.tvkiosk.data.DisplayTitles
 import com.lasante.tvkiosk.data.Treatment
 import com.lasante.tvkiosk.ui.components.GreenNavButton
 import com.lasante.tvkiosk.ui.components.LaSanteBackground
@@ -53,7 +53,6 @@ import com.lasante.tvkiosk.ui.layout.SharedNavMetrics
 import com.lasante.tvkiosk.ui.layout.TvProfileDetector
 import com.lasante.tvkiosk.ui.theme.LaSanteGreen
 import com.lasante.tvkiosk.ui.theme.LaSanteText
-import com.lasante.tvkiosk.data.DisplayTitles
 import com.lasante.tvkiosk.ui.utils.clickableWithSound
 
 @Composable
@@ -62,7 +61,6 @@ fun TreatmentsScreen(
     unitDescription: String,
     treatments: List<Treatment>,
     onBack: () -> Unit,
-    onHome: () -> Unit,
     onTreatmentSelected: (String) -> Unit,
 ) {
     BackHandler(onBack = onBack)
@@ -84,14 +82,46 @@ fun TreatmentsScreen(
             )
             val grid = screenMetrics.grid
             val nav = screenMetrics.nav
-            val uiMetrics = TreatmentUiMetrics.forProfile(screenMetrics.profile)
-            val columns = grid.columns
-            val horizontalPadding = grid.horizontalPadding
-            val gridMaxWidth = grid.maxContentWidth
-            val gridContentPadding = grid.contentPadding
-            val topPadding = grid.topPadding
-            val cardSpacing = grid.cardSpacing
             val profile = screenMetrics.profile
+            // Damasco (~1333×800) / TV 66 — mockup grande. Fire (~961×529) e Infinix = baseline.
+            val isLargeCanvas =
+                profile.tier == DeviceProfileTier.TV_LARGE ||
+                    (profile.tier == DeviceProfileTier.TV_REGULAR && maxHeight >= 700.dp)
+            val uiMetrics = TreatmentUiMetrics.forProfile(profile, largeCanvas = isLargeCanvas)
+            // Mockup grande = 4 cols (cards/iconos más grandes). Fire/Infinix mantienen 5.
+            val columns = if (isLargeCanvas) 4 else grid.columns
+            val topPadding = grid.topPadding
+
+            val horizontalPadding = when {
+                isLargeCanvas -> 44.dp
+                profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE -> grid.horizontalPadding
+                else -> (grid.horizontalPadding + 8.dp)
+            }
+            val gridContentPadding = when {
+                isLargeCanvas -> 16.dp
+                else -> grid.contentPadding
+            }
+            // Gutters bien visibles en todos los perfiles.
+            val cardSpacing = when {
+                isLargeCanvas -> 32.dp
+                profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE -> 14.dp
+                profile.tier == DeviceProfileTier.TV_REGULAR -> 22.dp
+                profile.tier == DeviceProfileTier.TV_LARGE -> 32.dp
+                else -> 18.dp
+            }
+            val gridMaxWidth = when {
+                isLargeCanvas && profile.tier == DeviceProfileTier.TV_REGULAR -> 1180.dp
+                else -> grid.maxContentWidth
+            }
+
+            // Mismo margen arriba y abajo (como antes del 15% — ese quedó excesivo).
+            val claseTerapeuticaGap = when {
+                isLargeCanvas -> 26.dp
+                profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE -> 14.dp
+                profile.tier == DeviceProfileTier.TV_REGULAR -> 16.dp
+                profile.tier == DeviceProfileTier.TV_LARGE -> 26.dp
+                else -> if (profile.isWide) 18.dp else 14.dp
+            }
 
             Column(
                 modifier = Modifier
@@ -106,74 +136,73 @@ fun TreatmentsScreen(
                         .fillMaxWidth()
                         .padding(horizontal = horizontalPadding),
                 ) {
-                TreatmentsHeader(
-                    unitName = unitName,
-                    navMetrics = nav,
-                    navButtonSize = uiMetrics.navButtonSize,
-                    contentPadding = gridContentPadding,
-                    onBack = onBack,
-                    onHome = onHome,
-                )
+                    TreatmentsHeader(
+                        unitName = unitName,
+                        navMetrics = nav,
+                        navButtonSize = uiMetrics.navButtonSize,
+                        contentPadding = gridContentPadding,
+                        onBack = onBack,
+                    )
 
-                Spacer(modifier = Modifier.height(if (profile.isWide) 18.dp else 12.dp))
+                    Spacer(modifier = Modifier.height(claseTerapeuticaGap))
 
-                Text(
-                    text = "Clase terapéutica",
-                    fontSize = when (profile.tier) {
-                        DeviceProfileTier.TV_LARGE -> 34.sp
-                        DeviceProfileTier.TV_REGULAR -> 26.sp
-                        DeviceProfileTier.COMPACT_LANDSCAPE -> 18.sp
-                        else -> if (profile.isWide) 28.sp else 20.sp
-                    },
-                    fontWeight = FontWeight.Medium,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        brush = Brush.horizontalGradient(
-                            listOf(LaSanteGreen, Color(0xFFA8C829)),
+                    Text(
+                        text = "Clase terapéutica",
+                        fontSize = when {
+                            isLargeCanvas && profile.tier == DeviceProfileTier.TV_LARGE -> 34.sp
+                            isLargeCanvas -> 28.sp
+                            profile.tier == DeviceProfileTier.TV_LARGE -> 34.sp
+                            profile.tier == DeviceProfileTier.TV_REGULAR -> 26.sp
+                            profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE -> 18.sp
+                            else -> if (profile.isWide) 28.sp else 20.sp
+                        },
+                        fontWeight = FontWeight.Medium,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            brush = Brush.horizontalGradient(
+                                listOf(LaSanteGreen, Color(0xFFA8C829)),
+                            ),
                         ),
-                    ),
-                    textAlign = TextAlign.End,
-                    color = Color.Unspecified,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = gridContentPadding),
-                )
-
-                Spacer(modifier = Modifier.height(when (profile.tier) {
-                    DeviceProfileTier.COMPACT_LANDSCAPE -> 10.dp
-                    DeviceProfileTier.TV_REGULAR -> 16.dp
-                    else -> if (profile.isWide) 26.dp else 18.dp
-                }))
-
-                Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                    LazyVerticalGrid(
-                        state = gridState,
-                        columns = GridCells.Fixed(columns),
+                        textAlign = TextAlign.End,
+                        color = Color.Unspecified,
                         modifier = Modifier
-                            .fillMaxSize()
-                            .align(Alignment.TopCenter),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                            start = gridContentPadding,
-                            end = gridContentPadding,
-                            top = 8.dp,
-                            bottom = if (profile.isWide) 24.dp else 16.dp,
-                        ),
-                        verticalArrangement = Arrangement.spacedBy(cardSpacing),
-                        horizontalArrangement = Arrangement.spacedBy(cardSpacing),
-                    ) {
-                        items(
-                            items = treatments,
-                            key = { treatment -> treatment.id },
-                        ) { treatment ->
-                            TherapeuticClassCard(
-                                treatment = treatment,
-                                iconSize = uiMetrics.cardIconSize,
-                                labelFontSize = uiMetrics.cardLabelFontSize,
-                                labelLineHeight = uiMetrics.cardLabelLineHeight,
-                                onClick = { onTreatmentSelected(treatment.id) },
-                            )
+                            .fillMaxWidth()
+                            .padding(horizontal = gridContentPadding),
+                    )
+
+                    Spacer(modifier = Modifier.height(claseTerapeuticaGap))
+
+                    Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                        LazyVerticalGrid(
+                            state = gridState,
+                            columns = GridCells.Fixed(columns),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .align(Alignment.TopCenter),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                                start = gridContentPadding,
+                                end = gridContentPadding,
+                                top = 0.dp,
+                                bottom = if (profile.isWide) 24.dp else 16.dp,
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(cardSpacing),
+                            horizontalArrangement = Arrangement.spacedBy(cardSpacing),
+                        ) {
+                            items(
+                                items = treatments,
+                                key = { treatment -> treatment.id },
+                            ) { treatment ->
+                                TherapeuticClassCard(
+                                    treatment = treatment,
+                                    iconSize = uiMetrics.cardIconSize,
+                                    labelFontSize = uiMetrics.cardLabelFontSize,
+                                    labelLineHeight = uiMetrics.cardLabelLineHeight,
+                                    iconFill = uiMetrics.cardIconFill,
+                                    aspectRatio = uiMetrics.cardAspectRatio,
+                                    onClick = { onTreatmentSelected(treatment.id) },
+                                )
+                            }
                         }
                     }
-                }
                 }
             }
         }
@@ -187,7 +216,6 @@ private fun TreatmentsHeader(
     navButtonSize: Dp,
     contentPadding: Dp = 0.dp,
     onBack: () -> Unit,
-    onHome: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -212,23 +240,12 @@ private fun TreatmentsHeader(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(navMetrics.buttonSpacing),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            GreenNavButton(
-                assetPath = "svg/ui/Before.svg",
-                contentDescription = "Volver",
-                onClick = onBack,
-                size = navButtonSize,
-            )
-            GreenNavButton(
-                assetPath = "svg/ui/Home.svg",
-                contentDescription = "Inicio",
-                onClick = onHome,
-                size = navButtonSize,
-            )
-        }
+        GreenNavButton(
+            assetPath = "svg/ui/Before.svg",
+            contentDescription = "Volver",
+            onClick = onBack,
+            size = navButtonSize,
+        )
     }
 }
 
@@ -238,6 +255,8 @@ private fun TherapeuticClassCard(
     iconSize: Dp,
     labelFontSize: TextUnit,
     labelLineHeight: TextUnit,
+    iconFill: Float,
+    aspectRatio: Float,
     onClick: () -> Unit,
 ) {
     val iconModel = TreatmentIconAssets.resolve(
@@ -247,6 +266,7 @@ private fun TherapeuticClassCard(
     )
     val context = LocalContext.current
     val iconSizePx = with(LocalDensity.current) { iconSize.roundToPx() }
+    val labelHeight = therapeuticClassLabelHeight(labelLineHeight)
 
     LaunchedEffect(treatment.id, iconModel) {
         android.util.Log.d(
@@ -258,6 +278,7 @@ private fun TherapeuticClassCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .aspectRatio(aspectRatio)
             .shadow(
                 elevation = 3.dp,
                 shape = RoundedCornerShape(18.dp),
@@ -270,14 +291,14 @@ private fun TherapeuticClassCard(
                 ),
             )
             .clickableWithSound { onClick() }
-            .padding(horizontal = 4.dp, vertical = 6.dp),
+            .padding(start = 4.dp, end = 4.dp, top = 4.dp, bottom = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Box(
             modifier = Modifier
+                .weight(1f, fill = true)
                 .fillMaxWidth()
-                .aspectRatio(1f),
+                .padding(bottom = 2.dp),
             contentAlignment = Alignment.Center,
         ) {
             AsyncImage(
@@ -287,7 +308,7 @@ private fun TherapeuticClassCard(
                     .crossfade(true)
                     .build(),
                 contentDescription = treatment.name,
-                modifier = Modifier.fillMaxSize(TreatmentUiMetrics.CARD_ICON_FILL),
+                modifier = Modifier.fillMaxSize(iconFill),
                 contentScale = ContentScale.Fit,
                 onSuccess = {
                     android.util.Log.d(
@@ -307,8 +328,8 @@ private fun TherapeuticClassCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(therapeuticClassLabelHeight(labelLineHeight)),
-            contentAlignment = Alignment.Center,
+                .height(labelHeight),
+            contentAlignment = Alignment.TopCenter,
         ) {
             Text(
                 text = treatment.name,
@@ -327,8 +348,8 @@ private fun TherapeuticClassCard(
     }
 }
 
-/** Altura fija del rótulo (2 líneas) para que todos los cards del grid tengan el mismo alto. */
+/** Altura del rótulo (~1.35 líneas) — máxima área para el icono. */
 @Composable
 private fun therapeuticClassLabelHeight(lineHeight: TextUnit): Dp {
-    return with(LocalDensity.current) { (lineHeight.toPx() * 2f).toDp() }
+    return with(LocalDensity.current) { (lineHeight.toPx() * 1.35f).toDp() }
 }
