@@ -448,6 +448,11 @@ fun ProductsScreen(
                             }
                         }
 
+                        // Scroll en la grilla (como antes), centrado bajo el botón Back (mockup).
+                        val scrollRailWidth = if (isLandscape) 36.dp else 32.dp
+                        val scrollEndInset = contentPadding + buttonSize + nav.buttonSpacing +
+                            (buttonSize - scrollRailWidth) / 2
+
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -460,7 +465,7 @@ fun ProductsScreen(
                                 contentPadding = PaddingValues(
                                     start = contentPadding,
                                     end = if (showScrollbar) {
-                                        (if (isLandscape) 48.dp else 40.dp) + contentPadding
+                                        scrollEndInset + scrollRailWidth + 8.dp
                                     } else {
                                         contentPadding
                                     },
@@ -489,15 +494,17 @@ fun ProductsScreen(
                                 Column(
                                     modifier = Modifier
                                         .align(Alignment.CenterEnd)
-                                        .width(if (isLandscape) 48.dp else 40.dp)
-                                        .fillMaxHeight()
-                                        .padding(bottom = 24.dp, top = 24.dp),
+                                        .padding(end = scrollEndInset, top = 8.dp, bottom = 24.dp)
+                                        .width(scrollRailWidth)
+                                        .fillMaxHeight(),
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     verticalArrangement = Arrangement.SpaceBetween,
                                 ) {
-                                    IconButton(onClick = {
-                                        coroutineScope.launch { gridState.animateScrollToItem(0) }
-                                    }) {
+                                    IconButton(
+                                        onClick = {
+                                            coroutineScope.launch { gridState.animateScrollToItem(0) }
+                                        },
+                                    ) {
                                         Icon(
                                             Icons.Default.KeyboardArrowUp,
                                             contentDescription = null,
@@ -509,11 +516,15 @@ fun ProductsScreen(
                                         thumbFraction = scrollInfo.value.second,
                                         modifier = Modifier.weight(1f).padding(vertical = 4.dp),
                                     )
-                                    IconButton(onClick = {
-                                        coroutineScope.launch {
-                                            gridState.animateScrollToItem(filteredProducts.size - 1)
-                                        }
-                                    }) {
+                                    IconButton(
+                                        onClick = {
+                                            coroutineScope.launch {
+                                                gridState.animateScrollToItem(
+                                                    (filteredProducts.size - 1).coerceAtLeast(0),
+                                                )
+                                            }
+                                        },
+                                    ) {
                                         Icon(
                                             Icons.Default.KeyboardArrowDown,
                                             contentDescription = null,
