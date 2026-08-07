@@ -272,10 +272,12 @@ fun RealGreenScrollBar(
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val trackHeight = size.height
-            val normalizedThumbFraction = thumbFraction.coerceIn(0.18f, 0.72f)
-            val thumbHeight = (trackHeight * normalizedThumbFraction).coerceAtLeast(60f)
-            val scrollableHeight = trackHeight - thumbHeight
-            val thumbY = scrollFraction * scrollableHeight
+            // Sin tope artificial: si cabe casi todo, el thumb debe verse casi completo.
+            val normalizedThumbFraction = thumbFraction.coerceIn(0.12f, 1f)
+            val thumbHeight = (trackHeight * normalizedThumbFraction)
+                .coerceIn(28f, trackHeight)
+            val scrollableHeight = (trackHeight - thumbHeight).coerceAtLeast(0f)
+            val thumbY = scrollFraction.coerceIn(0f, 1f) * scrollableHeight
 
             drawRoundRect(
                 color = Color(0xFFD6D6D6),

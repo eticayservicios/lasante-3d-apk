@@ -223,20 +223,8 @@ fun ProductsScreen(
 
             val gridState = rememberLazyGridState()
 
-            val scrollInfo = remember {
-                derivedStateOf {
-                    val layoutInfo = gridState.layoutInfo
-                    val totalItems = layoutInfo.totalItemsCount
-                    val visibleItems = layoutInfo.visibleItemsInfo.size
-                    if (totalItems <= visibleItems || totalItems == 0) 0f to 1f
-                    else {
-                        val firstVisibleIndex = layoutInfo.visibleItemsInfo.firstOrNull()?.index ?: 0
-                        val fraction = firstVisibleIndex.toFloat() /
-                            (totalItems - visibleItems).coerceAtLeast(1).toFloat()
-                        val thumbFraction = visibleItems.toFloat() / totalItems.toFloat()
-                        fraction to thumbFraction
-                    }
-                }
+            val scrollInfo = remember(columns) {
+                derivedStateOf { computeProductsGridScrollbar(gridState, columns) }
             }
 
             val showScrollbar = filteredProducts.isNotEmpty()
@@ -544,8 +532,8 @@ fun ProductsScreen(
                                         )
                                     }
                                     RealGreenScrollBar(
-                                        scrollFraction = scrollInfo.value.first,
-                                        thumbFraction = scrollInfo.value.second,
+                                        scrollFraction = scrollInfo.value.scrollFraction,
+                                        thumbFraction = scrollInfo.value.thumbFraction,
                                         modifier = Modifier.weight(1f).padding(vertical = 4.dp),
                                     )
                                     IconButton(
@@ -981,4 +969,76 @@ private fun FilterOptionRow(
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
         )
     }
+}
+
+private data class ProductsGridScrollbar(
+    val canScroll: Boolean,
+    val scrollFraction: Float,
+    val thumbFraction: Float,
+)
+
+/** Posición real del scroll (por filas/píxeles), no solo por índice de ítem. */
+private fun computeProductsGridScrollbar(
+    state: LazyGridState,
+    columns: Int,
+): ProductsGridScrollbar {
+    val info = state.layoutInfo
+    val totalItems = info.totalItemsCount
+    val visible = info.visibleItemsInfo
+    if (totalItems == 0 || visible.isEmpty()) {
+        return ProductsGridScrollbar(canScroll = false, scrollFraction = 0f, thumbFraction = 1f)
+    }
+
+    val cols = columns.coerceAtLeast(1)
+    val viewport = (info.viewportEndOffset - info.viewportStartOffset).toFloat().coerceAtLeast(1f)
+
+    val rows = visible.groupBy { it.index / cols }.toSortedMap()
+    val avgRowHeight = rows.values
+        .map { items -> items.maxOf { it.size.height }.toFloat() }
+        .average()
+        .toFloat()
+        .coerceAtLeast(1f)
+
+    val rowKeys = rows.keys.toList()
+    val rowSpacing = if (rowKeys.size >= 2) {
+        val top0 = rows.getValue(rowKeys[0]).minOf { it.offset.y }
+        val top1 = rows.getValue(rowKeys[1]).minOf { it.offset.y }
+        val height0 = rows.getValue(rowKeys[0]).maxOf { it.size.height }
+        (top1 - top0 - height0).toFloat().coerceAtLeast(0f)
+    } else {
+        0f
+    }
+
+    val totalRows = (totalItems + cols - 1) / cols
+    val contentPadding = (info.beforeContentPadding + info.afterContentPadding).toFloat()
+    val estimatedContent =
+        totalRows * avgRowHeight +
+            (totalRows - 1).coerceAtLeast(0) * rowSpacing +
+            contentPadding
+    val maxScroll = (estimatedContent - viewport).coerceAtLeast(0f)
+
+    val first = visible.first()
+    val firstRow = first.index / cols
+    val scrolled =
+        firstRow * (avgRowHeight + rowSpacing) -
+            first.offset.y.toFloat() +
+            info.beforeContentPadding.toFloat()
+
+    val canScroll = maxScroll > 2f || state.canScrollForward || state.canScrollBackward
+    val scrollFraction = if (maxScroll > 0f) {
+        (scrolled / maxScroll).coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+    val thumbFraction = if (estimatedContent > 0f) {
+        (viewport / estimatedContent).coerceIn(0.12f, 1f)
+    } else {
+        1f
+    }
+
+    return ProductsGridScrollbar(
+        canScroll = canScroll,
+        scrollFraction = scrollFraction,
+        thumbFraction = thumbFraction,
+    )
 }

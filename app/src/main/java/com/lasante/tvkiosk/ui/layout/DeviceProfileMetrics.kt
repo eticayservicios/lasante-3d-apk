@@ -112,9 +112,10 @@ object DeviceProfileResolver {
             DeviceProfileTier.COMPACT_LANDSCAPE -> SharedGridMetrics(
                 // 5 cols (antes 6): cards/iconos más grandes en Infinix.
                 columns = 5,
-                horizontalPadding = 12.dp,
+                // Márgenes laterales: evitaba quedar pegado a los bordes (Infinix landscape).
+                horizontalPadding = 28.dp,
                 maxContentWidth = 780.dp,
-                contentPadding = 4.dp,
+                contentPadding = 8.dp,
                 cardSpacing = 8.dp,
                 topPadding = 28.dp,
             )
