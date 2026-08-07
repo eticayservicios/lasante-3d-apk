@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -189,60 +190,57 @@ fun IntroSocialQrModal(
             .zIndex(140f),
         contentAlignment = Alignment.Center,
     ) {
-        // Cuadrado compacto: poco relleno, protagonismo en QR + texto.
-        val qrSize = 242.dp
+        // Caja lo más chica posible: el ancho lo marca el QR.
+        val qrSize = 168.dp
         Card(
             modifier = Modifier
-                .fillMaxHeight(0.70f)
-                .aspectRatio(1f)
+                .wrapContentSize()
                 .clickable(enabled = false) { },
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(14.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.width(qrSize),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         text = label,
-                        fontSize = 20.sp,
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.Black,
                         color = LaSanteBlue,
+                        maxLines = 1,
                     )
                     IconButton(
                         onClick = onClose,
-                        modifier = Modifier.size(36.dp),
+                        modifier = Modifier.size(26.dp),
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = "Cerrar")
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "Cerrar",
+                            modifier = Modifier.size(16.dp),
+                        )
                     }
                 }
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(2.dp))
                 val qrBitmap = remember(url) { generateQrBitmap(url) }
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Image(
-                        bitmap = qrBitmap.asImageBitmap(),
-                        contentDescription = null,
-                        modifier = Modifier.size(qrSize),
-                    )
-                }
+                Image(
+                    bitmap = qrBitmap.asImageBitmap(),
+                    contentDescription = null,
+                    modifier = Modifier.size(qrSize),
+                )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Escanea para abrir $label",
-                    fontSize = 14.sp,
+                    fontSize = 11.sp,
                     color = LaSanteText,
                     fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.width(qrSize),
+                    textAlign = TextAlign.Center,
                 )
             }
         }
