@@ -763,10 +763,10 @@ data class IntroLayoutMetrics(
                 val pull = if (pullTowardCylinder > 72.dp) pullTowardCylinder else 72.dp
                 -(pull + dragHandleWidth) - 8.dp
             }
-            // Damasco: −18. Fire/TV1080: −8. Otros tablet: +12 (baseline previo).
+            // Damasco: −18. Fire/TV1080: −6 (+2 vs −8). Otros tablet: +12 (baseline previo).
             "tv_42", "tablet_landscape" -> when {
                 isTv42LargeCanvas -> (-18).dp
-                isTv42 -> (-8).dp
+                isTv42 -> (-6).dp
                 else -> 12.dp
             }
             "tv_66" -> (-36).dp
@@ -794,10 +794,10 @@ data class IntroLayoutMetrics(
             // Infinix: +3.dp previo + 2.dp más.
             "phone_landscape" -> maxHeight * sceneHeightFraction * 0.01f + 5.dp
             "tv_32" -> maxHeight * sceneHeightFraction * 0.02f
-            // Damasco: base. Fire/TV1080: +2.dp para alinear con la línea del estante.
+            // Damasco: base. Fire/TV1080: +3.dp (+1 vs +2) para alinear con la línea del estante.
             "tv_42", "tablet_landscape" -> {
                 val base = maxHeight * sceneHeightFraction * 0.035f - 5.dp
-                if (isTv42 && !isTv42LargeCanvas) base + 2.dp else base
+                if (isTv42 && !isTv42LargeCanvas) base + 3.dp else base
             }
             "tv_66" -> maxHeight * sceneHeightFraction * 0.035f - 5.dp
             "expanded" -> maxHeight * sceneHeightFraction * 0.04f

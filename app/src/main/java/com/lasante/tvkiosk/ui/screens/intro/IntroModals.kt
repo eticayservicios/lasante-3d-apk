@@ -189,20 +189,20 @@ fun IntroSocialQrModal(
             .zIndex(140f),
         contentAlignment = Alignment.Center,
     ) {
-        // Cuadrado en todos los perfiles (ya no landscape ancho). QR +10% vs 220.dp.
+        // Cuadrado compacto: poco relleno, protagonismo en QR + texto.
         val qrSize = 242.dp
         Card(
             modifier = Modifier
-                .fillMaxHeight(0.78f)
+                .fillMaxHeight(0.70f)
                 .aspectRatio(1f)
                 .clickable(enabled = false) { },
-            shape = RoundedCornerShape(28.dp),
+            shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 22.dp, vertical = 20.dp),
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Row(
@@ -212,15 +212,18 @@ fun IntroSocialQrModal(
                 ) {
                     Text(
                         text = label,
-                        fontSize = 22.sp,
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Black,
                         color = LaSanteBlue,
                     )
-                    IconButton(onClick = onClose) {
+                    IconButton(
+                        onClick = onClose,
+                        modifier = Modifier.size(36.dp),
+                    ) {
                         Icon(Icons.Default.Close, contentDescription = "Cerrar")
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 val qrBitmap = remember(url) { generateQrBitmap(url) }
                 Box(
                     modifier = Modifier
@@ -234,10 +237,10 @@ fun IntroSocialQrModal(
                         modifier = Modifier.size(qrSize),
                     )
                 }
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Escanea para abrir $label",
-                    fontSize = 15.sp,
+                    fontSize = 14.sp,
                     color = LaSanteText,
                     fontWeight = FontWeight.SemiBold,
                 )
