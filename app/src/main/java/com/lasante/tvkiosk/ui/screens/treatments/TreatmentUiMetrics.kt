@@ -22,8 +22,8 @@ object TreatmentUiMetrics {
     /** Fracción del área de icono (Fire / Infinix). */
     const val CARD_ICON_FILL = 0.70f
 
-    /** Damasco / TV grande. */
-    const val CARD_ICON_FILL_LARGE = 0.72f
+    /** Damasco / TV grande — iconos protagonistas (mockup + feedback jefe). */
+    const val CARD_ICON_FILL_LARGE = 0.86f
 
     @Immutable
     data class ProfileMetrics(
@@ -86,18 +86,18 @@ object TreatmentUiMetrics {
 
     /** Damasco / canvas alto — iconos y textos más grandes (mockup). */
     val tv42Large = ProfileMetrics(
-        badgeHeight = 64.dp,
-        badgeIconSize = 28.dp,
-        badgeIconTop = 6.dp,
-        cardIconSize = 520.dp,
+        badgeHeight = 78.dp,
+        badgeIconSize = 38.dp,
+        badgeIconTop = 7.dp,
+        cardIconSize = 560.dp,
         cardMaxWidth = 360.dp,
-        navButtonSize = 38.dp,
+        navButtonSize = 52.dp,
         navEndInset = 0.dp,
-        cardLabelFontSize = 17.sp,
-        cardLabelLineHeight = 19.sp,
+        cardLabelFontSize = 20.sp,
+        cardLabelLineHeight = 23.sp,
         cardIconFill = CARD_ICON_FILL_LARGE,
         // Más ancho que alto → menos vacío vertical, icono ocupa casi todo.
-        cardAspectRatio = 1.18f,
+        cardAspectRatio = 1.12f,
     )
 
     /** @deprecated Alias de [tv42]. */
@@ -106,17 +106,17 @@ object TreatmentUiMetrics {
 
     /** TV 66". */
     val tv66 = ProfileMetrics(
-        badgeHeight = 91.dp,
-        badgeIconSize = 32.dp,
-        badgeIconTop = 8.dp,
-        cardIconSize = 560.dp,
+        badgeHeight = 100.dp,
+        badgeIconSize = 44.dp,
+        badgeIconTop = 9.dp,
+        cardIconSize = 640.dp,
         cardMaxWidth = 400.dp,
-        navButtonSize = 53.dp,
+        navButtonSize = 60.dp,
         navEndInset = 90.dp,
-        cardLabelFontSize = 22.sp,
-        cardLabelLineHeight = 26.sp,
+        cardLabelFontSize = 24.sp,
+        cardLabelLineHeight = 28.sp,
         cardIconFill = CARD_ICON_FILL_LARGE,
-        cardAspectRatio = 1.18f,
+        cardAspectRatio = 1.12f,
     )
 
     fun forProfile(

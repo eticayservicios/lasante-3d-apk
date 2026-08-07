@@ -92,16 +92,23 @@ fun TreatmentsScreen(
             // Mockup grande = 4 cols (cards/iconos más grandes). Fire/Infinix mantienen 5.
             val columns = if (isLargeCanvas) 4 else grid.columns
             val topPadding = grid.topPadding
+            val isPhoneLandscape = profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE
+            val isTv66 = profile.tier == DeviceProfileTier.TV_LARGE
+            val isTv42 = profile.tier == DeviceProfileTier.TV_REGULAR
 
-            val horizontalPadding = when {
+            // Mismos márgenes que Products — el título dinámico debe caer en el mismo X.
+            val horizontalPadding = grid.horizontalPadding
+            val gridContentPadding = grid.contentPadding
+            val gridMaxWidth = grid.maxContentWidth
+            val badgeWidth = uiMetrics.badgeHeight * TreatmentUiMetrics.BADGE_WIDTH_TO_HEIGHT
+            val titleStartGap = badgeWidth + when {
+                isPhoneLandscape -> 48.dp
                 isLargeCanvas -> 44.dp
-                profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE -> grid.horizontalPadding
-                else -> (grid.horizontalPadding + 8.dp)
+                isTv66 -> 40.dp
+                isTv42 -> 34.dp
+                else -> 32.dp
             }
-            val gridContentPadding = when {
-                isLargeCanvas -> 16.dp
-                else -> grid.contentPadding
-            }
+
             // Gutters bien visibles en todos los perfiles.
             val cardSpacing = when {
                 isLargeCanvas -> 32.dp
@@ -109,10 +116,6 @@ fun TreatmentsScreen(
                 profile.tier == DeviceProfileTier.TV_REGULAR -> 22.dp
                 profile.tier == DeviceProfileTier.TV_LARGE -> 32.dp
                 else -> 18.dp
-            }
-            val gridMaxWidth = when {
-                isLargeCanvas && profile.tier == DeviceProfileTier.TV_REGULAR -> 1180.dp
-                else -> grid.maxContentWidth
             }
 
             // Mismo margen arriba y abajo (como antes del 15% — ese quedó excesivo).
@@ -142,6 +145,7 @@ fun TreatmentsScreen(
                         navMetrics = nav,
                         navButtonSize = uiMetrics.navButtonSize,
                         contentPadding = gridContentPadding,
+                        titleStartGap = titleStartGap,
                         onBack = onBack,
                     )
 
@@ -216,8 +220,10 @@ private fun TreatmentsHeader(
     navMetrics: SharedNavMetrics,
     navButtonSize: Dp,
     contentPadding: Dp = 0.dp,
+    titleStartGap: Dp = 0.dp,
     onBack: () -> Unit,
 ) {
+    // Misma geometría de header que Products: contentPadding + titleStartGap (hueco del badge).
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -237,6 +243,7 @@ private fun TreatmentsHeader(
             fontFamily = MaterialTheme.typography.bodyLarge.fontFamily,
             fontWeight = FontWeight.Light,
             allCaps = false,
+            modifier = Modifier.padding(start = titleStartGap),
         )
 
         Spacer(modifier = Modifier.weight(1f))
@@ -295,7 +302,7 @@ private fun TherapeuticClassCard(
             modifier = Modifier
                 .weight(1f, fill = true)
                 .fillMaxWidth()
-                .padding(bottom = 10.dp),
+                .padding(bottom = 6.dp),
             contentAlignment = Alignment.BottomCenter,
         ) {
             if (!iconModel.isNullOrBlank()) {

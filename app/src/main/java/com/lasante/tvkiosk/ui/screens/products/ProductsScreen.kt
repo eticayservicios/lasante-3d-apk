@@ -130,19 +130,19 @@ fun ProductsScreen(
             val profile = screenMetrics.profile
             val grid = screenMetrics.grid
             val nav = screenMetrics.nav
-            val uiMetrics = TreatmentUiMetrics.forProfile(profile)
             val isLandscape = profile.isLandscape
             val isPhoneLandscape = profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE
             val isTv66 = profile.tier == DeviceProfileTier.TV_LARGE
             val isTv42 = profile.tier == DeviceProfileTier.TV_REGULAR
-            // Damasco / canvas alto (~1333×800) y TV 66"+ — buscador más ancho y más aire.
+            // Damasco / canvas alto (~1333×800) y TV 66"+ — UI e iconos más grandes.
             val isTv42LargeUp = (isTv42 && maxHeight >= 700.dp) || isTv66
+            val uiMetrics = TreatmentUiMetrics.forProfile(profile, largeCanvas = isTv42LargeUp)
             val isTv = isTv42 || isTv66
             val isPhone = profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE ||
                 profile.tier == DeviceProfileTier.COMPACT_PORTRAIT
-            val columns = when (profile.tier) {
-                DeviceProfileTier.TV_LARGE -> 4
-                DeviceProfileTier.COMPACT_PORTRAIT -> 2
+            // Mínimo 4 productos por fila en landscape / TV.
+            val columns = when {
+                profile.tier == DeviceProfileTier.COMPACT_PORTRAIT -> 2
                 else -> if (profile.isLandscape) 4 else 2
             }
             val buttonSize = uiMetrics.navButtonSize
@@ -248,6 +248,7 @@ fun ProductsScreen(
             val titleStartGap = badgeWidth + when {
                 // Infinix: título más a la derecha (badge intacto).
                 isPhoneLandscape -> 48.dp
+                isTv42LargeUp -> 44.dp
                 isTv66 -> 40.dp
                 isTv42 -> 34.dp
                 else -> 32.dp
@@ -278,16 +279,29 @@ fun ProductsScreen(
                 else -> 5.dp
             }
             val searchBarHeight = when {
+                isTv42LargeUp -> 44.dp
                 isTv42 -> 32.dp
                 isPhoneLandscape -> 28.dp
                 isLandscape -> 30.dp
                 else -> 28.dp
             }
             val filterIconSize = when {
+                isTv42LargeUp -> 44.dp
                 isTv42 -> 30.dp
                 isPhoneLandscape -> 24.dp
                 isLandscape -> 28.dp
                 else -> 26.dp
+            }
+            val searchIconSize = when {
+                isTv42LargeUp -> 22.dp
+                isLandscape -> 16.dp
+                else -> 14.dp
+            }
+            val searchFontSize = when {
+                isTv42LargeUp -> 15.sp
+                isTv66 -> 13.sp
+                isLandscape -> 12.sp
+                else -> 11.sp
             }
 
             Box(modifier = Modifier.fillMaxSize()) {
@@ -373,7 +387,7 @@ fun ProductsScreen(
                                             AsyncImage(
                                                 model = "file:///android_asset/vitrina/ui/search_icon.png",
                                                 contentDescription = null,
-                                                modifier = Modifier.size(if (isLandscape) 16.dp else 14.dp),
+                                                modifier = Modifier.size(searchIconSize),
                                                 contentScale = ContentScale.Fit,
                                             )
                                             BasicTextField(
@@ -381,7 +395,7 @@ fun ProductsScreen(
                                                 onValueChange = { searchQuery = it },
                                                 textStyle = TextStyle(
                                                     color = LaSanteText,
-                                                    fontSize = if (isTv66) 13.sp else if (isLandscape) 12.sp else 11.sp,
+                                                    fontSize = searchFontSize,
                                                 ),
                                                 cursorBrush = SolidColor(LaSanteGreen),
                                                 modifier = Modifier.weight(1f),
@@ -391,7 +405,7 @@ fun ProductsScreen(
                                                         Text(
                                                             "Buscar Producto",
                                                             color = LaSanteTextSecondary,
-                                                            fontSize = if (isTv66) 13.sp else if (isLandscape) 12.sp else 11.sp,
+                                                            fontSize = searchFontSize,
                                                         )
                                                     }
                                                     innerTextField()
@@ -399,7 +413,9 @@ fun ProductsScreen(
                                             )
                                             if (isSearching) {
                                                 CircularProgressIndicator(
-                                                    modifier = Modifier.size(12.dp),
+                                                    modifier = Modifier.size(
+                                                        if (isTv42LargeUp) 16.dp else 12.dp,
+                                                    ),
                                                     strokeWidth = 2.dp,
                                                     color = LaSanteGreen,
                                                 )
@@ -419,6 +435,7 @@ fun ProductsScreen(
                                         isLandscape = isLandscape,
                                         isTv66 = isTv66,
                                         isTv42 = isTv42,
+                                        isTv42LargeUp = isTv42LargeUp,
                                         modifier = Modifier.padding(top = sortTopGap),
                                     )
                                 }
@@ -449,7 +466,15 @@ fun ProductsScreen(
                         }
 
                         // Scroll en la grilla (como antes), centrado bajo el botón Back (mockup).
-                        val scrollRailWidth = if (isLandscape) 36.dp else 32.dp
+                        val scrollRailWidth = when {
+                            isTv42LargeUp -> 48.dp
+                            isLandscape -> 36.dp
+                            else -> 32.dp
+                        }
+                        val scrollArrowSize = when {
+                            isTv42LargeUp -> 36.dp
+                            else -> 24.dp
+                        }
                         val scrollEndInset = contentPadding + buttonSize + nav.buttonSpacing +
                             (buttonSize - scrollRailWidth) / 2
 
@@ -472,8 +497,12 @@ fun ProductsScreen(
                                     top = 16.dp,
                                     bottom = 32.dp,
                                 ),
-                                verticalArrangement = Arrangement.spacedBy(16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(
+                                    if (isTv42LargeUp) 22.dp else 16.dp,
+                                ),
+                                horizontalArrangement = Arrangement.spacedBy(
+                                    if (isTv42LargeUp) 22.dp else 16.dp,
+                                ),
                             ) {
                                 items(
                                     count = filteredProducts.size,
@@ -485,6 +514,7 @@ fun ProductsScreen(
                                         isPhone = isPhone,
                                         isTv42 = isTv42,
                                         isTv66 = isTv66,
+                                        isTv42LargeUp = isTv42LargeUp,
                                         onClick = { onProductSelected(filteredProducts[index]) },
                                     )
                                 }
@@ -504,11 +534,13 @@ fun ProductsScreen(
                                         onClick = {
                                             coroutineScope.launch { gridState.animateScrollToItem(0) }
                                         },
+                                        modifier = Modifier.size(scrollArrowSize + 8.dp),
                                     ) {
                                         Icon(
                                             Icons.Default.KeyboardArrowUp,
                                             contentDescription = null,
                                             tint = LaSanteGreen,
+                                            modifier = Modifier.size(scrollArrowSize),
                                         )
                                     }
                                     RealGreenScrollBar(
@@ -524,11 +556,13 @@ fun ProductsScreen(
                                                 )
                                             }
                                         },
+                                        modifier = Modifier.size(scrollArrowSize + 8.dp),
                                     ) {
                                         Icon(
                                             Icons.Default.KeyboardArrowDown,
                                             contentDescription = null,
                                             tint = LaSanteGreen,
+                                            modifier = Modifier.size(scrollArrowSize),
                                         )
                                     }
                                 }
@@ -557,6 +591,7 @@ fun ProductsScreen(
                     isTv42 = isTv42,
                     isTv = isTv,
                     isTv66 = isTv66,
+                    isTv42LargeUp = isTv42LargeUp,
                 )
             }
 
@@ -583,6 +618,7 @@ private fun ProductsSortButton(
     isLandscape: Boolean,
     isTv66: Boolean,
     isTv42: Boolean = false,
+    isTv42LargeUp: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -596,12 +632,18 @@ private fun ProductsSortButton(
                 .clip(RoundedCornerShape(50.dp))
                 .background(Brush.horizontalGradient(listOf(LaSanteGreenDark, LaSanteGreen)))
                 .padding(
-                    horizontal = if (isTv66) 18.dp else if (isLandscape) 16.dp else 12.dp,
+                    horizontal = when {
+                        isTv42LargeUp -> 28.dp
+                        isTv66 -> 22.dp
+                        isLandscape -> 20.dp
+                        else -> 16.dp
+                    },
                     vertical = when {
-                        isTv66 -> 4.dp
-                        isTv42 -> 2.dp
-                        isLandscape -> 2.dp
-                        else -> 3.dp
+                        isTv42LargeUp -> 3.dp
+                        isTv66 -> 2.dp
+                        isTv42 -> 1.dp
+                        isLandscape -> 1.dp
+                        else -> 2.dp
                     },
                 ),
             verticalAlignment = Alignment.CenterVertically,
@@ -614,14 +656,26 @@ private fun ProductsSortButton(
                     SortOrder.ZA -> "Z - A"
                 },
                 color = Color.White,
-                fontSize = if (isTv66) 12.sp else if (isLandscape) 11.sp else 10.sp,
+                fontSize = when {
+                    isTv42LargeUp -> 14.sp
+                    isTv66 -> 12.sp
+                    isLandscape -> 11.sp
+                    else -> 10.sp
+                },
                 fontWeight = FontWeight.Bold,
             )
             Icon(
                 Icons.Default.KeyboardArrowDown,
                 contentDescription = null,
                 tint = Color.White,
-                modifier = Modifier.size(if (isTv66) 16.dp else if (isLandscape) 14.dp else 12.dp),
+                modifier = Modifier.size(
+                    when {
+                        isTv42LargeUp -> 20.dp
+                        isTv66 -> 16.dp
+                        isLandscape -> 14.dp
+                        else -> 12.dp
+                    },
+                ),
             )
         }
     }
@@ -635,24 +689,28 @@ private fun TreatmentIconBadge(
     isTv42: Boolean = false,
     isTv: Boolean = false,
     isTv66: Boolean = false,
+    isTv42LargeUp: Boolean = false,
 ) {
     val iconModel = TreatmentIconAssets.resolve(iconUrl = iconUrl)
-    val metrics = TreatmentUiMetrics.profile(
-        isPhoneLandscape = isPhoneLandscape,
-        isTv66 = isTv66,
-        isTv42 = isTv42,
-        isTv = isTv,
-    )
+    val metrics = when {
+        isTv42LargeUp && isTv66 -> TreatmentUiMetrics.tv66
+        isTv42LargeUp -> TreatmentUiMetrics.tv42Large
+        else -> TreatmentUiMetrics.profile(
+            isPhoneLandscape = isPhoneLandscape,
+            isTv66 = isTv66,
+            isTv42 = isTv42,
+            isTv = isTv,
+        )
+    }
     val badgeHeight = metrics.badgeHeight
     val badgeWidth = badgeHeight * TreatmentUiMetrics.BADGE_WIDTH_TO_HEIGHT
     val iconSize = metrics.badgeIconSize
-    val iconTopPadding = metrics.badgeIconTop
 
     Box(
         modifier = modifier
             .width(badgeWidth)
             .height(badgeHeight),
-        contentAlignment = Alignment.TopCenter,
+        contentAlignment = Alignment.Center,
     ) {
         AsyncImage(
             model = "file:///android_asset/vitrina/ui/treatment_badge_shadow.png",
@@ -668,9 +726,7 @@ private fun TreatmentIconBadge(
                     .crossfade(true)
                     .build(),
                 contentDescription = null,
-                modifier = Modifier
-                    .padding(top = iconTopPadding.coerceAtLeast(0.dp))
-                    .size(iconSize),
+                modifier = Modifier.size(iconSize),
                 contentScale = ContentScale.Fit,
             )
         }
@@ -684,30 +740,35 @@ private fun ProductGridItem(
     isPhone: Boolean = false,
     isTv42: Boolean = false,
     isTv66: Boolean = false,
+    isTv42LargeUp: Boolean = false,
     onClick: () -> Unit,
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
     // Alto del card (gris); phone 57.5% / TV42 70% interior — el contenedor no cambia.
-    // TV66: +50.dp vs 168 para cards más cuadrados (menos rectangular).
+    // Pantallas grandes: cards más altos (mockup 3 cols).
     val imageHeight = when {
+        isTv42LargeUp -> 260.dp
         isTv66 -> 218.dp
         isLandscape -> 150.dp
         else -> 120.dp
     }
     val imageFillFraction = when {
         isPhone -> 0.604f // ~57.5% + 5%: solo la imagen/GLB, card igual
+        isTv42LargeUp -> 0.82f
         isTv42 -> 0.7f
         isTv66 -> 0.88f // card 218dp; imagen −12% vs llenar el card
         else -> 1f
     }
     val gridImageSizePx = with(density) { (imageHeight * imageFillFraction).roundToPx() }
     val titleFontSize = when {
+        isTv42LargeUp -> 17.sp
         isTv66 -> 16.sp
         isLandscape -> 13.sp
         else -> 11.sp
     }
     val strengthFontSize = when {
+        isTv42LargeUp -> 15.sp
         isTv66 -> 14.sp
         isLandscape -> 12.sp
         else -> 10.sp
@@ -732,10 +793,10 @@ private fun ProductGridItem(
                 .fillMaxWidth()
                 .height(imageHeight)
                 .padding(
-                    top = if (isTv66) 8.dp else 4.dp,
-                    start = if (isTv66) 10.dp else 6.dp,
-                    end = if (isTv66) 10.dp else 6.dp,
-                    bottom = if (isTv66) 4.dp else 2.dp,
+                    top = if (isTv42LargeUp) 8.dp else if (isTv66) 8.dp else 4.dp,
+                    start = if (isTv42LargeUp) 10.dp else if (isTv66) 10.dp else 6.dp,
+                    end = if (isTv42LargeUp) 10.dp else if (isTv66) 10.dp else 6.dp,
+                    bottom = if (isTv42LargeUp) 4.dp else if (isTv66) 4.dp else 2.dp,
                 )
                 .clip(RoundedCornerShape(20.dp))
                 .background(
