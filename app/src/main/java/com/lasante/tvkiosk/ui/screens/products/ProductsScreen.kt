@@ -154,10 +154,11 @@ fun ProductsScreen(
                 profile.tier == DeviceProfileTier.COMPACT_PORTRAIT -> 2
                 else -> if (profile.isLandscape) 4 else 2
             }
-            // Back/Home: tamaño SharedNav (versión anterior). tv42Large 52.dp los sacaba de pantalla.
+            // Back/Home: misma geometría/tamaño que Clases Terapéuticas.
             val buttonSize = when {
                 isTv66 -> uiMetrics.navButtonSize
-                isTv42 -> nav.buttonSize
+                isFireTv42 -> uiMetrics.navButtonSize * 0.95f
+                isTv42 -> uiMetrics.navButtonSize
                 else -> uiMetrics.navButtonSize
             }
             val topPadding = grid.topPadding
@@ -349,7 +350,7 @@ fun ProductsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = contentPadding),
-                            verticalAlignment = Alignment.CenterVertically,
+                            verticalAlignment = Alignment.Top,
                         ) {
                             LaSanteScreenTitle(
                                 text = DisplayTitles.resolve(treatmentName),
@@ -367,17 +368,22 @@ fun ProductsScreen(
                                 // weight: el título cede espacio; Back/Home nunca se cortan.
                                 modifier = Modifier
                                     .padding(start = titleStartGap)
+                                    .padding(top = (searchBarHeight - 22.dp).coerceAtLeast(0.dp) / 2)
                                     .weight(1f),
                             )
 
                             Row(
-                                verticalAlignment = Alignment.CenterVertically,
+                                // Top: filtro/nav se alinean al buscador, no al bloque buscador+ordenar.
+                                verticalAlignment = Alignment.Top,
                             ) {
                                 val filterContext = LocalContext.current
+                                val filterTopPad =
+                                    ((searchBarHeight - filterIconSize) / 2).coerceAtLeast(0.dp)
                                 AsyncImage(
                                     model = "file:///android_asset/vitrina/ui/filter_button.png",
                                     contentDescription = "Filtrar",
                                     modifier = Modifier
+                                        .padding(top = filterTopPad)
                                         .size(filterIconSize)
                                         .combinedClickable(
                                             interactionSource = remember { MutableInteractionSource() },
@@ -480,7 +486,11 @@ fun ProductsScreen(
 
                                 Spacer(modifier = Modifier.width(searchToNavGap))
 
+                                // Misma altura que el buscador (centrados en searchBarHeight).
+                                val navTopPad =
+                                    ((searchBarHeight - buttonSize) / 2).coerceAtLeast(0.dp)
                                 Row(
+                                    modifier = Modifier.padding(top = navTopPad),
                                     horizontalArrangement = Arrangement.spacedBy(nav.buttonSpacing),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
@@ -791,7 +801,7 @@ private fun ProductGridItem(
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
-    // Cuadro gris cuadrado (no rectangular). El alto sigue al ancho de la celda.
+    // Imagen dentro del cuadrado gris.
     val imageFillFraction = when {
         isPhone -> 0.604f
         isTv42LargeUp -> 0.82f
@@ -815,70 +825,61 @@ private fun ProductGridItem(
         listOf(LaSanteGreenDark, LaSanteGreen, Color(0xFFA8C829)),
     )
     val (titlePart, strengthPart) = remember(product.name) { splitProductTitleAndStrength(product.name) }
-    val boxPad = when {
-        isTv42LargeUp || isTv66 -> 8.dp
-        else -> 4.dp
+    val innerPad = when {
+        isTv42LargeUp || isTv66 -> 10.dp
+        else -> 6.dp
     }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(Color.Transparent)
             .clickableWithSound { onClick() }
             .padding(bottom = 12.dp),
         horizontalAlignment = Alignment.Start,
     ) {
         val gridVisual = product.gridVisual()
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f)
-                .padding(
-                    top = boxPad,
-                    start = if (isTv42LargeUp || isTv66) 10.dp else 6.dp,
-                    end = if (isTv42LargeUp || isTv66) 10.dp else 6.dp,
-                    bottom = if (isTv42LargeUp || isTv66) 4.dp else 2.dp,
-                )
-                .clip(RoundedCornerShape(20.dp))
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color(0xFFE7E7E7), Color(0xFFF7F7F7)),
-                    ),
-                )
-                .padding(horizontal = 8.dp, vertical = 6.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            val gridImageSizePx = with(density) {
-                (minOf(maxWidth, maxHeight) * imageFillFraction).roundToPx()
-            }
-            when (gridVisual) {
-                is ProductGridVisual.Photo -> {
-                    // Misma escala Fit para miniatura y vista previa GLB.
-                    // Phone: 50% del área del card; el contenedor gris se mantiene.
-                    AsyncImage(
-                        model = ImageRequest.Builder(context)
-                            .data(gridVisual.url)
-                            .size(gridImageSizePx)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .fillMaxSize(imageFillFraction)
-                            .align(Alignment.Center),
-                        contentScale = ContentScale.Fit,
+        // Cuadrado estricto: lado = ancho de la celda (LazyGrid a veces ignora aspectRatio).
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val side = maxWidth
+            val gridImageSizePx = with(density) { (side * imageFillFraction).roundToPx() }
+            Box(
+                modifier = Modifier
+                    .size(side)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color(0xFFE7E7E7), Color(0xFFF7F7F7)),
+                        ),
+                    )
+                    .padding(innerPad),
+                contentAlignment = Alignment.Center,
+            ) {
+                when (gridVisual) {
+                    is ProductGridVisual.Photo -> {
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(gridVisual.url)
+                                .size(gridImageSizePx.coerceAtLeast(1))
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .fillMaxSize(imageFillFraction)
+                                .align(Alignment.Center),
+                            contentScale = ContentScale.Fit,
+                        )
+                    }
+                    ProductGridVisual.Placeholder -> Text(
+                        "📦",
+                        fontSize = when {
+                            isPhone -> if (isLandscape) 22.sp else 18.sp
+                            isTv66 -> 56.sp
+                            isLandscape -> 42.sp
+                            else -> 36.sp
+                        },
+                        color = Color.Gray,
                     )
                 }
-                ProductGridVisual.Placeholder -> Text(
-                    "📦",
-                    fontSize = when {
-                        isPhone -> if (isLandscape) 22.sp else 18.sp
-                        isTv66 -> 56.sp
-                        isLandscape -> 42.sp
-                        else -> 36.sp
-                    },
-                    color = Color.Gray,
-                )
             }
         }
 
