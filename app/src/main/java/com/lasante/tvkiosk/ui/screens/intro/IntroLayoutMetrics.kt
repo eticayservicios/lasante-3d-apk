@@ -300,10 +300,10 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 54.dp
             "phone_portrait" -> 81.dp
-            // Damasco: 109. Fire/TV1080: 70. Otros tablet: 80.
+            // Damasco: 109. Fire/TV1080: 70 −5%. Otros tablet: 80.
             "tv_42", "tablet_landscape" -> when {
                 isTv42LargeCanvas -> 109.dp
-                isTv42 -> 70.dp
+                isTv42 -> 70.dp * 0.95f
                 else -> 80.dp
             }
             // TV66: +50% vs baseline 89 (+20% sobre el 1.25 previo, para verlo en emulador).
@@ -458,10 +458,10 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             // Phone: +30% vs baseline 24.
             "phone_landscape" -> 24.dp * 1.30f
-            // Damasco: 48. Fire/TV1080: 37. Otros tablet: 39.
+            // Damasco: 48. Fire/TV1080: 37 +5%. Otros tablet: 39.
             "tv_42", "tablet_landscape" -> when {
                 isTv42LargeCanvas -> 48.dp
-                isTv42 -> 37.dp
+                isTv42 -> 37.dp * 1.05f
                 else -> 39.dp
             }
             // TV66: mismo tamaño que Gira / Touch.

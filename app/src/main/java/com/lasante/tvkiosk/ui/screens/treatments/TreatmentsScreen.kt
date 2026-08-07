@@ -50,6 +50,7 @@ import com.lasante.tvkiosk.ui.components.TreatmentIconAssets
 import com.lasante.tvkiosk.ui.components.TrimTransparentTransformation
 import com.lasante.tvkiosk.ui.layout.DeviceProfileResolver
 import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
+import com.lasante.tvkiosk.ui.layout.FireTv42Spacing
 import com.lasante.tvkiosk.ui.layout.SharedNavMetrics
 import com.lasante.tvkiosk.ui.layout.TvProfileDetector
 import com.lasante.tvkiosk.ui.theme.LaSanteGreen
@@ -99,6 +100,8 @@ fun TreatmentsScreen(
             val isPhoneLandscape = profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE
             val isTv66 = profile.tier == DeviceProfileTier.TV_LARGE
             val isTv42 = profile.tier == DeviceProfileTier.TV_REGULAR
+            // Fire / Television_1080 (no Damasco).
+            val isFireTv42 = isTv42 && !isLargeCanvas
 
             // Mismos márgenes que Products — el título dinámico debe caer en el mismo X.
             val horizontalPadding = grid.horizontalPadding
@@ -109,9 +112,14 @@ fun TreatmentsScreen(
                 isPhoneLandscape -> 48.dp
                 isLargeCanvas -> 44.dp
                 isTv66 -> 40.dp
+                // Fire: título principal −2 espacios (barra espaciadora).
+                isFireTv42 -> 34.dp - FireTv42Spacing.spaces(2)
                 isTv42 -> 34.dp
                 else -> 32.dp
             }
+            val principalTitleSp = nav.titleFontSize.value.toInt() + 2
+            // Fire: cards (botones de clase) 2 espacios más abajo.
+            val gridTopExtra = if (isFireTv42) FireTv42Spacing.spaces(2) else 0.dp
 
             // Gutters bien visibles en todos los perfiles.
             val cardSpacing = when {
@@ -148,7 +156,11 @@ fun TreatmentsScreen(
                     TreatmentsHeader(
                         unitName = unitName,
                         navMetrics = nav,
-                        navButtonSize = uiMetrics.navButtonSize,
+                        navButtonSize = if (isFireTv42) {
+                            uiMetrics.navButtonSize * 0.95f
+                        } else {
+                            uiMetrics.navButtonSize
+                        },
                         contentPadding = gridContentPadding,
                         titleStartGap = titleStartGap,
                         onBack = onBack,
@@ -162,6 +174,8 @@ fun TreatmentsScreen(
                             isLargeCanvas && profile.tier == DeviceProfileTier.TV_LARGE -> 34.sp
                             isLargeCanvas -> 28.sp
                             profile.tier == DeviceProfileTier.TV_LARGE -> 34.sp
+                            // Fire: mismo tamaño que el título principal.
+                            isFireTv42 -> principalTitleSp.sp
                             profile.tier == DeviceProfileTier.TV_REGULAR -> 26.sp
                             profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE -> 18.sp
                             else -> if (profile.isWide) 28.sp else 20.sp
@@ -191,7 +205,7 @@ fun TreatmentsScreen(
                             contentPadding = androidx.compose.foundation.layout.PaddingValues(
                                 start = gridContentPadding,
                                 end = gridContentPadding,
-                                top = 0.dp,
+                                top = gridTopExtra,
                                 bottom = if (profile.isWide) 24.dp else 16.dp,
                             ),
                             verticalArrangement = Arrangement.spacedBy(cardSpacing),

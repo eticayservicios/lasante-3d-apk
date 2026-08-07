@@ -52,8 +52,9 @@ object TreatmentUiMetrics {
         cardMaxWidth = 260.dp,
         navButtonSize = 38.dp,
         navEndInset = 0.dp,
-        cardLabelFontSize = 12.sp,
-        cardLabelLineHeight = 14.sp,
+        // Rótulos de cards −10% (Fire).
+        cardLabelFontSize = 12.sp * 0.9f,
+        cardLabelLineHeight = 14.sp * 0.9f,
         cardIconFill = 0.62f,
         // Un poco más ancho que alto ≈ −10.dp de alto en cards típicos.
         cardAspectRatio = 1.07f,

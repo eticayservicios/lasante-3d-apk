@@ -43,6 +43,17 @@ data class SharedGridMetrics(
     val topPadding: Dp,
 )
 
+/**
+ * “Espacio” = avance del carácter U+0020 (barra espaciadora) en Poppins Regular
+ * al tamaño del título principal Fire/TV42 (22.sp + 2 = 24.sp).
+ * Medición TTF: 267/1000 em → 6.408.dp @ 24.sp.
+ * Solo para offsets de Fire / Television_1080 (no Damasco / TV66 / Infinix).
+ */
+object FireTv42Spacing {
+    val KeyboardSpace: Dp = 6.408.dp
+    fun spaces(count: Int): Dp = KeyboardSpace * count
+}
+
 @Immutable
 data class SharedNavMetrics(
     val buttonSize: Dp,
