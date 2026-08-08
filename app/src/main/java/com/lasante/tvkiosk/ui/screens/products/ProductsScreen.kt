@@ -58,6 +58,7 @@ import com.lasante.tvkiosk.ui.components.LaSanteBackground
 import com.lasante.tvkiosk.ui.components.RealGreenScrollBar
 import com.lasante.tvkiosk.ui.components.TreatmentIconAssets
 import com.lasante.tvkiosk.ui.components.TrimTransparentTransformation
+import com.lasante.tvkiosk.ui.layout.CatalogHeaderMetrics
 import com.lasante.tvkiosk.ui.layout.CatalogScreenTitle
 import com.lasante.tvkiosk.ui.layout.LogCatalogHeaderProfile
 import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
@@ -270,6 +271,7 @@ fun ProductsScreen(
                                     contentDescription = "Filtrar",
                                     modifier = Modifier
                                         .padding(top = filterTopPad)
+                                        .offset(x = header.filterOffsetX)
                                         .size(header.filterIconSize)
                                         .clickable(
                                             interactionSource = remember { MutableInteractionSource() },
@@ -416,7 +418,7 @@ fun ProductsScreen(
                                     } else {
                                         contentPadding
                                     },
-                                    top = 16.dp,
+                                    top = CatalogHeaderMetrics.productsGridTopPadding(),
                                     bottom = 32.dp,
                                 ),
                                 verticalArrangement = Arrangement.spacedBy(
@@ -680,12 +682,11 @@ private fun ProductGridItem(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickableWithSound { onClick() }
             .padding(bottom = 12.dp),
         horizontalAlignment = Alignment.Start,
     ) {
         val gridVisual = product.gridVisual()
-        // Cuadrado: side = ancho de celda (aspectRatio en LazyGrid no es fiable).
+        // Cuadrado: side = ancho de celda; el clic solo en el cuadro (no el texto).
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
             val side = maxWidth
             val gridImageSizePx = with(density) { (side * imageFillFraction).roundToPx() }
@@ -698,6 +699,7 @@ private fun ProductGridItem(
                             colors = listOf(Color(0xFFE7E7E7), Color(0xFFF7F7F7)),
                         ),
                     )
+                    .clickableWithSound { onClick() }
                     .padding(innerPad),
                 contentAlignment = Alignment.Center,
             ) {

@@ -65,6 +65,8 @@ data class CatalogHeaderMetrics(
     val searchBarWidth: Dp,
     val searchBarHeight: Dp,
     val filterIconSize: Dp,
+    /** Empuje del filtro hacia la derecha (espacios teclado). */
+    val filterOffsetX: Dp,
     val filterToSearchGap: Dp,
     val searchToNavGap: Dp,
     val sortTopGap: Dp,
@@ -77,11 +79,13 @@ data class CatalogHeaderMetrics(
 
     companion object {
         private const val TITLE_SCALE = 0.95f
-        private const val FILTER_SCALE = 0.95f * 0.95f
-        /** Nav catálogo (volver + home): tamaño unificado validado. */
-        private val CATALOG_NAV_BUTTON_SIZE = 36.dp
-        private const val SCROLL_NUDGE_SPACES = 10
+        private const val FILTER_SCALE = 0.95f * 0.95f * 0.98f // −2% adicional
+        /** Nav catálogo (volver + home): unificado; −2% sobre el tamaño validado 36.dp. */
+        private val CATALOG_NAV_BUTTON_SIZE = 36.dp * 0.98f
+        private const val SCROLL_NUDGE_SPACES = 13 // 10 + 3 a la derecha (todos los perfiles)
         private const val FILTER_SEARCH_EXTRA_SPACES = 3
+        private const val FILTER_OFFSET_SPACES = 2
+        private const val GRID_TOP_SPACES = 2
 
         fun catalogTitleSp(navTitleSp: Float): Int =
             ((navTitleSp + 2f) * TITLE_SCALE).roundToInt().coerceAtLeast(1)
@@ -93,6 +97,10 @@ data class CatalogHeaderMetrics(
                 -> true
                 else -> canvasHeight >= 700.dp
             }
+
+        /** Padding top del grid de productos (bajar cards N espacios). */
+        fun productsGridTopPadding(base: Dp = 16.dp): Dp =
+            base + FireTv42Spacing.spaces(GRID_TOP_SPACES)
 
         fun resolve(
             profile: DeviceProfile,
@@ -174,6 +182,7 @@ data class CatalogHeaderMetrics(
                 searchBarWidth = searchBarWidth,
                 searchBarHeight = searchBarHeight,
                 filterIconSize = filterBase * FILTER_SCALE,
+                filterOffsetX = FireTv42Spacing.spaces(FILTER_OFFSET_SPACES),
                 filterToSearchGap = filterToSearchGap,
                 searchToNavGap = searchToNavGap,
                 sortTopGap = sortTopGap,
