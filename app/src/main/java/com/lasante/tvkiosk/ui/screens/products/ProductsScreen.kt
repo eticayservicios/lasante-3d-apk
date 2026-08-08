@@ -397,10 +397,7 @@ fun ProductsScreen(
                             isTv42LargeUp -> 36.dp
                             else -> 24.dp
                         }
-                        val scrollEndInset = contentPadding + buttonSize + nav.buttonSpacing +
-                            (buttonSize - scrollRailWidth) / 2
-                        val scrollEndPad =
-                            (scrollEndInset - header.scrollEndNudge).coerceAtLeast(0.dp)
+                        val scrollEndPad = CatalogHeaderMetrics.scrollEndUnderHome(contentPadding)
 
                         Box(
                             modifier = Modifier
@@ -650,13 +647,13 @@ private fun ProductGridItem(
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
-    // Imagen dentro del cuadrado gris.
+    // Imagen dentro del cuadrado gris (−10%).
     val imageFillFraction = when {
-        isPhone -> 0.604f
-        isTv42LargeUp -> 0.82f
-        isTv42 -> 0.78f
-        isTv66 -> 0.88f
-        else -> 0.85f
+        isPhone -> 0.5436f
+        isTv42LargeUp -> 0.738f
+        isTv42 -> 0.702f
+        isTv66 -> 0.792f
+        else -> 0.765f
     }
     val titleFontSize = when {
         isTv42LargeUp -> 17.sp

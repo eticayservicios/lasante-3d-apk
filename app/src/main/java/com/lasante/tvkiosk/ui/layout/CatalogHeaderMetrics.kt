@@ -72,17 +72,16 @@ data class CatalogHeaderMetrics(
     val sortTopGap: Dp,
     val searchIconSize: Dp,
     val searchFontSize: TextUnit,
-    val scrollEndNudge: Dp,
 ) {
     fun centerOnSearchBar(controlSize: Dp): Dp =
         ((searchBarHeight - controlSize) / 2).coerceAtLeast(0.dp)
 
     companion object {
         private const val TITLE_SCALE = 0.95f
-        private const val FILTER_SCALE = 0.95f * 0.95f * 0.98f // −2% adicional
+        /** Filtro: −5% −5% −2% −2% −10% (último pedido). */
+        private const val FILTER_SCALE = 0.95f * 0.95f * 0.98f * 0.98f * 0.90f
         /** Nav catálogo (volver + home): unificado; −2% sobre el tamaño validado 36.dp. */
         private val CATALOG_NAV_BUTTON_SIZE = 36.dp * 0.98f
-        private const val SCROLL_NUDGE_SPACES = 13 // 10 + 3 a la derecha (todos los perfiles)
         private const val FILTER_SEARCH_EXTRA_SPACES = 3
         private const val FILTER_OFFSET_SPACES = 2
         private const val GRID_TOP_SPACES = 2
@@ -101,6 +100,12 @@ data class CatalogHeaderMetrics(
         /** Padding top del grid de productos (bajar cards N espacios). */
         fun productsGridTopPadding(base: Dp = 16.dp): Dp =
             base + FireTv42Spacing.spaces(GRID_TOP_SPACES)
+
+        /**
+         * Padding end del scroll: borde derecho del rail = borde derecho del Home
+         * (guía de la captura). CT + Productos.
+         */
+        fun scrollEndUnderHome(contentPadding: Dp): Dp = contentPadding
 
         fun resolve(
             profile: DeviceProfile,
@@ -188,7 +193,6 @@ data class CatalogHeaderMetrics(
                 sortTopGap = sortTopGap,
                 searchIconSize = searchIconSize,
                 searchFontSize = searchFontSize,
-                scrollEndNudge = FireTv42Spacing.spaces(SCROLL_NUDGE_SPACES),
             )
         }
     }
