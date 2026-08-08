@@ -226,7 +226,8 @@ fun ProductsScreen(
                 if (BuildConfig.DEBUG) {
                     Text(
                         text = "${canvasWidth.value.toInt()}×${canvasHeight.value.toInt()} · ${profile.tier} · " +
-                            "large=${header.isLargeCanvas} · btn=${buttonSize.value}dp",
+                            "large=${header.isLargeCanvas} · btn=${buttonSize.value}dp · " +
+                            "filter=${header.filterIconSize.value}dp",
                         color = Color.White,
                         fontSize = 11.sp,
                         modifier = Modifier
@@ -265,14 +266,15 @@ fun ProductsScreen(
 
                             Row(verticalAlignment = Alignment.Top) {
                                 val filterContext = LocalContext.current
-                                val filterTopPad = header.centerOnSearchBar(header.filterIconSize)
-                                AsyncImage(
-                                    model = "file:///android_asset/vitrina/ui/filter_button.png",
-                                    contentDescription = "Filtrar",
+                                val density = LocalDensity.current
+                                val filterSize = header.filterIconSize
+                                val filterSizePx = with(density) { filterSize.roundToPx().coerceAtLeast(1) }
+                                val filterTopPad = header.centerOnSearchBar(filterSize)
+                                Box(
                                     modifier = Modifier
                                         .padding(top = filterTopPad)
                                         .offset(x = header.filterOffsetX)
-                                        .size(header.filterIconSize)
+                                        .size(filterSize)
                                         .clickable(
                                             interactionSource = remember { MutableInteractionSource() },
                                             indication = null,
@@ -281,8 +283,19 @@ fun ProductsScreen(
                                                 showFilterSheet = true
                                             },
                                         ),
-                                    contentScale = ContentScale.Fit,
-                                )
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    AsyncImage(
+                                        model = ImageRequest.Builder(filterContext)
+                                            .data("file:///android_asset/vitrina/ui/filter_button.png")
+                                            .size(filterSizePx)
+                                            .transformations(TrimTransparentTransformation())
+                                            .build(),
+                                        contentDescription = "Filtrar",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Fit,
+                                    )
+                                }
 
                                 Spacer(modifier = Modifier.width(header.filterToSearchGap))
 

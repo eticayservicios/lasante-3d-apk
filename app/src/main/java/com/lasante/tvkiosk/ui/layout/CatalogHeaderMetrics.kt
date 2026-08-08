@@ -78,8 +78,8 @@ data class CatalogHeaderMetrics(
 
     companion object {
         private const val TITLE_SCALE = 0.95f
-        /** Filtro: −5% −5% −2% −2% −10% (último pedido). */
-        private const val FILTER_SCALE = 0.95f * 0.95f * 0.98f * 0.98f * 0.90f
+        /** Filtro: escala única y clara sobre la base por perfil. */
+        private const val FILTER_SCALE = 0.70f
         /** Nav catálogo (volver + home): unificado; −2% sobre el tamaño validado 36.dp. */
         private val CATALOG_NAV_BUTTON_SIZE = 36.dp * 0.98f
         private const val FILTER_SEARCH_EXTRA_SPACES = 3
