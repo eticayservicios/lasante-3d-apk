@@ -50,6 +50,7 @@ import com.lasante.tvkiosk.ui.components.TrimTransparentTransformation
 import com.lasante.tvkiosk.ui.layout.CatalogHeaderMetrics
 import com.lasante.tvkiosk.ui.layout.CatalogScreenTitle
 import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
+import com.lasante.tvkiosk.ui.layout.LogCatalogHeaderProfile
 import com.lasante.tvkiosk.ui.layout.SharedNavMetrics
 import com.lasante.tvkiosk.ui.layout.rememberCatalogLayout
 import com.lasante.tvkiosk.ui.theme.LaSanteGreen
@@ -73,6 +74,7 @@ fun TreatmentsScreen(
             val profile = catalog.profile
             val header = catalog.header
             val ui = catalog.ui
+            LogCatalogHeaderProfile(header = header, screen = "CT")
 
             val columns = when {
                 catalog.largeCanvas || profile.tier == DeviceProfileTier.TV_REGULAR -> 4

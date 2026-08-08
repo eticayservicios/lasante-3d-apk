@@ -59,6 +59,7 @@ import com.lasante.tvkiosk.ui.components.RealGreenScrollBar
 import com.lasante.tvkiosk.ui.components.TreatmentIconAssets
 import com.lasante.tvkiosk.ui.components.TrimTransparentTransformation
 import com.lasante.tvkiosk.ui.layout.CatalogScreenTitle
+import com.lasante.tvkiosk.ui.layout.LogCatalogHeaderProfile
 import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
 import com.lasante.tvkiosk.ui.layout.rememberCatalogLayout
 import com.lasante.tvkiosk.ui.screens.treatments.TreatmentUiMetrics
@@ -126,6 +127,7 @@ fun ProductsScreen(
                 else -> if (isLandscape) 4 else 2
             }
             val buttonSize = header.navButtonSize
+            LogCatalogHeaderProfile(header = header, screen = "Products")
 
             var searchQuery by remember { mutableStateOf("") }
             var sortOrder by remember { mutableStateOf(SortOrder.NONE) }

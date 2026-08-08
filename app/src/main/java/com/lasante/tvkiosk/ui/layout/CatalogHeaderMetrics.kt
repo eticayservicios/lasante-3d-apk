@@ -60,6 +60,7 @@ data class CatalogHeaderMetrics(
     val isLargeCanvas: Boolean,
     val badgeWidth: Dp,
     val titleStartGap: Dp,
+    /** Volver y Home — un solo tamaño; cambiar aquí afecta ambos. */
     val navButtonSize: Dp,
     val searchBarWidth: Dp,
     val searchBarHeight: Dp,
@@ -77,6 +78,8 @@ data class CatalogHeaderMetrics(
     companion object {
         private const val TITLE_SCALE = 0.95f
         private const val FILTER_SCALE = 0.95f * 0.95f
+        /** Nav catálogo (volver + home): tamaño unificado validado. */
+        private val CATALOG_NAV_BUTTON_SIZE = 36.dp
         private const val SCROLL_NUDGE_SPACES = 10
         private const val FILTER_SEARCH_EXTRA_SPACES = 3
 
@@ -101,13 +104,6 @@ data class CatalogHeaderMetrics(
             val isTv66 = profile.tier == DeviceProfileTier.TV_LARGE
             val isTv42 = profile.tier == DeviceProfileTier.TV_REGULAR
             val badgeWidth = uiMetrics.badgeHeight * TreatmentUiMetrics.BADGE_WIDTH_TO_HEIGHT
-
-            val titleExtra = when {
-                isPhoneLandscape -> 48.dp
-                largeCanvas -> 44.dp
-                isTv42 -> 34.dp
-                else -> 32.dp
-            }
 
             val searchBarWidth = when {
                 isTv66 -> 480.dp
@@ -172,8 +168,9 @@ data class CatalogHeaderMetrics(
                 isTv66 = isTv66,
                 isLargeCanvas = largeCanvas,
                 badgeWidth = badgeWidth,
-                titleStartGap = badgeWidth + titleExtra,
-                navButtonSize = uiMetrics.navButtonSize,
+                // Mismo origen X que el grid de cards (CT y Productos).
+                titleStartGap = 0.dp,
+                navButtonSize = CATALOG_NAV_BUTTON_SIZE,
                 searchBarWidth = searchBarWidth,
                 searchBarHeight = searchBarHeight,
                 filterIconSize = filterBase * FILTER_SCALE,
@@ -245,4 +242,22 @@ fun CatalogScreenTitle(
         allCaps = false,
         modifier = modifier.padding(start = titleStartGap),
     )
+}
+
+/** Log de header CT/Productos — tag [CatalogProfile]. */
+@Composable
+fun LogCatalogHeaderProfile(header: CatalogHeaderMetrics, screen: String) {
+    androidx.compose.runtime.LaunchedEffect(
+        screen,
+        header.titleStartGap,
+        header.navButtonSize,
+        header.isLargeCanvas,
+    ) {
+        android.util.Log.i(
+            "CatalogProfile",
+            "$screen titleStartGap=${header.titleStartGap} " +
+                "navBtn=${header.navButtonSize} " +
+                "large=${header.isLargeCanvas} tv42=${header.isTv42} tv66=${header.isTv66}",
+        )
+    }
 }
