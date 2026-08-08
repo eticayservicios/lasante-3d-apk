@@ -461,16 +461,11 @@ data class IntroLayoutMetrics(
             else -> historiaBadgeHeight * 0.10f
         }
 
+    /** Redes Intro — TV42/Fire/Damasco unificados (LARGE). */
     val socialIconSize: Dp
         get() = when (vitrinaProfileKey) {
-            // Phone: +30% vs baseline 24.
             "phone_landscape" -> 24.dp * 1.30f
-            // TV42 (Ariana/Fire/Damasco): redes grandes; −2% vs 1.55.
-            "tv_42", "tablet_landscape" -> when {
-                isTv42 || isTv42LargeCanvas -> 48.dp * 1.55f * 0.98f
-                else -> 39.dp
-            }
-            // TV66: mismo tamaño que Gira / Touch.
+            "tv_42", "tablet_landscape" -> 56.dp // 62 −10%
             "tv_66" -> rotateButtonSize
             "tv_32" -> 46.dp
             else -> if (isCompactWidth) 30.dp else 37.dp
@@ -479,13 +474,9 @@ data class IntroLayoutMetrics(
     /** Espacio vertical entre iconos de redes sociales. */
     val socialIconSpacing: Dp
         get() = when (vitrinaProfileKey) {
-            // TV66: redes más grandes → más aire vertical que TV42 (30.dp).
             "tv_66" -> 42.dp
-            "tv_42", "tablet_landscape" -> when {
-                isTv42LargeCanvas -> 34.dp
-                isTv42 -> 24.dp // Fire: spacing fijo aunque redes crezcan
-                else -> 30.dp
-            }
+            // TV42 unificado (Fire/Damasco LARGE): mismo spacing.
+            "tv_42", "tablet_landscape" -> 34.dp
             else -> 30.dp
         }
 

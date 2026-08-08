@@ -79,6 +79,7 @@ fun IntroResponsiveLayout(
                     "isPhoneLand=${metrics.isPhoneLandscape} " +
                     "isTv=${metrics.isTv} isTv42=${metrics.isTv42} isTv66=${metrics.isTv66} " +
                     "tv42Large=${metrics.isTv42LargeCanvas} " +
+                    "socialIcon=${metrics.socialIconSize} " +
                     "manufacturer=${android.os.Build.MANUFACTURER} " +
                     "model=${android.os.Build.MODEL} " +
                     "badgeH=${metrics.bubblesBadgeHeight} badgeW=${metrics.bubblesBadgeWidthFraction} " +

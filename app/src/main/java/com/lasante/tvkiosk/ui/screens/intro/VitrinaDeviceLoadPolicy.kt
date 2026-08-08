@@ -105,13 +105,16 @@ internal object VitrinaDeviceLoadPolicy {
         videoPrefetchDelayMs(profile)
 
     /**
-     * Tablet mantiene [RenderQuality.Default] (nitidez del GLB).
-     * La presión de memoria en Fire HD se mitiga con prefetch retrasado, no con DRS.
-     * Solo emulador usa Performance (evita ANR en TV x86).
+     * Calidad Filament:
+     * - Emulador TV66/4K: [RenderQuality.Performance] (DRS) para evitar ANR en x86.
+     * - Emulador Ariana / Television_1080 (TV_REGULAR): [RenderQuality.Default] —
+     *   Performance+DRS se ve muy pixelado en 1137×711.
+     * - Dispositivos reales (Fire HD incluido): Default sin DRS; la RAM se mitiga
+     *   con prefetch retrasado, no bajando resolución del GLB.
      */
     fun filamentRenderQuality(context: Context, layoutMetrics: IntroLayoutMetrics): RenderQuality =
         when {
-            isLikelyEmulator() -> RenderQuality.Performance
+            isLikelyEmulator() && layoutMetrics.isTv66 -> RenderQuality.Performance
             else -> RenderQuality.Default
         }
 
