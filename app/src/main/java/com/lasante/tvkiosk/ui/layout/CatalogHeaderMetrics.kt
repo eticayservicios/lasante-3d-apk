@@ -60,6 +60,8 @@ data class CatalogHeaderMetrics(
     val isLargeCanvas: Boolean,
     val badgeWidth: Dp,
     val titleStartGap: Dp,
+    /** Baja solo el título (CT/Productos); nav/Ordenar no se mueven. */
+    val titleTopGap: Dp,
     /** Volver y Home — un solo tamaño; cambiar aquí afecta ambos. */
     val navButtonSize: Dp,
     val searchBarWidth: Dp,
@@ -87,6 +89,8 @@ data class CatalogHeaderMetrics(
         private const val GRID_TOP_SPACES = 2
         /** Productos: bajar cards (+2 espacios vs base). */
         private const val PRODUCTS_GRID_TOP_SPACES = 4
+        /** Baja el título principal 2 espacios (sin mover nav/Ordenar). */
+        private const val TITLE_TOP_SPACES = 2
 
         fun catalogTitleSp(navTitleSp: Float): Int =
             ((navTitleSp + 2f) * TITLE_SCALE).roundToInt().coerceAtLeast(1)
@@ -183,12 +187,9 @@ data class CatalogHeaderMetrics(
                 isTv66 = isTv66,
                 isLargeCanvas = largeCanvas,
                 badgeWidth = badgeWidth,
-                // Infinix: +2% del ancho para que el título no quede bajo el badge de CT.
-                titleStartGap = if (isPhoneLandscape) {
-                    profile.maxWidth * 0.02f
-                } else {
-                    0.dp
-                },
+                // Título CT/Productos: +7% del ancho a la derecha (Ordenar/nav no se mueven).
+                titleStartGap = profile.maxWidth * 0.07f,
+                titleTopGap = FireTv42Spacing.spaces(TITLE_TOP_SPACES),
                 navButtonSize = CATALOG_NAV_BUTTON_SIZE,
                 searchBarWidth = searchBarWidth,
                 searchBarHeight = searchBarHeight,
@@ -244,6 +245,7 @@ fun CatalogScreenTitle(
     text: String,
     nav: SharedNavMetrics,
     titleStartGap: Dp,
+    titleTopGap: Dp = 0.dp,
     modifier: Modifier = Modifier,
 ) {
     LaSanteScreenTitle(
@@ -259,7 +261,7 @@ fun CatalogScreenTitle(
         fontFamily = MaterialTheme.typography.bodyLarge.fontFamily,
         fontWeight = FontWeight.Light,
         allCaps = false,
-        modifier = modifier.padding(start = titleStartGap),
+        modifier = modifier.padding(start = titleStartGap, top = titleTopGap),
     )
 }
 

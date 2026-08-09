@@ -194,6 +194,7 @@ private fun TreatmentsHeader(
             text = DisplayTitles.resolve(unitName),
             nav = nav,
             titleStartGap = header.titleStartGap,
+            titleTopGap = header.titleTopGap,
         )
         Spacer(modifier = Modifier.weight(1f))
         GreenNavButton(

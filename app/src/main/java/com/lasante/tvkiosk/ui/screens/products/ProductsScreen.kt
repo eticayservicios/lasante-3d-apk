@@ -260,6 +260,7 @@ fun ProductsScreen(
                                 text = DisplayTitles.resolve(treatmentName),
                                 nav = nav,
                                 titleStartGap = header.titleStartGap,
+                                titleTopGap = header.titleTopGap,
                             )
 
                             Spacer(modifier = Modifier.weight(1f))
