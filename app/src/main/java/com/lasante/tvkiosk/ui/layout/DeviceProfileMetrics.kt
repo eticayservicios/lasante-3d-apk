@@ -119,57 +119,56 @@ object DeviceProfileResolver {
 
     private fun gridMetrics(profile: DeviceProfile): SharedGridMetrics {
         val w = profile.maxWidth
+        // Mismo criterio en todos los dispositivos: 90% de ancho útil (5% margen por lado).
+        val sideMargin = w * 0.05f
         return when (profile.tier) {
             DeviceProfileTier.COMPACT_LANDSCAPE -> SharedGridMetrics(
                 // 5 cols (antes 6): cards/iconos más grandes en Infinix.
                 columns = 5,
-                // Márgenes laterales: evitaba quedar pegado a los bordes (Infinix landscape).
-                horizontalPadding = 28.dp,
-                maxContentWidth = 780.dp,
+                horizontalPadding = sideMargin,
+                maxContentWidth = w,
                 contentPadding = 8.dp,
                 cardSpacing = 8.dp,
                 topPadding = 28.dp,
             )
             DeviceProfileTier.TV_LARGE -> SharedGridMetrics(
                 columns = 4,
-                horizontalPadding = 42.dp,
-                // +30% vs 1332: más ancho útil en clases y productos (márgenes laterales menos agresivos).
-                maxContentWidth = 1732.dp,
+                horizontalPadding = sideMargin,
+                maxContentWidth = w,
                 contentPadding = 10.dp,
                 cardSpacing = 24.dp,
                 topPadding = 58.dp,
             )
             DeviceProfileTier.TV_REGULAR -> SharedGridMetrics(
-                // Fire / Television_1080 (~960×540): 4 cols = cards más anchos, menos truncate.
+                // Fire / Ariana (~1137) y Damasco (~1333): 4 cols.
                 columns = 4,
-                horizontalPadding = if (w >= 1200.dp) 16.dp else 28.dp,
-                // Damasco (~1333) usa más ancho; Fire (~961) queda en 911.
-                maxContentWidth = if (w >= 1200.dp) 1180.dp else 911.dp,
+                horizontalPadding = sideMargin,
+                maxContentWidth = w,
                 contentPadding = 8.dp,
-                cardSpacing = if (w >= 1200.dp) 12.dp else 16.dp,
+                cardSpacing = if (w >= 1200.dp) 12.dp else 14.dp,
                 // Fire ~540H: 54.dp comía la 2.ª fila. Damasco canvas alto mantiene aire.
                 topPadding = if (w >= 1200.dp) 54.dp else 28.dp,
             )
             DeviceProfileTier.TABLET_LANDSCAPE -> SharedGridMetrics(
                 columns = if (profile.maxWidth >= 900.dp) 5 else 4,
-                horizontalPadding = if (w >= 1200.dp) 42.dp else if (w >= 800.dp) 20.dp else 16.dp,
-                maxContentWidth = if (profile.isWide) 1008.dp else 648.dp,
+                horizontalPadding = sideMargin,
+                maxContentWidth = w,
                 contentPadding = if (profile.isWide) 10.dp else 4.dp,
                 cardSpacing = 14.dp,
                 topPadding = 32.dp,
             )
             DeviceProfileTier.COMPACT_PORTRAIT -> SharedGridMetrics(
                 columns = 2,
-                horizontalPadding = 16.dp,
-                maxContentWidth = 648.dp,
+                horizontalPadding = sideMargin,
+                maxContentWidth = w,
                 contentPadding = 4.dp,
                 cardSpacing = 12.dp,
                 topPadding = 18.dp,
             )
             DeviceProfileTier.DEFAULT -> SharedGridMetrics(
                 columns = if (profile.isLandscape && w >= 620.dp) 4 else 2,
-                horizontalPadding = 16.dp,
-                maxContentWidth = 648.dp,
+                horizontalPadding = sideMargin,
+                maxContentWidth = w,
                 contentPadding = 4.dp,
                 cardSpacing = 12.dp,
                 topPadding = if (profile.isLandscape) 32.dp else 18.dp,

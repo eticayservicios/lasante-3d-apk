@@ -2,6 +2,7 @@ package com.lasante.tvkiosk.ui.screens.treatments
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -55,7 +56,7 @@ import com.lasante.tvkiosk.ui.layout.SharedNavMetrics
 import com.lasante.tvkiosk.ui.layout.rememberCatalogLayout
 import com.lasante.tvkiosk.ui.theme.LaSanteGreen
 import com.lasante.tvkiosk.ui.theme.LaSanteText
-import com.lasante.tvkiosk.ui.utils.clickableWithSound
+import com.lasante.tvkiosk.ui.utils.SoundManager
 
 @Composable
 fun TreatmentsScreen(
@@ -64,9 +65,12 @@ fun TreatmentsScreen(
     onBack: () -> Unit,
     onTreatmentSelected: (String) -> Unit,
 ) {
-    BackHandler(onBack = onBack)
-
     val gridState = rememberLazyGridState()
+    val context = LocalContext.current
+    BackHandler {
+        SoundManager.playClickSound(context)
+        onBack()
+    }
 
     LaSanteBackground {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -197,6 +201,7 @@ private fun TreatmentsHeader(
             contentDescription = "Volver",
             onClick = onBack,
             size = header.navButtonSize,
+            playSound = true,
         )
     }
 }
@@ -240,7 +245,7 @@ private fun TherapeuticClassCard(
                     colors = listOf(Color(0xFFF4F4F4), Color(0xFFE1E1E1)),
                 ),
             )
-            .clickableWithSound { onClick() }
+            .clickable(onClick = onClick)
             .padding(start = 4.dp, end = 4.dp, top = 4.dp, bottom = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

@@ -278,10 +278,7 @@ fun ProductsScreen(
                                         .clickable(
                                             interactionSource = remember { MutableInteractionSource() },
                                             indication = null,
-                                            onClick = {
-                                                com.lasante.tvkiosk.ui.utils.SoundManager.playClickSound(filterContext)
-                                                showFilterSheet = true
-                                            },
+                                            onClick = { showFilterSheet = true },
                                         ),
                                     contentAlignment = Alignment.Center,
                                 ) {
@@ -396,6 +393,7 @@ fun ProductsScreen(
                                         contentDescription = "Inicio",
                                         onClick = onHome,
                                         size = buttonSize,
+                                        playSound = true,
                                     )
                                 }
                             }

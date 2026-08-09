@@ -86,6 +86,7 @@ fun GreenNavButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     size: Dp = 56.dp,
+    playSound: Boolean = false,
 ) {
     val context = LocalContext.current
     Box(
@@ -93,7 +94,9 @@ fun GreenNavButton(
             .padding(top = 2.dp)
             .size(size)
             .clickable {
-                SoundManager.playClickSound(context)
+                if (playSound) {
+                    SoundManager.playClickSound(context)
+                }
                 onClick()
             },
         contentAlignment = Alignment.Center

@@ -1,5 +1,6 @@
 package com.lasante.tvkiosk.ui.screens.intro
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -26,7 +27,6 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.lasante.tvkiosk.data.Product
 import com.lasante.tvkiosk.data.VitrinaUnit
-import com.lasante.tvkiosk.ui.utils.clickableWithSound
 
 private const val PROFILE_LOG_TAG = "VitrinaProfile"
 
@@ -208,7 +208,7 @@ private fun HistoriaBadgeButton(
         modifier = modifier
             .width(metrics.historiaBadgeWidth)
             .height(metrics.historiaBadgeHeight)
-            .clickableWithSound { onClick() },
+            .clickable { onClick() },
         contentAlignment = Alignment.TopCenter,
     ) {
         AsyncImage(
@@ -254,7 +254,7 @@ internal fun IntroActionButton(
         contentDescription = null,
         modifier = modifier
             .size(size)
-            .clickableWithSound { onClick() },
+            .clickable { onClick() },
         contentScale = ContentScale.Fit,
     )
 }

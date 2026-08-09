@@ -2,6 +2,7 @@ package com.lasante.tvkiosk.ui.screens.intro
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -44,7 +45,6 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.lasante.tvkiosk.data.Product
 import com.lasante.tvkiosk.ui.theme.LaSanteOrange
-import com.lasante.tvkiosk.ui.utils.clickableWithSound
 
 /** Verde del conector / badge (mockup). */
 private val BubblesConnectorGreen = Color(0xFF88B72E)
@@ -274,7 +274,7 @@ private fun VitrinaProductBubble(
         modifier = Modifier
             .size(bubbleSize)
             .clip(CircleShape)
-            .clickableWithSound(onClick = onClick),
+            .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         VitrinaBubbleSphere(modifier = Modifier.fillMaxSize())

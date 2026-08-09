@@ -85,6 +85,8 @@ data class CatalogHeaderMetrics(
         private const val FILTER_SEARCH_EXTRA_SPACES = 3
         private const val FILTER_OFFSET_SPACES = 2
         private const val GRID_TOP_SPACES = 2
+        /** Productos: bajar cards (+2 espacios vs base). */
+        private const val PRODUCTS_GRID_TOP_SPACES = 4
 
         fun catalogTitleSp(navTitleSp: Float): Int =
             ((navTitleSp + 2f) * TITLE_SCALE).roundToInt().coerceAtLeast(1)
@@ -99,7 +101,7 @@ data class CatalogHeaderMetrics(
 
         /** Padding top del grid de productos (bajar cards N espacios). */
         fun productsGridTopPadding(base: Dp = 16.dp): Dp =
-            base + FireTv42Spacing.spaces(GRID_TOP_SPACES)
+            base + FireTv42Spacing.spaces(PRODUCTS_GRID_TOP_SPACES)
 
         /**
          * Padding end del scroll: borde derecho del rail = borde derecho del Home
@@ -181,8 +183,12 @@ data class CatalogHeaderMetrics(
                 isTv66 = isTv66,
                 isLargeCanvas = largeCanvas,
                 badgeWidth = badgeWidth,
-                // Mismo origen X que el grid de cards (CT y Productos).
-                titleStartGap = 0.dp,
+                // Infinix: +2% del ancho para que el título no quede bajo el badge de CT.
+                titleStartGap = if (isPhoneLandscape) {
+                    profile.maxWidth * 0.02f
+                } else {
+                    0.dp
+                },
                 navButtonSize = CATALOG_NAV_BUTTON_SIZE,
                 searchBarWidth = searchBarWidth,
                 searchBarHeight = searchBarHeight,
