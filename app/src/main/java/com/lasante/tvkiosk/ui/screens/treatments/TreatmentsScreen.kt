@@ -148,7 +148,7 @@ fun TreatmentsScreen(
                             contentPadding = androidx.compose.foundation.layout.PaddingValues(
                                 start = catalog.contentPadding,
                                 end = catalog.contentPadding,
-                                top = 0.dp,
+                                top = CatalogHeaderMetrics.treatmentsGridTopPadding(),
                                 bottom = if (profile.isWide) 24.dp else 16.dp,
                             ),
                             verticalArrangement = Arrangement.spacedBy(cardSpacing),

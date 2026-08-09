@@ -107,6 +107,10 @@ data class CatalogHeaderMetrics(
         fun productsGridTopPadding(base: Dp = 16.dp): Dp =
             base + FireTv42Spacing.spaces(PRODUCTS_GRID_TOP_SPACES)
 
+        /** Padding top del grid de clases terapéuticas (bajar cards 2 espacios). */
+        fun treatmentsGridTopPadding(): Dp =
+            FireTv42Spacing.spaces(GRID_TOP_SPACES)
+
         /**
          * Padding end del scroll: borde derecho del rail = borde derecho del Home
          * (guía de la captura). CT + Productos.
