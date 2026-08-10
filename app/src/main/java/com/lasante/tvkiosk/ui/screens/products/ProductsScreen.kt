@@ -706,20 +706,20 @@ fun ProductsScreen(
                     }
                 }
 
-                // Badge CT: TV66 +7 esp; Fire/Ariana +4 esp (escala).
+                // Badge CT: Ariana/Fire → −15 esp X, lift 4+2; TV66 → lift 7.
                 TreatmentIconBadge(
                     iconUrl = treatmentIconUrl,
                     metrics = catalog.ui,
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .offset {
-                            val lift = when {
-                                isTv66 -> FireTv42Spacing.spaces(7).roundToPx()
+                            val (dx, lift) = when {
+                                isTv66 -> 0.dp to FireTv42Spacing.spaces(7)
                                 isTv42 || catalog.largeCanvas ->
-                                    FireTv42Spacing.spaces(4).roundToPx()
-                                else -> 0
+                                    (-FireTv42Spacing.spaces(9)) to FireTv42Spacing.spaces(4)
+                                else -> 0.dp to 0.dp
                             }
-                            IntOffset(x = 0, y = -lift)
+                            IntOffset(x = dx.roundToPx(), y = -lift.roundToPx())
                         }
                         .padding(
                             start = horizontalPadding + contentPadding,
