@@ -10,7 +10,10 @@ import coil.request.ImageRequest
  */
 object VitrinaUiImages {
     const val HISTORIA_GIF = "file:///android_asset/vitrina/ui/Historia.gif"
+    const val GIRA_GIF = "file:///android_asset/vitrina/ui/gira.gif"
+    const val TOUCH_GIF = "file:///android_asset/vitrina/ui/touch.gif"
     const val BADGE_HISTORIA = "file:///android_asset/vitrina/ui/badge_historia.png"
+    const val FILTER_BUTTON = "file:///android_asset/vitrina/ui/filter_button.png"
 
     fun request(
         context: Context,
@@ -26,5 +29,15 @@ object VitrinaUiImages {
                 // Evita frames basura / flash blanco en GIFs con disposal (Infinix / mid-range).
                 if (isGif) allowHardware(false)
             }
+            .build()
+
+    /** PNG de filtro (491×390): cargar a resolución original; no downsample al tamaño de pantalla. */
+    fun filterRequest(context: Context): ImageRequest =
+        ImageRequest.Builder(context)
+            .data(FILTER_BUTTON)
+            .size(coil.size.Size.ORIGINAL)
+            .crossfade(false)
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .diskCachePolicy(CachePolicy.ENABLED)
             .build()
 }

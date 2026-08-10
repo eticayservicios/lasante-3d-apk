@@ -802,8 +802,8 @@ data class IntroLayoutMetrics(
                 isTv42 -> (-6).dp
                 else -> 12.dp
             }
-            // TV66: baseline; el manito blanco del cintillo se mueve con touchHintCenterXOffset.
-            "tv_66" -> (-36).dp
+            // TV66: +10 espacios a la derecha (había quedado corrido a la izquierda).
+            "tv_66" -> (-36).dp + FireTv42Spacing.spaces(10)
             "tv_32" -> (-14).dp
             else -> (-8).dp
         }

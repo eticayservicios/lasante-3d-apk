@@ -258,6 +258,7 @@ internal fun IntroActionButton(
     onClick: () -> Unit,
     size: androidx.compose.ui.unit.Dp,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     val context = LocalContext.current
     val model = remember(assetPath, context) {
@@ -268,7 +269,7 @@ internal fun IntroActionButton(
         contentDescription = null,
         modifier = modifier
             .size(size)
-            .clickable(onClick = onClick),
+            .clickable(enabled = enabled, onClick = onClick),
         contentScale = ContentScale.Fit,
     )
 }

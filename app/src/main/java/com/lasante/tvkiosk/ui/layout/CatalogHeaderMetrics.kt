@@ -302,7 +302,8 @@ data class CatalogHeaderMetrics(
                 navButtonSize = navButtonSize,
                 searchBarWidth = searchBarWidth,
                 searchBarHeight = searchBarHeight,
-                filterIconSize = filterBase * FILTER_SCALE,
+                // TV66: mismo tamaño que Volver/Home.
+                filterIconSize = if (isTv66) navButtonSize else filterBase * FILTER_SCALE,
                 filterOffsetX = FireTv42Spacing.spaces(
                     if (isTv66) TV66_FILTER_OFFSET_SPACES else FILTER_OFFSET_SPACES,
                 ),

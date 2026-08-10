@@ -49,11 +49,15 @@ fun IntroScreen(
         configuration.screenWidthDp >= 640 &&
         configuration.screenHeightDp >= 400
 
-    // Precarga Historia.gif una vez: al volver a Intro ya está en cache Coil.
+    // Precarga GIFs de Intro una vez: al volver ya están en cache Coil.
     LaunchedEffect(Unit) {
-        context.imageLoader.enqueue(
-            VitrinaUiImages.request(context, VitrinaUiImages.HISTORIA_GIF),
-        )
+        listOf(
+            VitrinaUiImages.HISTORIA_GIF,
+            VitrinaUiImages.GIRA_GIF,
+            VitrinaUiImages.TOUCH_GIF,
+        ).forEach { path ->
+            context.imageLoader.enqueue(VitrinaUiImages.request(context, path))
+        }
     }
 
     var selectedProduct by remember { mutableStateOf<Product?>(null) }

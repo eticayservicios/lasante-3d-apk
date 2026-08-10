@@ -65,6 +65,7 @@ import com.lasante.tvkiosk.ui.layout.FireTv42Spacing
 import com.lasante.tvkiosk.ui.layout.HikvisionLayoutDebug
 import com.lasante.tvkiosk.ui.layout.LogCatalogHeaderProfile
 import com.lasante.tvkiosk.ui.layout.rememberCatalogLayout
+import com.lasante.tvkiosk.ui.screens.intro.VitrinaUiImages
 import com.lasante.tvkiosk.ui.screens.treatments.TreatmentUiMetrics
 import com.lasante.tvkiosk.ui.theme.*
 import com.lasante.tvkiosk.ui.utils.clickableWithSound
@@ -276,10 +277,9 @@ fun ProductsScreen(
                                     )
                                     Spacer(modifier = Modifier.weight(1f))
                                     val filterContext = LocalContext.current
-                                    val density = LocalDensity.current
                                     val filterSize = header.filterIconSize
-                                    val filterSizePx = with(density) {
-                                        filterSize.roundToPx().coerceAtLeast(1)
+                                    val filterModel = remember(filterContext) {
+                                        VitrinaUiImages.filterRequest(filterContext)
                                     }
                                     Box(
                                         modifier = Modifier
@@ -292,11 +292,7 @@ fun ProductsScreen(
                                         contentAlignment = Alignment.Center,
                                     ) {
                                         AsyncImage(
-                                            model = ImageRequest.Builder(filterContext)
-                                                .data("file:///android_asset/vitrina/ui/filter_button.png")
-                                                .size(filterSizePx)
-                                                .transformations(TrimTransparentTransformation())
-                                                .build(),
+                                            model = filterModel,
                                             contentDescription = "Filtrar",
                                             modifier = Modifier.fillMaxSize(),
                                             contentScale = ContentScale.Fit,
@@ -423,9 +419,10 @@ fun ProductsScreen(
 
                             Row(verticalAlignment = Alignment.Top) {
                                 val filterContext = LocalContext.current
-                                val density = LocalDensity.current
                                 val filterSize = header.filterIconSize
-                                val filterSizePx = with(density) { filterSize.roundToPx().coerceAtLeast(1) }
+                                val filterModel = remember(filterContext) {
+                                    VitrinaUiImages.filterRequest(filterContext)
+                                }
                                 val filterTopPad =
                                     header.centerOnSearchBar(filterSize) + header.controlsTopGap
                                 Box(
@@ -441,11 +438,7 @@ fun ProductsScreen(
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     AsyncImage(
-                                        model = ImageRequest.Builder(filterContext)
-                                            .data("file:///android_asset/vitrina/ui/filter_button.png")
-                                            .size(filterSizePx)
-                                            .transformations(TrimTransparentTransformation())
-                                            .build(),
+                                        model = filterModel,
                                         contentDescription = "Filtrar",
                                         modifier = Modifier.fillMaxSize(),
                                         contentScale = ContentScale.Fit,
@@ -674,16 +667,15 @@ fun ProductsScreen(
                     }
                 }
 
-                // Badge CT (clase) top-start; TV66: subir 3 espacios.
+                // Badge CT (clase) top-start; TV66: subir 5 espacios.
                 TreatmentIconBadge(
                     iconUrl = treatmentIconUrl,
                     metrics = catalog.ui,
-                    widthTrim = if (isTv66) 2.dp else 0.dp,
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .offset {
                             val lift = when {
-                                isTv66 -> FireTv42Spacing.spaces(3).roundToPx()
+                                isTv66 -> FireTv42Spacing.spaces(5).roundToPx()
                                 isTv42 -> 6.dp.roundToPx()
                                 else -> 0
                             }
@@ -785,14 +777,25 @@ private fun TreatmentIconBadge(
     iconUrl: String?,
     metrics: TreatmentUiMetrics.ProfileMetrics,
     modifier: Modifier = Modifier,
-    /** TV66: −2.dp de ancho para que se vea menos angosto/raro. */
-    widthTrim: Dp = 0.dp,
 ) {
+    val context = LocalContext.current
+    val density = LocalDensity.current
     val iconModel = TreatmentIconAssets.resolve(iconUrl = iconUrl)
     val badgeHeight = metrics.badgeHeight
     val badgeWidth =
-        (badgeHeight * TreatmentUiMetrics.BADGE_WIDTH_TO_HEIGHT - widthTrim).coerceAtLeast(24.dp)
+        (badgeHeight * TreatmentUiMetrics.BADGE_WIDTH_TO_HEIGHT).coerceAtLeast(24.dp)
     val iconSize = metrics.badgeIconSize
+    // Badge PNG es pequeño; el icono CT del CDN es ~1080² — no usar ORIGINAL (OOM + Trim).
+    val badgeBgModel = remember(context) {
+        ImageRequest.Builder(context)
+            .data("file:///android_asset/vitrina/ui/treatment_badge_shadow.png")
+            .size(coil.size.Size.ORIGINAL)
+            .crossfade(false)
+            .build()
+    }
+    val iconDecodePx = with(density) {
+        (iconSize * 3f).roundToPx().coerceIn(96, 256)
+    }
 
     Box(
         modifier = modifier
@@ -801,20 +804,24 @@ private fun TreatmentIconBadge(
         contentAlignment = Alignment.Center,
     ) {
         AsyncImage(
-            model = "file:///android_asset/vitrina/ui/treatment_badge_shadow.png",
+            model = badgeBgModel,
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Fit,
         )
         if (!iconModel.isNullOrBlank()) {
             AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
+                model = ImageRequest.Builder(context)
                     .data(iconModel)
+                    .size(iconDecodePx)
                     .transformations(TrimTransparentTransformation())
-                    .crossfade(true)
+                    .crossfade(false)
                     .build(),
                 contentDescription = null,
-                modifier = Modifier.size(iconSize),
+                // −2.dp respecto al centro del fondo.
+                modifier = Modifier
+                    .size(iconSize)
+                    .offset(y = 2.dp),
                 contentScale = ContentScale.Fit,
             )
         }

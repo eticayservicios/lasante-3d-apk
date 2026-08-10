@@ -18,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.zIndex
@@ -201,39 +202,40 @@ fun BusinessUnitVitrina(
                 )
             }
 
-            // Gira: anclado al borde derecho de la escena (no a la columna del cilindro),
-            // para que endPadding/protrude sí se noten en TV42.
-            if (showOverlayControls) {
-                IntroActionButton(
-                    assetPath = "file:///android_asset/vitrina/ui/gira.gif",
-                    onClick = onRotateClick,
-                    size = metrics.rotateButtonSize,
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = metrics.rotateButtonEndPadding)
-                        .offset(
-                            x = metrics.rotateButtonProtrudeOffset,
-                            y = metrics.rotateButtonCenterYOffset,
-                        )
-                        .zIndex(40f),
-                )
-            }
+            // Manitos: siempre montadas (alpha) como Historia — no re-decodificar al volver.
+            IntroActionButton(
+                assetPath = VitrinaUiImages.GIRA_GIF,
+                onClick = onRotateClick,
+                size = metrics.rotateButtonSize,
+                enabled = showOverlayControls,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = metrics.rotateButtonEndPadding)
+                    .offset(
+                        x = metrics.rotateButtonProtrudeOffset,
+                        y = metrics.rotateButtonCenterYOffset,
+                    )
+                    .alpha(if (showOverlayControls) 1f else 0f)
+                    .zIndex(40f),
+            )
 
-            if (showOverlayControls && vitrinaInteractionEnabled && showProducts) {
-                IntroActionButton(
-                    assetPath = "file:///android_asset/vitrina/ui/touch.gif",
-                    onClick = {
-                        onWakeFromIdle()
-                        onUnitClick(activeVitrinaUnit.unit.id)
-                    },
-                    size = metrics.touchHintSize,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = metrics.touchHintBottomPadding)
-                        .offset(x = metrics.touchHintCenterXOffset)
-                        .zIndex(40f),
-                )
-            }
+            val touchVisible =
+                showOverlayControls && vitrinaInteractionEnabled && showProducts
+            IntroActionButton(
+                assetPath = VitrinaUiImages.TOUCH_GIF,
+                onClick = {
+                    onWakeFromIdle()
+                    onUnitClick(activeVitrinaUnit.unit.id)
+                },
+                size = metrics.touchHintSize,
+                enabled = touchVisible,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = metrics.touchHintBottomPadding)
+                    .offset(x = metrics.touchHintCenterXOffset)
+                    .alpha(if (touchVisible) 1f else 0f)
+                    .zIndex(40f),
+            )
             // Historia: BadgeHistoria + gif en IntroLandscapeLayout (rail derecho).
         }
     }

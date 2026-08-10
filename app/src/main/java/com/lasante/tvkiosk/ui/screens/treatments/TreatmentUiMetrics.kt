@@ -7,6 +7,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lasante.tvkiosk.ui.layout.DeviceProfile
 import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
+import com.lasante.tvkiosk.ui.layout.FireTv42Spacing
 
 /**
  * Badge + cards de clases terapéuticas.
@@ -75,9 +76,9 @@ object TreatmentUiMetrics {
     )
 
     val tv66 = ProfileMetrics(
-        // −5.dp vs 88; ancho −2.dp vía TreatmentIconBadge.
-        badgeHeight = 83.dp,
-        badgeIconSize = 35.dp,
+        // Fondo +5 espacios; icono −2.dp vs 40.
+        badgeHeight = 104.dp + FireTv42Spacing.spaces(5),
+        badgeIconSize = 38.dp,
         cardIconSize = 420.dp,
         navButtonSize = 52.dp,
         cardLabelFontSize = scaledSp(18.sp),
