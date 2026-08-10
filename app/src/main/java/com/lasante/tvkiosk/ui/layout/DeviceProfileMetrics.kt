@@ -139,32 +139,40 @@ object DeviceProfileResolver {
 
     private fun gridMetrics(profile: DeviceProfile): SharedGridMetrics {
         val w = profile.maxWidth
-        // Mismo criterio en todos los dispositivos: 90% de ancho útil (5% margen por lado).
-        val sideMargin = w * 0.05f
+        // Base: 90% ancho útil (5% margen por lado). TV66: márgenes −10% y ancho útil −10%.
+        val sideMargin = when (profile.tier) {
+            DeviceProfileTier.TV_LARGE -> w * 0.05f * 0.90f
+            else -> w * 0.05f
+        }
+        val maxContentWidth = when (profile.tier) {
+            DeviceProfileTier.TV_LARGE -> w * 0.90f
+            else -> w
+        }
         return when (profile.tier) {
             DeviceProfileTier.COMPACT_LANDSCAPE -> SharedGridMetrics(
                 // 5 cols (antes 6): cards/iconos más grandes en Infinix.
                 columns = 5,
                 horizontalPadding = sideMargin,
-                maxContentWidth = w,
+                maxContentWidth = maxContentWidth,
                 contentPadding = 8.dp,
                 cardSpacing = 8.dp,
                 topPadding = 28.dp,
             )
             DeviceProfileTier.TV_LARGE -> SharedGridMetrics(
                 // Hikvision 1280×720: 4 cols; top más bajo que canvas 4K altos.
+                // cardSpacing: −10.dp vs 32 (margen lateral entre cards CT).
                 columns = 4,
                 horizontalPadding = sideMargin,
-                maxContentWidth = w,
+                maxContentWidth = maxContentWidth,
                 contentPadding = 10.dp,
-                cardSpacing = 24.dp,
+                cardSpacing = 22.dp,
                 topPadding = if (profile.maxHeight <= Tv66Reference.Height + 40.dp) 28.dp else 58.dp,
             )
             DeviceProfileTier.TV_REGULAR -> SharedGridMetrics(
                 // Fire / Ariana (~1137) y Damasco (~1333): 4 cols.
                 columns = 4,
                 horizontalPadding = sideMargin,
-                maxContentWidth = w,
+                maxContentWidth = maxContentWidth,
                 contentPadding = 8.dp,
                 cardSpacing = if (w >= 1200.dp) 12.dp else 14.dp,
                 // Fire ~540H: 54.dp comía la 2.ª fila. Damasco canvas alto mantiene aire.
@@ -173,7 +181,7 @@ object DeviceProfileResolver {
             DeviceProfileTier.TABLET_LANDSCAPE -> SharedGridMetrics(
                 columns = if (profile.maxWidth >= 900.dp) 5 else 4,
                 horizontalPadding = sideMargin,
-                maxContentWidth = w,
+                maxContentWidth = maxContentWidth,
                 contentPadding = if (profile.isWide) 10.dp else 4.dp,
                 cardSpacing = 14.dp,
                 topPadding = 32.dp,
@@ -181,7 +189,7 @@ object DeviceProfileResolver {
             DeviceProfileTier.COMPACT_PORTRAIT -> SharedGridMetrics(
                 columns = 2,
                 horizontalPadding = sideMargin,
-                maxContentWidth = w,
+                maxContentWidth = maxContentWidth,
                 contentPadding = 4.dp,
                 cardSpacing = 12.dp,
                 topPadding = 18.dp,
@@ -189,7 +197,7 @@ object DeviceProfileResolver {
             DeviceProfileTier.DEFAULT -> SharedGridMetrics(
                 columns = if (profile.isLandscape && w >= 620.dp) 4 else 2,
                 horizontalPadding = sideMargin,
-                maxContentWidth = w,
+                maxContentWidth = maxContentWidth,
                 contentPadding = 4.dp,
                 cardSpacing = 12.dp,
                 topPadding = if (profile.isLandscape) 32.dp else 18.dp,

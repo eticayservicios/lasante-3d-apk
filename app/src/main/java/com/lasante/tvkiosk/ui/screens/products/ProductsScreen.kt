@@ -260,14 +260,20 @@ fun ProductsScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = contentPadding),
+                                .padding(horizontal = contentPadding)
+                                .padding(top = if (isTv66) header.controlsTopGap else 0.dp),
                             verticalAlignment = Alignment.Top,
                         ) {
                             CatalogScreenTitle(
                                 text = DisplayTitles.resolve(treatmentName),
                                 nav = nav,
                                 titleStartGap = header.titleStartGap,
-                                titleTopGap = header.titleTopGap,
+                                // TV66: centrar bloque título vs altura de la search bar (misma línea).
+                                titleTopGap = if (isTv66) {
+                                    header.centerOnSearchBar(32.dp)
+                                } else {
+                                    header.titleTopGap
+                                },
                             )
 
                             Spacer(modifier = Modifier.weight(1f))
@@ -277,7 +283,11 @@ fun ProductsScreen(
                                 val density = LocalDensity.current
                                 val filterSize = header.filterIconSize
                                 val filterSizePx = with(density) { filterSize.roundToPx().coerceAtLeast(1) }
-                                val filterTopPad = header.centerOnSearchBar(filterSize) + header.controlsTopGap
+                                val filterTopPad = if (isTv66) {
+                                    header.centerOnSearchBar(filterSize)
+                                } else {
+                                    header.centerOnSearchBar(filterSize) + header.controlsTopGap
+                                }
                                 Box(
                                     modifier = Modifier
                                         .padding(top = filterTopPad)
@@ -310,7 +320,7 @@ fun ProductsScreen(
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .padding(top = header.controlsTopGap)
+                                            .padding(top = if (isTv66) 0.dp else header.controlsTopGap)
                                             .width(header.searchBarWidth)
                                             .height(header.searchBarHeight)
                                             .shadow(elevation = 2.dp, shape = RoundedCornerShape(50.dp))
@@ -386,7 +396,11 @@ fun ProductsScreen(
 
                                 Spacer(modifier = Modifier.width(header.searchToNavGap))
 
-                                val navTopPad = header.navButtonsTopGap(buttonSize)
+                                val navTopPad = if (isTv66) {
+                                    header.centerOnSearchBar(buttonSize)
+                                } else {
+                                    header.navButtonsTopGap(buttonSize)
+                                }
                                 val navSpacing =
                                     if (isTv66) header.navPairSpacing else nav.buttonSpacing
                                 Row(

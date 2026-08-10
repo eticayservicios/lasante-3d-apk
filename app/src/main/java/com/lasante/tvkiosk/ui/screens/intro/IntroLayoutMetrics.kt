@@ -577,8 +577,8 @@ data class IntroLayoutMetrics(
             // Fire: menos nudge = cilindro más arriba. Damasco ya en 0.07.
             "tv_42", "tablet_landscape" ->
                 if (isTv42LargeCanvas) maxHeight * 0.07f else maxHeight * 0.08f
-            // TV66: baseline 0.10 → subir 7% → bajar 4% ⇒ nudge 0.07H (burbujas no se mueven).
-            "tv_66" -> maxHeight * 0.07f
+            // TV66: baseline 0.10 → subir 7% → bajar 4% ⇒ nudge 0.07H; +10.dp más abajo.
+            "tv_66" -> maxHeight * 0.07f + 10.dp
             else -> 0.dp
         }
 

@@ -75,14 +75,16 @@ object TreatmentUiMetrics {
     )
 
     val tv66 = ProfileMetrics(
-        badgeHeight = 100.dp,
-        badgeIconSize = 44.dp,
-        cardIconSize = 640.dp,
-        navButtonSize = 60.dp,
-        cardLabelFontSize = scaledSp(24.sp),
-        cardLabelLineHeight = scaledSp(28.sp),
-        cardIconFill = CARD_ICON_FILL_LARGE,
-        cardAspectRatio = 1.12f,
+        badgeHeight = 88.dp,
+        badgeIconSize = 40.dp,
+        // Decode size menor; el display lo limita iconFill dentro del card.
+        cardIconSize = 420.dp,
+        navButtonSize = 52.dp,
+        cardLabelFontSize = scaledSp(18.sp),
+        cardLabelLineHeight = scaledSp(21.sp),
+        // Menos fill = íconos no se cortan con el clip del card.
+        cardIconFill = 0.70f,
+        cardAspectRatio = 1.08f,
     )
 
     fun forProfile(

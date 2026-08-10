@@ -9,6 +9,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
 import com.lasante.tvkiosk.navigation.LaSanteNavHost
+import com.lasante.tvkiosk.ui.layout.HikvisionPreviewFrame
 import com.lasante.tvkiosk.ui.screens.treatments.TreatmentsViewModel
 import com.lasante.tvkiosk.ui.screens.treatments.TreatmentsViewModelFactory
 import com.lasante.tvkiosk.ui.theme.LaSanteTheme
@@ -31,12 +32,14 @@ fun LaSanteApp() {
 
     LaSanteTheme {
         Surface {
-            LaSanteNavHost(
-                navController = navController,
-                catalogRepository = app.catalogRepository,
-                audioPlayer = app.audioPlayer,
-                windowSizeClass = windowSizeClass,
-            )
+            HikvisionPreviewFrame {
+                LaSanteNavHost(
+                    navController = navController,
+                    catalogRepository = app.catalogRepository,
+                    audioPlayer = app.audioPlayer,
+                    windowSizeClass = windowSizeClass,
+                )
+            }
         }
     }
 }
