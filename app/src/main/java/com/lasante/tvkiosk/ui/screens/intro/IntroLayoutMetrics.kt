@@ -704,20 +704,16 @@ data class IntroLayoutMetrics(
     /** Padding inferior del hint touch.gif (sobre el cintillo frontal). */
     val touchHintBottomPadding: Dp
         get() {
-            // Infinix / tablet / Ariana: bajar 2 espacios (menos padding bottom).
-            val lowerNudge = when {
-                vitrinaProfileKey == "phone_landscape" -> FireTv42Spacing.spaces(2)
-                vitrinaProfileKey == "tablet_landscape" -> FireTv42Spacing.spaces(2)
-                vitrinaProfileKey == "tv_42" && isTv42LargeCanvas -> FireTv42Spacing.spaces(2)
+            // Infinix / tablet / Fire+Ariana (tv_42): bajar 2 espacios.
+            val lowerNudge = when (vitrinaProfileKey) {
+                "phone_landscape", "tablet_landscape", "tv_42" -> FireTv42Spacing.spaces(2)
                 else -> 0.dp
             }
             val base = when (vitrinaProfileKey) {
                 // Infinix: −2.dp más abajo dentro del cintillo.
                 "phone_landscape" -> maxHeight * 0.100f - 2.dp
-                // Fire/TV1080: −7.dp. Damasco/Ariana/tablet: base 0.055H.
-                "tv_42", "tablet_landscape" ->
-                    if (isTv42 && !isTv42LargeCanvas) maxHeight * 0.055f - 7.dp
-                    else maxHeight * 0.055f
+                // Fire y Tablet Ariana comparten la misma base (tv_42).
+                "tv_42", "tablet_landscape" -> maxHeight * 0.055f
                 "tv_32", "tv_66" -> maxHeight * 0.055f
                 else -> maxHeight * 0.04f
             }
@@ -736,9 +732,9 @@ data class IntroLayoutMetrics(
                 "tv_32", "tv_42", "tablet_landscape" -> maxWidth * 0.11f
                 else -> maxWidth * 0.09f
             }
-            // Tablet Ariana: 2 espacios hacia la izquierda.
-            return if (vitrinaProfileKey == "tv_42" && isTv42LargeCanvas) {
-                base - FireTv42Spacing.spaces(2)
+            // Fire y Tablet Ariana: misma posición (+4 espacios a la derecha).
+            return if (vitrinaProfileKey == "tv_42") {
+                base + FireTv42Spacing.spaces(4)
             } else {
                 base
             }
