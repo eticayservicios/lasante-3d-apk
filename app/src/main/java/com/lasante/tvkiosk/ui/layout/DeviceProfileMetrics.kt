@@ -160,12 +160,12 @@ object DeviceProfileResolver {
             )
             DeviceProfileTier.TV_LARGE -> SharedGridMetrics(
                 // Hikvision 1280×720: 4 cols; top más bajo que canvas 4K altos.
-                // cardSpacing: −10.dp vs 32 (margen lateral entre cards CT).
+                // cardSpacing: aire entre cards CT/Productos (un poco más pegados, no juntos).
                 columns = 4,
                 horizontalPadding = sideMargin,
                 maxContentWidth = maxContentWidth,
                 contentPadding = 10.dp,
-                cardSpacing = 22.dp,
+                cardSpacing = 16.dp,
                 topPadding = if (profile.maxHeight <= Tv66Reference.Height + 40.dp) 28.dp else 58.dp,
             )
             DeviceProfileTier.TV_REGULAR -> SharedGridMetrics(

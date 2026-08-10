@@ -111,6 +111,8 @@ data class CatalogHeaderMetrics(
         private val CATALOG_NAV_BUTTON_SIZE = 36.dp * 0.98f
         private const val FILTER_SEARCH_EXTRA_SPACES = 3
         private const val FILTER_OFFSET_SPACES = 2
+        /** TV66: no empujar filtro hacia el buscador (el gap lo da filterToSearchGap). */
+        private const val TV66_FILTER_OFFSET_SPACES = 0
         private const val GRID_TOP_SPACES = 2
         /** Productos: bajar cards (+2 espacios vs base). */
         private const val PRODUCTS_GRID_TOP_SPACES = 4
@@ -122,13 +124,13 @@ data class CatalogHeaderMetrics(
         private const val CATALOG_SORT_TOP_SPACES = 3
         /** Separación entre bloques de controles en TV66 (filtro / búsqueda / nav). */
         private const val TV66_CONTROL_BLOCK_SPACES = 3
-        /** TV66: filtro ↔ buscador (más aire que el resto de bloques). */
-        private const val TV66_FILTER_TO_SEARCH_SPACES = 6
-        /** Fire/Ariana: bloque producto −5%. TV66 Productos: −15%. */
+        /** TV66: filtro ↔ buscador = 5 espacios (aire pedido). */
+        private const val TV66_FILTER_TO_SEARCH_SPACES = 5
+        /** Fire/Ariana: bloque producto −5%. TV66: cards un poco más anchas (menos aire lateral). */
         private const val PRODUCT_BLOCK_WIDTH_TV42 = 0.95f
-        private const val PRODUCT_BLOCK_WIDTH_TV66 = 0.85f
-        /** TV66 CT: cards un poco más compactas (evita corte de íconos en TV físico). */
-        private const val CT_CARD_WIDTH_TV66 = 0.82f
+        private const val PRODUCT_BLOCK_WIDTH_TV66 = 0.90f
+        /** TV66 CT: más pegados sin llegar a juntarse. */
+        private const val CT_CARD_WIDTH_TV66 = 0.90f
         /** TV66: nav +15% y luego +5% adicional → 1.15 × 1.05. */
         private const val TV66_NAV_SCALE = 1.15f * 1.05f
         private const val TV66_SORT_SCALE = 1.10f
@@ -192,7 +194,8 @@ data class CatalogHeaderMetrics(
             val badgeWidth = uiMetrics.badgeHeight * TreatmentUiMetrics.BADGE_WIDTH_TO_HEIGHT
 
             val searchBarWidth = when {
-                isTv66 -> 480.dp
+                // TV66: más corta → bloque filtro/búsqueda a la derecha, aire para el título.
+                isTv66 -> 400.dp
                 largeCanvas -> 280.dp
                 isTv42 -> 240.dp
                 isPhoneLandscape -> 196.dp
@@ -249,10 +252,10 @@ data class CatalogHeaderMetrics(
             }
             // Una sola familia: Fire + Ariana + TV66 (1 espacio ≈ 6.408.dp).
             val sharedTv = usesSharedTvCatalogLayout(isTv42, isTv66)
-            // TV66: +2 espacios extra (bajar título + filtro + búsqueda + nav juntos).
+            // TV66: +4 espacios (bajar título + filtro + búsqueda + nav juntos).
             val catalogHeaderTop = when {
                 !sharedTv -> 0.dp
-                isTv66 -> FireTv42Spacing.spaces(CATALOG_HEADER_TOP_SPACES + 2)
+                isTv66 -> FireTv42Spacing.spaces(CATALOG_HEADER_TOP_SPACES + 4)
                 else -> FireTv42Spacing.spaces(CATALOG_HEADER_TOP_SPACES)
             }
             val catalogSortExtra =
@@ -300,7 +303,9 @@ data class CatalogHeaderMetrics(
                 searchBarWidth = searchBarWidth,
                 searchBarHeight = searchBarHeight,
                 filterIconSize = filterBase * FILTER_SCALE,
-                filterOffsetX = FireTv42Spacing.spaces(FILTER_OFFSET_SPACES),
+                filterOffsetX = FireTv42Spacing.spaces(
+                    if (isTv66) TV66_FILTER_OFFSET_SPACES else FILTER_OFFSET_SPACES,
+                ),
                 filterToSearchGap = filterToSearchGap,
                 searchToNavGap = searchToNavGap,
                 navPairSpacing = navPairSpacing,

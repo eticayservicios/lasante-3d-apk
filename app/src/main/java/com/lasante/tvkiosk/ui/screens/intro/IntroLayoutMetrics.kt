@@ -205,7 +205,7 @@ data class IntroLayoutMetrics(
                 isTv42 -> 29.dp
                 else -> 30.dp
             }
-            "tv_66" -> 64.dp * 0.85f
+            "tv_66" -> 64.dp * 0.85f * 0.85f
             "tv_32" -> 34.dp
             "short_height" -> 26.dp
             "expanded" -> 36.dp
@@ -319,8 +319,8 @@ data class IntroLayoutMetrics(
                 isTv42 -> 70.dp * 0.95f
                 else -> 80.dp
             }
-            // TV66: bajar del +50% (133.5) al +25% (111.25) — cambio visible como antes.
-            "tv_66" -> 89.dp * 1.25f
+            // TV66: 89×1.25 × −15%.
+            "tv_66" -> 89.dp * 1.25f * 0.85f
             "tv_32" -> 81.dp
             "short_height" -> 78.dp
             "expanded" -> 84.dp
@@ -334,8 +334,8 @@ data class IntroLayoutMetrics(
             "phone_landscape" -> 18.dp
             "phone_portrait" -> 5.dp
             "tv_42", "tablet_landscape" -> 28.dp
-            // TV66: spacing coherente con diámetro 89×1.25.
-            "tv_66" -> 28.dp + (89.dp * 1.25f) * 0.05f * 2f
+            // TV66: spacing coherente con diámetro actual.
+            "tv_66" -> 28.dp + (89.dp * 1.25f * 0.85f) * 0.05f * 2f
             "tv_32" -> 7.dp
             "short_height" -> 4.dp
             "expanded" -> 7.dp
@@ -427,11 +427,11 @@ data class IntroLayoutMetrics(
                 isTv42 -> 72.dp * 1.28f * 0.95f // Fire/TV1080 −5%
                 else -> 72.dp * 1.28f
             }
-            // TV66: mismo ancho que el logo vertical, luego −5%.
+            // TV66: −5% × −10% × −15% (bloque + icono escalan juntos).
             "tv_66" -> {
                 val logoAspect = 229f / 1004f
                 val badgeAspect = 459f / 480f
-                maxHeight * logoAspect / (badgeAspect + logoAspect) * 0.95f
+                maxHeight * logoAspect / (badgeAspect + logoAspect) * 0.95f * 0.90f * 0.85f
             }
             "expanded" -> 80.dp
             "tv_unknown" -> 74.dp
@@ -577,8 +577,8 @@ data class IntroLayoutMetrics(
             // Fire: menos nudge = cilindro más arriba. Damasco ya en 0.07.
             "tv_42", "tablet_landscape" ->
                 if (isTv42LargeCanvas) maxHeight * 0.07f else maxHeight * 0.08f
-            // TV66: baseline 0.10 → subir 7% → bajar 4% ⇒ nudge 0.07H; +10.dp más abajo.
-            "tv_66" -> maxHeight * 0.07f + 10.dp
+            // TV66: baseline 0.07H + 20.dp abajo (10 + 10).
+            "tv_66" -> maxHeight * 0.07f + 20.dp
             else -> 0.dp
         }
 

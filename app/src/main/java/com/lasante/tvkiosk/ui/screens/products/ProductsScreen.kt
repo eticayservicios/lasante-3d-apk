@@ -60,9 +60,10 @@ import com.lasante.tvkiosk.ui.components.TreatmentIconAssets
 import com.lasante.tvkiosk.ui.components.TrimTransparentTransformation
 import com.lasante.tvkiosk.ui.layout.CatalogHeaderMetrics
 import com.lasante.tvkiosk.ui.layout.CatalogScreenTitle
+import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
+import com.lasante.tvkiosk.ui.layout.FireTv42Spacing
 import com.lasante.tvkiosk.ui.layout.HikvisionLayoutDebug
 import com.lasante.tvkiosk.ui.layout.LogCatalogHeaderProfile
-import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
 import com.lasante.tvkiosk.ui.layout.rememberCatalogLayout
 import com.lasante.tvkiosk.ui.screens.treatments.TreatmentUiMetrics
 import com.lasante.tvkiosk.ui.theme.*
@@ -268,9 +269,9 @@ fun ProductsScreen(
                                 text = DisplayTitles.resolve(treatmentName),
                                 nav = nav,
                                 titleStartGap = header.titleStartGap,
-                                // TV66: centrar bloque título vs altura de la search bar (misma línea).
+                                // TV66: misma línea que filtro / search / Back-Home.
                                 titleTopGap = if (isTv66) {
-                                    header.centerOnSearchBar(32.dp)
+                                    header.centerOnSearchBar(buttonSize)
                                 } else {
                                     header.titleTopGap
                                 },
@@ -456,10 +457,18 @@ fun ProductsScreen(
                                     bottom = 32.dp,
                                 ),
                                 verticalArrangement = Arrangement.spacedBy(
-                                    if (isTv42LargeUp) 22.dp else 16.dp,
+                                    when {
+                                        isTv66 -> catalog.grid.cardSpacing
+                                        isTv42LargeUp -> 22.dp
+                                        else -> 16.dp
+                                    },
                                 ),
                                 horizontalArrangement = Arrangement.spacedBy(
-                                    if (isTv42LargeUp) 22.dp else 16.dp,
+                                    when {
+                                        isTv66 -> catalog.grid.cardSpacing
+                                        isTv42LargeUp -> 22.dp
+                                        else -> 16.dp
+                                    },
                                 ),
                             ) {
                                 items(
@@ -530,17 +539,19 @@ fun ProductsScreen(
                     }
                 }
 
-                // Badge top-start; título separado vía titleStartGap.
+                // Badge CT (clase) top-start; TV66: subir 3 espacios.
                 TreatmentIconBadge(
                     iconUrl = treatmentIconUrl,
                     metrics = catalog.ui,
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .offset {
-                            IntOffset(
-                                x = 0,
-                                y = if (isTv42) (-6).dp.roundToPx() else 0,
-                            )
+                            val lift = when {
+                                isTv66 -> FireTv42Spacing.spaces(3).roundToPx()
+                                isTv42 -> 6.dp.roundToPx()
+                                else -> 0
+                            }
+                            IntOffset(x = 0, y = -lift)
                         }
                         .padding(
                             start = horizontalPadding + contentPadding,

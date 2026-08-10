@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -227,24 +228,32 @@ private fun TreatmentsHeader(
             .fillMaxWidth()
             .padding(horizontal = contentPadding)
             .padding(top = if (header.isTv66) header.controlsTopGap else 0.dp),
-        verticalAlignment = if (header.isTv66) Alignment.CenterVertically else Alignment.Top,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         CatalogScreenTitle(
             text = DisplayTitles.resolve(unitName),
             nav = nav,
             titleStartGap = header.titleStartGap,
-            titleTopGap = header.titleTopGap,
+            // TV66: título en la misma línea que Back.
+            titleTopGap = if (header.isTv66) 0.dp else header.titleTopGap,
         )
         Spacer(modifier = Modifier.weight(1f))
-        GreenNavButton(
-            assetPath = "svg/ui/Before.svg",
-            contentDescription = "Volver",
-            onClick = onBack,
-            size = header.navButtonSize,
-            playSound = true,
-            // TV66: Y del Row. Otros: misma Y que Productos vía navButtonsTopGap.
-            modifier = Modifier.padding(top = header.navButtonsTopGap()),
-        )
+        // Misma X que Productos: Back + hueco de Home (aunque Home no esté).
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(
+                if (header.isTv66) header.navPairSpacing else nav.buttonSpacing,
+            ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            GreenNavButton(
+                assetPath = "svg/ui/Before.svg",
+                contentDescription = "Volver",
+                onClick = onBack,
+                size = header.navButtonSize,
+                playSound = true,
+            )
+            Spacer(modifier = Modifier.size(header.navButtonSize))
+        }
     }
 }
 
