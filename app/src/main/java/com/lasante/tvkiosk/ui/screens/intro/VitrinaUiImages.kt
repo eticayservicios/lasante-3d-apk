@@ -31,7 +31,10 @@ object VitrinaUiImages {
             }
             .build()
 
-    /** PNG de filtro (491×390): cargar a resolución original; no downsample al tamaño de pantalla. */
+    /**
+     * PNG de filtro (cuadrado 512×512, recortado al círculo).
+     * ORIGINAL + cache key versionada para invalidar assets viejos con padding.
+     */
     fun filterRequest(context: Context): ImageRequest =
         ImageRequest.Builder(context)
             .data(FILTER_BUTTON)
@@ -39,5 +42,7 @@ object VitrinaUiImages {
             .crossfade(false)
             .memoryCachePolicy(CachePolicy.ENABLED)
             .diskCachePolicy(CachePolicy.ENABLED)
+            .memoryCacheKey("filter_button_v2_512")
+            .diskCacheKey("filter_button_v2_512")
             .build()
 }

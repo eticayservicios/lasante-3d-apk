@@ -79,6 +79,8 @@ fun ProductsRoute(
                     treatmentIconUrl  = state.data.treatmentIconUrl,
                     products          = state.data.products,
                     catalogRepository = catalogRepository,
+                    unitId            = unitId,
+                    isViewAllTreatments = treatmentId == Args.ALL_TREATMENTS_ID,
                     onBack            = onBack,
                     onHome            = onHome,
                     onProductSelected = { product -> selectedProduct = product },

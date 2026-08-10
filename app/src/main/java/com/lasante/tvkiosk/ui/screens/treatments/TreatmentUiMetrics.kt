@@ -36,8 +36,9 @@ object TreatmentUiMetrics {
     )
 
     val tv42 = ProfileMetrics(
-        badgeHeight = 64.dp,
-        badgeIconSize = 28.dp,
+        // Fondo +2 esp; icono −1 esp (patrón Hikvision escalado).
+        badgeHeight = 64.dp + FireTv42Spacing.spaces(2),
+        badgeIconSize = 28.dp - FireTv42Spacing.spaces(1),
         cardIconSize = 320.dp,
         navButtonSize = 38.dp,
         cardLabelFontSize = scaledSp(12.sp),
@@ -47,8 +48,8 @@ object TreatmentUiMetrics {
     )
 
     val phoneLandscape = ProfileMetrics(
-        badgeHeight = 46.dp,
-        badgeIconSize = 22.dp,
+        badgeHeight = 46.dp + FireTv42Spacing.spaces(1),
+        badgeIconSize = (22.dp - FireTv42Spacing.spaces(1)).coerceAtLeast(16.dp),
         cardIconSize = 240.dp,
         navButtonSize = 32.dp,
         cardLabelFontSize = scaledSp(12.sp),
@@ -56,8 +57,8 @@ object TreatmentUiMetrics {
     )
 
     val phonePortrait = ProfileMetrics(
-        badgeHeight = 62.dp,
-        badgeIconSize = 26.dp,
+        badgeHeight = 62.dp + FireTv42Spacing.spaces(1),
+        badgeIconSize = (26.dp - FireTv42Spacing.spaces(1)).coerceAtLeast(18.dp),
         cardIconSize = 240.dp,
         navButtonSize = 35.dp,
         cardLabelFontSize = scaledSp(13.sp),
@@ -65,8 +66,9 @@ object TreatmentUiMetrics {
     )
 
     val tv42Large = ProfileMetrics(
-        badgeHeight = 78.dp,
-        badgeIconSize = 38.dp,
+        // Ariana/large: fondo +3 esp; icono −2 esp.
+        badgeHeight = 78.dp + FireTv42Spacing.spaces(3),
+        badgeIconSize = 38.dp - FireTv42Spacing.spaces(2),
         cardIconSize = 560.dp,
         navButtonSize = 52.dp,
         cardLabelFontSize = scaledSp(20.sp),

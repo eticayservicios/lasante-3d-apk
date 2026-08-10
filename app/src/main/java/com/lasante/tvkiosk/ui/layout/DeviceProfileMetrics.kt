@@ -213,11 +213,19 @@ object DeviceProfileResolver {
             titleUnderlineWidth = 150.dp,
         )
         DeviceProfileTier.TV_LARGE -> SharedNavMetrics(
-            // Título más contenido en canvas bajo Hikvision (1280×720).
+            // Hikvision 720: 28.sp. Damasco/canvas altos: 36×0.80 (−20%).
             buttonSize = 53.dp,
             buttonSpacing = 12.dp,
-            titleFontSize = if (profile.maxHeight <= Tv66Reference.Height + 40.dp) 28.sp else 36.sp,
-            titleUnderlineWidth = if (profile.maxHeight <= Tv66Reference.Height + 40.dp) 240.dp else 320.dp,
+            titleFontSize = if (profile.maxHeight <= Tv66Reference.Height + 40.dp) {
+                28.sp
+            } else {
+                36.sp * 0.80f
+            },
+            titleUnderlineWidth = if (profile.maxHeight <= Tv66Reference.Height + 40.dp) {
+                240.dp
+            } else {
+                320.dp * 0.80f
+            },
         )
         DeviceProfileTier.TV_REGULAR -> SharedNavMetrics(
             buttonSize = 38.dp,

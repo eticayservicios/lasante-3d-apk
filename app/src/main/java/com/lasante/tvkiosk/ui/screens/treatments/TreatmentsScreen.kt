@@ -88,31 +88,29 @@ fun TreatmentsScreen(
                 catalog.largeCanvas || profile.tier == DeviceProfileTier.TV_REGULAR -> 4
                 else -> catalog.grid.columns
             }
-            // TV66: usa grid.cardSpacing (22.dp = −10.dp vs 32). Otros perfiles igual que antes.
+            // Shared TV: spacing del grid. Phone / legacy: valores previos.
             val cardSpacing = when {
-                header.isTv66 -> catalog.grid.cardSpacing
-                catalog.largeCanvas || profile.tier == DeviceProfileTier.TV_LARGE -> 32.dp
+                header.usesSharedTvCatalogLayout -> catalog.grid.cardSpacing
                 profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE -> 14.dp
-                profile.tier == DeviceProfileTier.TV_REGULAR -> 22.dp
                 else -> 18.dp
             }
-            // TV66: subir bloque subtítulo+cards 2 espacios (solo el aire bajo el header).
+            // Shared TV: subir subtítulo (TV66 −2 esp; Fire/Ariana −1 esp).
             val subtitleTopGap = when {
                 header.isTv66 -> (26.dp - FireTv42Spacing.spaces(2)).coerceAtLeast(8.dp)
-                catalog.largeCanvas || profile.tier == DeviceProfileTier.TV_LARGE -> 26.dp
+                header.usesSharedTvCatalogLayout ->
+                    (26.dp - FireTv42Spacing.spaces(1)).coerceAtLeast(10.dp)
                 profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE -> 14.dp
-                profile.tier == DeviceProfileTier.TV_REGULAR -> 10.dp
                 else -> if (profile.isWide) 18.dp else 14.dp
             }
             val subtitleToGridGap = when {
-                catalog.largeCanvas || profile.tier == DeviceProfileTier.TV_LARGE || header.isTv66 -> 26.dp
+                header.usesSharedTvCatalogLayout -> 26.dp
                 profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE -> 14.dp
-                profile.tier == DeviceProfileTier.TV_REGULAR -> 10.dp
                 else -> if (profile.isWide) 18.dp else 14.dp
             }
             val ctCardWidthFraction = CatalogHeaderMetrics.ctCardWidthFraction(
                 isTv66 = header.isTv66,
                 isTv42 = header.isTv42,
+                largeCanvas = header.isLargeCanvas,
             )
             val canvasW = maxWidth
             val canvasH = maxHeight
@@ -184,7 +182,7 @@ fun TreatmentsScreen(
                                     start = catalog.contentPadding,
                                     end = catalog.contentPadding,
                                     top = CatalogHeaderMetrics.treatmentsGridTopPadding(
-                                        isTv66 = header.isTv66,
+                                        sharedTv = header.usesSharedTvCatalogLayout,
                                     ),
                                     bottom = if (profile.isWide) 24.dp else 16.dp,
                                 ),
@@ -227,21 +225,25 @@ private fun TreatmentsHeader(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = contentPadding)
-            .padding(top = if (header.isTv66) header.controlsTopGap else 0.dp),
+            .padding(top = if (header.usesSharedTvCatalogLayout) header.controlsTopGap else 0.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         CatalogScreenTitle(
             text = DisplayTitles.resolve(unitName),
             nav = nav,
             titleStartGap = header.titleStartGap,
-            // TV66: título en la misma línea que Back.
-            titleTopGap = if (header.isTv66) 0.dp else header.titleTopGap,
+            // Shared TV: título en la misma línea que Back.
+            titleTopGap = if (header.usesSharedTvCatalogLayout) 0.dp else header.titleTopGap,
         )
         Spacer(modifier = Modifier.weight(1f))
         // Misma X que Productos: Back + hueco de Home (aunque Home no esté).
         Row(
             horizontalArrangement = Arrangement.spacedBy(
-                if (header.isTv66) header.navPairSpacing else nav.buttonSpacing,
+                if (header.usesSharedTvCatalogLayout) {
+                    header.navPairSpacing
+                } else {
+                    nav.buttonSpacing
+                },
             ),
             verticalAlignment = Alignment.CenterVertically,
         ) {

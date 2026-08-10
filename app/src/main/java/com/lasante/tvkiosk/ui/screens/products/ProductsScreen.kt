@@ -72,12 +72,19 @@ import com.lasante.tvkiosk.ui.utils.clickableWithSound
 import kotlinx.coroutines.launch
 
 private enum class SortOrder { NONE, AZ, ZA }
-private enum class ProductFilter { ALL, WITH_IMAGE, WITHOUT_IMAGE }
 
-private fun Product.hasImage(): Boolean =
-    media.modelo3d.vistaPrevia != null ||
-        media.imagenes2d.principal != null ||
-        media.imagenes2d.miniatura != null
+/** Alcance del catálogo en Productos (sustituye Con/Sin imagen). */
+private enum class ProductFilter {
+    BUSINESS_UNIT,
+    THERAPEUTIC_CLASS,
+    STAR_PRODUCTS,
+}
+
+private fun ProductFilter.label(): String = when (this) {
+    ProductFilter.BUSINESS_UNIT -> "Unidad de negocio"
+    ProductFilter.THERAPEUTIC_CLASS -> "Clase terapéutica"
+    ProductFilter.STAR_PRODUCTS -> "Productos estrellas"
+}
 
 private sealed class ProductGridVisual {
     data class Photo(val url: String) : ProductGridVisual()
@@ -107,6 +114,8 @@ fun ProductsScreen(
     treatmentIconUrl: String?,
     products: List<Product>,
     catalogRepository: CatalogRepository,
+    unitId: String,
+    isViewAllTreatments: Boolean = false,
     onBack: () -> Unit,
     onHome: () -> Unit,
     onProductSelected: (Product) -> Unit,
@@ -135,14 +144,37 @@ fun ProductsScreen(
 
             var searchQuery by remember { mutableStateOf("") }
             var sortOrder by remember { mutableStateOf(SortOrder.NONE) }
-            var productFilter by remember { mutableStateOf(ProductFilter.ALL) }
+            val defaultFilter = if (isViewAllTreatments) {
+                ProductFilter.BUSINESS_UNIT
+            } else {
+                ProductFilter.THERAPEUTIC_CLASS
+            }
+            var productFilter by remember(unitId, isViewAllTreatments) {
+                mutableStateOf(defaultFilter)
+            }
             var showFilterSheet by remember { mutableStateOf(false) }
             var isSearching by remember { mutableStateOf(false) }
             var globalSearchResults by remember { mutableStateOf<List<Product>>(emptyList()) }
+            var unitProducts by remember(unitId) { mutableStateOf<List<Product>>(emptyList()) }
+            var starProducts by remember(unitId) { mutableStateOf<List<Product>>(emptyList()) }
 
             val coroutineScope = rememberCoroutineScope()
 
-            LaunchedEffect(searchQuery, products) {
+            LaunchedEffect(unitId) {
+                runCatching {
+                    val treatments = catalogRepository.getTreatments(unitId)
+                    unitProducts = treatments
+                        .flatMap { catalogRepository.getProducts(it.id) }
+                        .distinctBy { it.productoId }
+                    starProducts = catalogRepository.getVitrinaUnits()
+                        .firstOrNull { it.unit.id == unitId }
+                        ?.products
+                        .orEmpty()
+                        .distinctBy { it.productoId }
+                }
+            }
+
+            LaunchedEffect(searchQuery, products, unitProducts, starProducts, productFilter) {
                 if (searchQuery.length < 3) {
                     globalSearchResults = emptyList()
                     isSearching = false
@@ -151,8 +183,13 @@ fun ProductsScreen(
                 isSearching = true
                 kotlinx.coroutines.delay(500)
                 val query = searchQuery
+                val scopeProducts = when (productFilter) {
+                    ProductFilter.BUSINESS_UNIT -> unitProducts.ifEmpty { products }
+                    ProductFilter.THERAPEUTIC_CLASS -> products
+                    ProductFilter.STAR_PRODUCTS -> starProducts
+                }
                 try {
-                    val localResults = products.filter {
+                    val localResults = scopeProducts.filter {
                         it.nombre.contains(query, ignoreCase = true) ||
                             it.descripcion.contains(query, ignoreCase = true)
                     }
@@ -178,7 +215,7 @@ fun ProductsScreen(
                         }
                     }
                 } catch (_: Exception) {
-                    globalSearchResults = products.filter {
+                    globalSearchResults = scopeProducts.filter {
                         it.nombre.contains(query, ignoreCase = true) ||
                             it.descripcion.contains(query, ignoreCase = true)
                     }
@@ -188,29 +225,31 @@ fun ProductsScreen(
 
             val filteredProducts = remember(
                 products,
+                unitProducts,
+                starProducts,
                 searchQuery,
                 globalSearchResults,
                 productFilter,
                 sortOrder,
             ) {
+                val scopeProducts = when (productFilter) {
+                    ProductFilter.BUSINESS_UNIT -> unitProducts.ifEmpty { products }
+                    ProductFilter.THERAPEUTIC_CLASS -> products
+                    ProductFilter.STAR_PRODUCTS -> starProducts
+                }
                 val displayProducts = if (searchQuery.length >= 3) {
                     globalSearchResults
                 } else {
-                    products.filter {
+                    scopeProducts.filter {
                         searchQuery.isBlank() ||
                             it.name.contains(searchQuery, ignoreCase = true) ||
                             it.description.contains(searchQuery, ignoreCase = true)
                     }
                 }
-                val filteredByType = when (productFilter) {
-                    ProductFilter.ALL -> displayProducts
-                    ProductFilter.WITH_IMAGE -> displayProducts.filter { it.hasImage() }
-                    ProductFilter.WITHOUT_IMAGE -> displayProducts.filterNot { it.hasImage() }
-                }
                 when (sortOrder) {
-                    SortOrder.AZ -> filteredByType.sortedBy { it.name }
-                    SortOrder.ZA -> filteredByType.sortedByDescending { it.name }
-                    SortOrder.NONE -> filteredByType
+                    SortOrder.AZ -> displayProducts.sortedBy { it.name }
+                    SortOrder.ZA -> displayProducts.sortedByDescending { it.name }
+                    SortOrder.NONE -> displayProducts
                 }
             }
 
@@ -259,8 +298,8 @@ fun ProductsScreen(
                             .fillMaxWidth()
                             .padding(horizontal = horizontalPadding),
                     ) {
-                        if (isTv66) {
-                            // Título alineado con filtro + search + Back/Home (Ordenar fuera del eje).
+                        if (header.usesSharedTvCatalogLayout) {
+                            // Familia Fire/Ariana/TV66: título | filtro | search | nav; Ordenar aparte.
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 Row(
                                     modifier = Modifier
@@ -390,7 +429,7 @@ fun ProductsScreen(
                                             }
                                         },
                                         isLandscape = isLandscape,
-                                        isTv66 = true,
+                                        isTv66 = isTv66,
                                         isTv42 = isTv42,
                                         isTv42LargeUp = isTv42LargeUp,
                                         sortScale = header.sortScale,
@@ -667,7 +706,7 @@ fun ProductsScreen(
                     }
                 }
 
-                // Badge CT (clase) top-start; TV66: subir 7 espacios.
+                // Badge CT: TV66 +7 esp; Fire/Ariana +4 esp (escala).
                 TreatmentIconBadge(
                     iconUrl = treatmentIconUrl,
                     metrics = catalog.ui,
@@ -676,7 +715,8 @@ fun ProductsScreen(
                         .offset {
                             val lift = when {
                                 isTv66 -> FireTv42Spacing.spaces(7).roundToPx()
-                                isTv42 -> 6.dp.roundToPx()
+                                isTv42 || catalog.largeCanvas ->
+                                    FireTv42Spacing.spaces(4).roundToPx()
                                 else -> 0
                             }
                             IntOffset(x = 0, y = -lift)
@@ -693,7 +733,7 @@ fun ProductsScreen(
                     selectedFilter = productFilter,
                     onFilterSelected = { productFilter = it },
                     onClearFilters = {
-                        productFilter = ProductFilter.ALL
+                        productFilter = defaultFilter
                         searchQuery = ""
                         sortOrder = SortOrder.NONE
                     },
@@ -1032,28 +1072,31 @@ private fun FilterBottomSheet(
     onClearFilters: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Color.White) {
-        Column(modifier = Modifier.fillMaxWidth().padding(24.dp).padding(bottom = 16.dp)) {
+    // skipPartiallyExpanded: abre expandido para ver Limpiar/Cerrar sin deslizar.
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = Color.White,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(top = 4.dp, bottom = 28.dp),
+        ) {
             Text("Filtros", style = MaterialTheme.typography.titleMedium, color = LaSanteGreen)
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            FilterOptionRow(
-                text = "Todos los productos",
-                selected = selectedFilter == ProductFilter.ALL,
-                onClick = { onFilterSelected(ProductFilter.ALL) }
-            )
-            FilterOptionRow(
-                text = "Con imagen",
-                selected = selectedFilter == ProductFilter.WITH_IMAGE,
-                onClick = { onFilterSelected(ProductFilter.WITH_IMAGE) }
-            )
-            FilterOptionRow(
-                text = "Sin imagen",
-                selected = selectedFilter == ProductFilter.WITHOUT_IMAGE,
-                onClick = { onFilterSelected(ProductFilter.WITHOUT_IMAGE) }
-            )
+            ProductFilter.entries.forEach { option ->
+                FilterOptionRow(
+                    text = option.label(),
+                    selected = selectedFilter == option,
+                    onClick = { onFilterSelected(option) },
+                )
+            }
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(14.dp))
             OutlinedButton(
                 onClick = onClearFilters,
                 modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -1062,7 +1105,7 @@ private fun FilterBottomSheet(
             ) {
                 Text("Limpiar filtros", color = LaSanteGreen, fontWeight = FontWeight.Bold)
             }
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             Button(
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth().height(50.dp),
@@ -1086,20 +1129,24 @@ private fun FilterOptionRow(
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
             .clickable { onClick() }
-            .padding(vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         RadioButton(
             selected = selected,
             onClick = onClick,
-            colors = RadioButtonDefaults.colors(selectedColor = LaSanteGreen)
+            colors = RadioButtonDefaults.colors(selectedColor = LaSanteGreen),
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = text,
             color = LaSanteText,
-            fontSize = 16.sp,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+            fontSize = 17.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+            softWrap = true,
+            maxLines = 2,
+            overflow = TextOverflow.Clip,
+            modifier = Modifier.weight(1f),
         )
     }
 }

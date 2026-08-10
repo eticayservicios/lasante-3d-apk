@@ -701,10 +701,10 @@ data class IntroLayoutMetrics(
             else -> 70.dp
         }
 
-    /** Gira (manito): Fire/Ariana −20%. TV66: −5% y luego −10% más → ~86.7.dp (base ~101.4.dp). */
+    /** Gira (manito): Fire/Ariana −15% (escala hacia TV66); TV66 ≈ −14.5% neto. */
     val rotateButtonSize: Dp
         get() = when (vitrinaProfileKey) {
-            "tv_42", "tablet_landscape" -> rotateButtonSizeBase * 0.80f
+            "tv_42", "tablet_landscape" -> rotateButtonSizeBase * 0.85f
             "tv_66" -> rotateButtonSizeBase * 0.95f * 0.90f
             else -> rotateButtonSizeBase
         }
@@ -796,10 +796,10 @@ data class IntroLayoutMetrics(
                 val pull = if (pullTowardCylinder > 72.dp) pullTowardCylinder else 72.dp
                 -(pull + dragHandleWidth) - 8.dp
             }
-            // Damasco: −18. Fire/TV1080: −6 (+2 vs −8). Otros tablet: +12 (baseline previo).
+            // Damasco/Ariana large: −18 + 5 esp. Fire: −6 + 4 esp (escala hacia TV66).
             "tv_42", "tablet_landscape" -> when {
-                isTv42LargeCanvas -> (-18).dp
-                isTv42 -> (-6).dp
+                isTv42LargeCanvas -> (-18).dp + FireTv42Spacing.spaces(5)
+                isTv42 -> (-6).dp + FireTv42Spacing.spaces(4)
                 else -> 12.dp
             }
             // TV66: +10 espacios a la derecha (había quedado corrido a la izquierda).
