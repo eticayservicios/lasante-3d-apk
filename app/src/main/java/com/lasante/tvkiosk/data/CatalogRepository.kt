@@ -13,6 +13,8 @@ interface CatalogRepository {
     suspend fun getUnits(): List<BusinessUnit>
     suspend fun getTreatments(unitId: String): List<Treatment>
     suspend fun getProducts(treatmentId: String): List<Product>
+    /** Todos los productos de una unidad (todas las clases terapéuticas). */
+    suspend fun getProductsForUnit(unitId: String): List<Product>
     suspend fun getProduct(productId: String): Product?
     suspend fun getFeaturedProducts(): List<Product>
     suspend fun getVitrinaUnits(): List<VitrinaUnit>

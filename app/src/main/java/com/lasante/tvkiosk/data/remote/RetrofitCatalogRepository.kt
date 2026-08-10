@@ -3,6 +3,8 @@ package com.lasante.tvkiosk.data.remote
 import com.lasante.tvkiosk.data.*
 import java.text.Normalizer
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class RetrofitCatalogRepository(
     private val api: CatalogApiService = RetrofitClient.catalogApi
@@ -77,7 +79,7 @@ class RetrofitCatalogRepository(
         homeCacheTime = 0
     }
 
-    private suspend fun getSnapshot(): HomeSnapshot {
+    private suspend fun getSnapshot(): HomeSnapshot = withContext(Dispatchers.IO) {
         val now = System.currentTimeMillis()
         if (homeSnapshot == null || (now - homeCacheTime) > CACHE_TTL_MS) {
             val dto = api.getHome()
@@ -89,7 +91,7 @@ class RetrofitCatalogRepository(
                     "videos=${dto.vitrina?.videos?.screenSaver?.items?.size ?: -1}",
             )
         }
-        return homeSnapshot!!
+        homeSnapshot!!
     }
 
     private fun String.normalizedKey(): String {
@@ -387,6 +389,18 @@ class RetrofitCatalogRepository(
                 .map { (unitId, treatmentIdValue, product) ->
                     product.toProduct(unitId, treatmentIdValue)
                 }
+        }.getOrElse { emptyList() }
+
+    override suspend fun getProductsForUnit(unitId: String): List<Product> =
+        runCatching {
+            val snapshot = getSnapshot()
+            val resolvedId = snapshot.dto.findBusinessUnitByIdOrAlias(unitId)?.id ?: unitId
+            snapshot.catalogEntries
+                .asSequence()
+                .filter { it.unitId == resolvedId || it.unitId == unitId }
+                .map { (u, t, product) -> product.toProduct(u, t) }
+                .distinctBy { it.productoId }
+                .toList()
         }.getOrElse { emptyList() }
 
     override suspend fun getProduct(productId: String): Product? =

@@ -69,7 +69,11 @@ import com.lasante.tvkiosk.ui.screens.intro.VitrinaUiImages
 import com.lasante.tvkiosk.ui.screens.treatments.TreatmentUiMetrics
 import com.lasante.tvkiosk.ui.theme.*
 import com.lasante.tvkiosk.ui.utils.clickableWithSound
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 
 private enum class SortOrder { NONE, AZ, ZA }
 
@@ -157,21 +161,27 @@ fun ProductsScreen(
             var globalSearchResults by remember { mutableStateOf<List<Product>>(emptyList()) }
             var unitProducts by remember(unitId) { mutableStateOf<List<Product>>(emptyList()) }
             var starProducts by remember(unitId) { mutableStateOf<List<Product>>(emptyList()) }
+            var scopeLoading by remember(unitId) { mutableStateOf(true) }
 
             val coroutineScope = rememberCoroutineScope()
 
+            // Carga en IO: en Main bloqueaba el UI (ANR al filtrar Unidad de negocio).
             LaunchedEffect(unitId) {
-                runCatching {
-                    val treatments = catalogRepository.getTreatments(unitId)
-                    unitProducts = treatments
-                        .flatMap { catalogRepository.getProducts(it.id) }
-                        .distinctBy { it.productoId }
-                    starProducts = catalogRepository.getVitrinaUnits()
-                        .firstOrNull { it.unit.id == unitId }
-                        ?.products
-                        .orEmpty()
-                        .distinctBy { it.productoId }
+                scopeLoading = true
+                val loaded = withContext(Dispatchers.IO) {
+                    runCatching {
+                        val unit = catalogRepository.getProductsForUnit(unitId)
+                        val stars = catalogRepository.getVitrinaUnits()
+                            .firstOrNull { it.unit.id == unitId }
+                            ?.products
+                            .orEmpty()
+                            .distinctBy { it.productoId }
+                        unit to stars
+                    }.getOrElse { emptyList<Product>() to emptyList() }
                 }
+                unitProducts = loaded.first
+                starProducts = loaded.second
+                scopeLoading = false
             }
 
             LaunchedEffect(searchQuery, products, unitProducts, starProducts, productFilter) {
@@ -189,9 +199,11 @@ fun ProductsScreen(
                     ProductFilter.STAR_PRODUCTS -> starProducts
                 }
                 try {
-                    val localResults = scopeProducts.filter {
-                        it.nombre.contains(query, ignoreCase = true) ||
-                            it.descripcion.contains(query, ignoreCase = true)
+                    val localResults = withContext(Dispatchers.Default) {
+                        scopeProducts.filter {
+                            it.nombre.contains(query, ignoreCase = true) ||
+                                it.descripcion.contains(query, ignoreCase = true)
+                        }
                     }
                     globalSearchResults = if (localResults.isNotEmpty()) {
                         localResults
@@ -215,9 +227,11 @@ fun ProductsScreen(
                         }
                     }
                 } catch (_: Exception) {
-                    globalSearchResults = scopeProducts.filter {
-                        it.nombre.contains(query, ignoreCase = true) ||
-                            it.descripcion.contains(query, ignoreCase = true)
+                    globalSearchResults = withContext(Dispatchers.Default) {
+                        scopeProducts.filter {
+                            it.nombre.contains(query, ignoreCase = true) ||
+                                it.descripcion.contains(query, ignoreCase = true)
+                        }
                     }
                 }
                 isSearching = false
@@ -231,11 +245,16 @@ fun ProductsScreen(
                 globalSearchResults,
                 productFilter,
                 sortOrder,
+                scopeLoading,
             ) {
                 val scopeProducts = when (productFilter) {
-                    ProductFilter.BUSINESS_UNIT -> unitProducts.ifEmpty { products }
+                    ProductFilter.BUSINESS_UNIT ->
+                        if (scopeLoading && unitProducts.isEmpty()) emptyList()
+                        else unitProducts.ifEmpty { products }
                     ProductFilter.THERAPEUTIC_CLASS -> products
-                    ProductFilter.STAR_PRODUCTS -> starProducts
+                    ProductFilter.STAR_PRODUCTS ->
+                        if (scopeLoading && starProducts.isEmpty()) emptyList()
+                        else starProducts
                 }
                 val displayProducts = if (searchQuery.length >= 3) {
                     globalSearchResults
@@ -609,6 +628,16 @@ fun ProductsScreen(
                                 .weight(1f)
                                 .fillMaxWidth(),
                         ) {
+                            val waitingScope = scopeLoading && (
+                                productFilter == ProductFilter.BUSINESS_UNIT ||
+                                    productFilter == ProductFilter.STAR_PRODUCTS
+                                )
+                            if (waitingScope) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.align(Alignment.Center),
+                                    color = LaSanteGreen,
+                                )
+                            } else {
                             LazyVerticalGrid(
                                 state = gridState,
                                 columns = GridCells.Fixed(columns),
@@ -702,11 +731,12 @@ fun ProductsScreen(
                                     }
                                 }
                             }
+                            } // waitingScope else
                         }
                     }
                 }
 
-                // Badge CT: Ariana/Fire → −15 esp X, lift 4+2; TV66 → lift 7.
+                // Badge CT: Ariana/Fire → −9 esp X, lift 4; TV66 → lift 7.
                 TreatmentIconBadge(
                     iconUrl = treatmentIconUrl,
                     metrics = catalog.ui,
@@ -731,11 +761,24 @@ fun ProductsScreen(
             if (showFilterSheet) {
                 FilterBottomSheet(
                     selectedFilter = productFilter,
-                    onFilterSelected = { productFilter = it },
+                    onFilterSelected = { selected ->
+                        // Cerrar sheet primero; aplicar filtro en el siguiente frame (evita ANR).
+                        showFilterSheet = false
+                        coroutineScope.launch {
+                            yield()
+                            delay(48)
+                            productFilter = selected
+                        }
+                    },
                     onClearFilters = {
-                        productFilter = defaultFilter
-                        searchQuery = ""
-                        sortOrder = SortOrder.NONE
+                        showFilterSheet = false
+                        coroutineScope.launch {
+                            yield()
+                            delay(48)
+                            productFilter = defaultFilter
+                            searchQuery = ""
+                            sortOrder = SortOrder.NONE
+                        }
                     },
                     onDismiss = { showFilterSheet = false },
                 )

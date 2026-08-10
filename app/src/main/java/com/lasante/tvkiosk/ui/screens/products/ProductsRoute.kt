@@ -38,28 +38,29 @@ fun ProductsRoute(
     LaunchedEffect(unitId, treatmentId, retryKey) {
         uiState = UiState.Loading
         uiState = try {
-            val treatments = catalogRepository.getTreatments(unitId)
-            val isViewAll = treatmentId == Args.ALL_TREATMENTS_ID
-            val treatment = treatments.firstOrNull { it.id == treatmentId }
-            val products = if (isViewAll) {
-                treatments.flatMap { catalogRepository.getProducts(it.id) }
-                    .distinctBy { it.productoId }
-            } else {
-                catalogRepository.getProducts(treatmentId)
-            }
-            UiState.Success(
-                ProductsData(
-                    treatmentName = when {
-                        isViewAll -> "Ver todo"
-                        else -> DisplayTitles.resolve(
-                            treatment?.name,
-                            treatmentId.substringAfter("_").ifBlank { treatmentId },
-                        )
-                    },
-                    treatmentIconUrl = if (isViewAll) null else treatment?.media?.icono,
-                    products = products
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                val treatments = catalogRepository.getTreatments(unitId)
+                val isViewAll = treatmentId == Args.ALL_TREATMENTS_ID
+                val treatment = treatments.firstOrNull { it.id == treatmentId }
+                val products = if (isViewAll) {
+                    catalogRepository.getProductsForUnit(unitId)
+                } else {
+                    catalogRepository.getProducts(treatmentId)
+                }
+                UiState.Success(
+                    ProductsData(
+                        treatmentName = when {
+                            isViewAll -> "Ver todo"
+                            else -> DisplayTitles.resolve(
+                                treatment?.name,
+                                treatmentId.substringAfter("_").ifBlank { treatmentId },
+                            )
+                        },
+                        treatmentIconUrl = if (isViewAll) null else treatment?.media?.icono,
+                        products = products
+                    )
                 )
-            )
+            }
         } catch (e: Exception) {
             UiState.Error(e.message ?: "Error de conexión")
         }
