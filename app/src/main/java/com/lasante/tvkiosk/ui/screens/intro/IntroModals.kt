@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -186,7 +187,42 @@ fun IntroSocialQrModal(
 ) {
     BackHandler(onBack = onClose)
 
-    BoxWithConstraints(
+    val density = LocalDensity.current
+    val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    // Usar tamaño de pantalla (no constraints del Dialog): ahí fallaba el scale de TV66.
+    val screenW = configuration.screenWidthDp.dp
+    val screenH = configuration.screenHeightDp.dp
+    val preferTv66 = TvProfileDetector.isTv66Candidate(
+        maxWidth = screenW,
+        maxHeight = screenH,
+        density = density,
+        context = context,
+    )
+    val isTv66 = remember(screenW, screenH, preferTv66) {
+        DeviceProfileResolver.resolve(
+            maxWidth = screenW,
+            maxHeight = screenH,
+            preferTv66 = preferTv66,
+        ).tier == DeviceProfileTier.TV_LARGE
+    }
+    // TV66: QR ~28% del ancho de pantalla (mín. 320.dp) — el scale 1.1/1.4 sobre 168.dp
+    // no se notaba en 1920.dp y además el Dialog no reportaba bien el perfil.
+    val qrSize = if (isTv66) {
+        (screenW * 0.28f).coerceIn(320.dp, 560.dp)
+    } else {
+        168.dp
+    }
+    val scale = if (isTv66) qrSize.value / 168f else 1f
+    val hPad = 8.dp * scale
+    val vPad = 6.dp * scale
+    val corner = 14.dp * scale
+    val closeBtn = 26.dp * scale
+    val closeIcon = 16.dp * scale
+    val titleSize = 15.sp * scale
+    val captionSize = 11.sp * scale
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.72f))
@@ -194,32 +230,6 @@ fun IntroSocialQrModal(
             .zIndex(140f),
         contentAlignment = Alignment.Center,
     ) {
-        val density = LocalDensity.current
-        val context = LocalContext.current
-        val preferTv66 = TvProfileDetector.isTv66Candidate(
-            maxWidth = maxWidth,
-            maxHeight = maxHeight,
-            density = density,
-            context = context,
-        )
-        val isTv66 = remember(maxWidth, maxHeight, preferTv66) {
-            DeviceProfileResolver.screenMetrics(
-                maxWidth = maxWidth,
-                maxHeight = maxHeight,
-                preferTv66 = preferTv66,
-            ).profile.tier == DeviceProfileTier.TV_LARGE
-        }
-        // TV66: bloque completo del modal (QR + textos + padding) más grande.
-        val scale = if (isTv66) 1.40f else 1f
-        val qrSize = 168.dp * scale
-        val hPad = 8.dp * scale
-        val vPad = 6.dp * scale
-        val corner = 14.dp * scale
-        val closeBtn = 26.dp * scale
-        val closeIcon = 16.dp * scale
-        val titleSize = 15.sp * scale
-        val captionSize = 11.sp * scale
-
         Card(
             modifier = Modifier
                 .wrapContentSize()

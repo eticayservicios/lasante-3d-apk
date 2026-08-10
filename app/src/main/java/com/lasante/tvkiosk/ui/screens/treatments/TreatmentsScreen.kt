@@ -165,6 +165,7 @@ fun TreatmentsScreen(
                                     labelLineHeight = ui.cardLabelLineHeight,
                                     iconFill = ui.cardIconFill,
                                     aspectRatio = ui.cardAspectRatio,
+                                    blockWidthFraction = header.productBlockWidthFraction,
                                     onClick = { onTreatmentSelected(treatment.id) },
                                 )
                             }
@@ -216,6 +217,7 @@ private fun TherapeuticClassCard(
     labelLineHeight: TextUnit,
     iconFill: Float,
     aspectRatio: Float,
+    blockWidthFraction: Float = 1f,
     onClick: () -> Unit,
 ) {
     val iconModel = TreatmentIconAssets.resolve(iconUrl = treatment.media.icono)
@@ -232,61 +234,66 @@ private fun TherapeuticClassCard(
             .build()
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(aspectRatio)
-            .shadow(
-                elevation = 3.dp,
-                shape = RoundedCornerShape(18.dp),
-                clip = false,
-            )
-            .clip(RoundedCornerShape(18.dp))
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(Color(0xFFF4F4F4), Color(0xFFE1E1E1)),
-                ),
-            )
-            .clickable(onClick = onClick)
-            .padding(start = 4.dp, end = 4.dp, top = 4.dp, bottom = 2.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = Alignment.TopCenter,
     ) {
-        Box(
+        Column(
             modifier = Modifier
-                .weight(1f, fill = true)
-                .fillMaxWidth()
-                .padding(bottom = 6.dp),
-            contentAlignment = Alignment.BottomCenter,
+                .fillMaxWidth(blockWidthFraction)
+                .aspectRatio(aspectRatio)
+                .shadow(
+                    elevation = 3.dp,
+                    shape = RoundedCornerShape(18.dp),
+                    clip = false,
+                )
+                .clip(RoundedCornerShape(18.dp))
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color(0xFFF4F4F4), Color(0xFFE1E1E1)),
+                    ),
+                )
+                .clickable(onClick = onClick)
+                .padding(start = 4.dp, end = 4.dp, top = 4.dp, bottom = 2.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            if (imageRequest != null) {
-                AsyncImage(
-                    model = imageRequest,
-                    contentDescription = treatment.name,
-                    modifier = Modifier.fillMaxSize(iconFill),
-                    contentScale = ContentScale.Fit,
+            Box(
+                modifier = Modifier
+                    .weight(1f, fill = true)
+                    .fillMaxWidth()
+                    .padding(bottom = 6.dp),
+                contentAlignment = Alignment.BottomCenter,
+            ) {
+                if (imageRequest != null) {
+                    AsyncImage(
+                        model = imageRequest,
+                        contentDescription = treatment.name,
+                        modifier = Modifier.fillMaxSize(iconFill),
+                        contentScale = ContentScale.Fit,
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(labelHeight),
+                contentAlignment = Alignment.TopCenter,
+            ) {
+                Text(
+                    text = treatment.name,
+                    color = LaSanteText,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = labelFontSize,
+                        fontWeight = FontWeight.Normal,
+                        lineHeight = labelLineHeight,
+                        textAlign = TextAlign.Center,
+                    ),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
-        }
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(labelHeight),
-            contentAlignment = Alignment.TopCenter,
-        ) {
-            Text(
-                text = treatment.name,
-                color = LaSanteText,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontSize = labelFontSize,
-                    fontWeight = FontWeight.Normal,
-                    lineHeight = labelLineHeight,
-                    textAlign = TextAlign.Center,
-                ),
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth(),
-            )
         }
     }
 }
