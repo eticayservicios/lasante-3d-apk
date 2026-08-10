@@ -292,12 +292,22 @@ fun rememberVitrinaInteractionController(
         }
     }
 
+    LaunchedEffect(isActive) {
+        // Al ir a CT/Productos (o volver): reiniciar idle para no activar screensaver “invisible”.
+        lastUserInteraction = System.currentTimeMillis()
+        if (mode == VitrinaMode.ScreenSaver || (!isActive && mode == VitrinaMode.AutoRotating)) {
+            mode = VitrinaMode.Interactive
+        }
+    }
+
     LaunchedEffect(itemCount, hasModalOpen, screenSaverEnabled, isActive) {
         while (true) {
             if (!isActive) {
                 if (mode == VitrinaMode.ScreenSaver) {
                     mode = VitrinaMode.Interactive
                 }
+                // No acumular idle fuera de Intro.
+                lastUserInteraction = System.currentTimeMillis()
                 delay(500L)
                 continue
             }

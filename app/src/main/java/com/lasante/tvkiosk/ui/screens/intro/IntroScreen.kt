@@ -82,17 +82,24 @@ fun IntroScreen(
     val baseRotationHandle = remember { VitrinaBaseRotationHandle() }
     val vitrinaFilamentSession = rememberVitrinaFilamentSession()
 
+    var appInForeground by remember { mutableStateOf(true) }
+    // Prefetch sigue en CT/Productos (Intro montada, Filament pausado). Solo pausa en background.
     IntroDeferredVideoPrefetch(
         vitrinaFilamentSession = vitrinaFilamentSession,
         screenSaverVideos = screenSaverVideos,
         institutionalVideoUrl = institutionalVideoUrl,
-        enabled = contentActive,
+        enabled = appInForeground,
     )
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP) {
-                isVideoPlaying = false
+            when (event) {
+                Lifecycle.Event.ON_START -> appInForeground = true
+                Lifecycle.Event.ON_STOP -> {
+                    appInForeground = false
+                    isVideoPlaying = false
+                }
+                else -> Unit
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
