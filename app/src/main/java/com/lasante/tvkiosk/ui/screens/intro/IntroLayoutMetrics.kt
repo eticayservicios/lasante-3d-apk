@@ -732,11 +732,12 @@ data class IntroLayoutMetrics(
                 "tv_32", "tv_42", "tablet_landscape" -> maxWidth * 0.11f
                 else -> maxWidth * 0.09f
             }
-            // Fire y Tablet Ariana: misma posición (+7 espacios a la derecha).
-            return if (vitrinaProfileKey == "tv_42") {
-                base + FireTv42Spacing.spaces(7)
-            } else {
-                base
+            return when (vitrinaProfileKey) {
+                // Fire / Tablet Ariana: +7 espacios a la derecha.
+                "tv_42" -> base + FireTv42Spacing.spaces(7)
+                // TV66: +4 espacios a la derecha.
+                "tv_66" -> base + FireTv42Spacing.spaces(4)
+                else -> base
             }
         }
 

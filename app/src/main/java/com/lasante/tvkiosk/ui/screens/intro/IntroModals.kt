@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -47,6 +48,9 @@ import com.lasante.tvkiosk.data.ScreenSaverVideo
 import com.lasante.tvkiosk.data.ScreenSaverVideoPolicy
 import com.lasante.tvkiosk.media.VideoCache
 import com.lasante.tvkiosk.ui.components.ProductPresentationModal
+import com.lasante.tvkiosk.ui.layout.DeviceProfileResolver
+import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
+import com.lasante.tvkiosk.ui.layout.TvProfileDetector
 import com.lasante.tvkiosk.ui.theme.LaSanteBlue
 import com.lasante.tvkiosk.ui.theme.LaSanteText
 
@@ -182,7 +186,7 @@ fun IntroSocialQrModal(
 ) {
     BackHandler(onBack = onClose)
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.72f))
@@ -190,17 +194,41 @@ fun IntroSocialQrModal(
             .zIndex(140f),
         contentAlignment = Alignment.Center,
     ) {
-        // Caja lo más chica posible: el ancho lo marca el QR.
-        val qrSize = 168.dp
+        val density = LocalDensity.current
+        val context = LocalContext.current
+        val preferTv66 = TvProfileDetector.isTv66Candidate(
+            maxWidth = maxWidth,
+            maxHeight = maxHeight,
+            density = density,
+            context = context,
+        )
+        val isTv66 = remember(maxWidth, maxHeight, preferTv66) {
+            DeviceProfileResolver.screenMetrics(
+                maxWidth = maxWidth,
+                maxHeight = maxHeight,
+                preferTv66 = preferTv66,
+            ).profile.tier == DeviceProfileTier.TV_LARGE
+        }
+        // TV66: bloque completo del modal (QR + textos + padding) más grande.
+        val scale = if (isTv66) 1.40f else 1f
+        val qrSize = 168.dp * scale
+        val hPad = 8.dp * scale
+        val vPad = 6.dp * scale
+        val corner = 14.dp * scale
+        val closeBtn = 26.dp * scale
+        val closeIcon = 16.dp * scale
+        val titleSize = 15.sp * scale
+        val captionSize = 11.sp * scale
+
         Card(
             modifier = Modifier
                 .wrapContentSize()
                 .clickable(enabled = false) { },
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(corner),
             colors = CardDefaults.cardColors(containerColor = Color.White),
         ) {
             Column(
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                modifier = Modifier.padding(horizontal = hPad, vertical = vPad),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Row(
@@ -210,33 +238,33 @@ fun IntroSocialQrModal(
                 ) {
                     Text(
                         text = label,
-                        fontSize = 15.sp,
+                        fontSize = titleSize,
                         fontWeight = FontWeight.Black,
                         color = LaSanteBlue,
                         maxLines = 1,
                     )
                     IconButton(
                         onClick = onClose,
-                        modifier = Modifier.size(26.dp),
+                        modifier = Modifier.size(closeBtn),
                     ) {
                         Icon(
                             Icons.Default.Close,
                             contentDescription = "Cerrar",
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(closeIcon),
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(2.dp * scale))
                 val qrBitmap = remember(url) { generateQrBitmap(url) }
                 Image(
                     bitmap = qrBitmap.asImageBitmap(),
                     contentDescription = null,
                     modifier = Modifier.size(qrSize),
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(4.dp * scale))
                 Text(
                     text = "Escanea para abrir $label",
-                    fontSize = 11.sp,
+                    fontSize = captionSize,
                     color = LaSanteText,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.width(qrSize),

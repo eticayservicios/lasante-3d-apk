@@ -79,12 +79,15 @@ data class CatalogHeaderMetrics(
     val filterOffsetX: Dp,
     val filterToSearchGap: Dp,
     val searchToNavGap: Dp,
+    /** Espacio entre Volver y Home (TV66: 3 espacios). */
+    val navPairSpacing: Dp,
     val sortTopGap: Dp,
+    /** Escala del botón Ordenar (TV66: 1.10). */
+    val sortScale: Float,
     val searchIconSize: Dp,
     val searchFontSize: TextUnit,
     /**
-     * Fire / Tablet Ariana / TV66: misma familia de layout de catálogo
-     * (nudges de header y escala de cards).
+     * Fire / Tablet Ariana / TV66: misma familia de nudges verticales de header.
      */
     val usesSharedTvCatalogLayout: Boolean,
     /** Ancho del bloque completo de cada producto (cuadro + textos). */
@@ -110,18 +113,29 @@ data class CatalogHeaderMetrics(
         private const val CATALOG_HEADER_TOP_SPACES = 2
         /** Fire/Ariana/TV66: Ordenar A-Z, solo ese botón. */
         private const val CATALOG_SORT_TOP_SPACES = 3
-        /** Fire/Ariana/TV66: bloque completo de producto (−5%). */
-        private const val PRODUCT_BLOCK_WIDTH_FRACTION = 0.95f
+        /** Separación entre bloques de controles en TV66 (filtro / búsqueda / nav). */
+        private const val TV66_CONTROL_BLOCK_SPACES = 3
+        /** TV66: filtro ↔ buscador (más aire que el resto de bloques). */
+        private const val TV66_FILTER_TO_SEARCH_SPACES = 6
+        /** Fire/Ariana: bloque producto −5%. TV66: −15%. */
+        private const val PRODUCT_BLOCK_WIDTH_TV42 = 0.95f
+        private const val PRODUCT_BLOCK_WIDTH_TV66 = 0.85f
+        /** TV66: nav +15% y luego +5% adicional → 1.15 × 1.05. */
+        private const val TV66_NAV_SCALE = 1.15f * 1.05f
+        private const val TV66_SORT_SCALE = 1.10f
 
         fun catalogTitleSp(navTitleSp: Float): Int =
             ((navTitleSp + 2f) * TITLE_SCALE).roundToInt().coerceAtLeast(1)
 
-        /** Misma familia: Fire, Tablet Ariana y TV66. */
+        /** Misma familia de nudges verticales: Fire, Tablet Ariana y TV66. */
         fun usesSharedTvCatalogLayout(isTv42: Boolean, isTv66: Boolean): Boolean =
             isTv42 || isTv66
 
-        fun productBlockWidthFraction(usesSharedTvCatalogLayout: Boolean): Float =
-            if (usesSharedTvCatalogLayout) PRODUCT_BLOCK_WIDTH_FRACTION else 1f
+        fun productBlockWidthFraction(isTv42: Boolean, isTv66: Boolean): Float = when {
+            isTv66 -> PRODUCT_BLOCK_WIDTH_TV66
+            isTv42 -> PRODUCT_BLOCK_WIDTH_TV42
+            else -> 1f
+        }
 
         fun isLargeCatalogCanvas(profile: DeviceProfile, canvasHeight: Dp): Boolean =
             when (profile.tier) {
@@ -179,22 +193,33 @@ data class CatalogHeaderMetrics(
                 else -> 26.dp
             }
             val filterSearchExtra =
-                if (isPhoneLandscape || isLandscape || largeCanvas || isTv42 || isTv66) {
+                if (isTv66) {
+                    0.dp
+                } else if (isPhoneLandscape || isLandscape || largeCanvas || isTv42) {
                     FireTv42Spacing.spaces(FILTER_SEARCH_EXTRA_SPACES)
                 } else {
                     0.dp
                 }
-            val filterToSearchGap = when {
-                isPhoneLandscape -> 10.dp
-                largeCanvas -> 16.dp
-                isTv42 -> 14.dp
-                else -> 12.dp
-            } + filterSearchExtra
-            val searchToNavGap = when {
-                isPhoneLandscape -> 12.dp
-                largeCanvas -> 16.dp
-                isTv42 -> 12.dp
-                else -> 14.dp
+            val tv66BlockGap = FireTv42Spacing.spaces(TV66_CONTROL_BLOCK_SPACES)
+            val filterToSearchGap = if (isTv66) {
+                FireTv42Spacing.spaces(TV66_FILTER_TO_SEARCH_SPACES)
+            } else {
+                when {
+                    isPhoneLandscape -> 10.dp
+                    largeCanvas -> 16.dp
+                    isTv42 -> 14.dp
+                    else -> 12.dp
+                } + filterSearchExtra
+            }
+            val searchToNavGap = if (isTv66) {
+                tv66BlockGap
+            } else {
+                when {
+                    isPhoneLandscape -> 12.dp
+                    largeCanvas -> 16.dp
+                    isTv42 -> 12.dp
+                    else -> 14.dp
+                }
             }
             val sortTopGapBase = when {
                 isPhoneLandscape -> 4.dp
@@ -218,6 +243,17 @@ data class CatalogHeaderMetrics(
                 isLandscape -> 12.sp
                 else -> 11.sp
             }
+            val navButtonSize = if (isTv66) {
+                CATALOG_NAV_BUTTON_SIZE * TV66_NAV_SCALE
+            } else {
+                CATALOG_NAV_BUTTON_SIZE
+            }
+            val navPairSpacing = if (isTv66) {
+                tv66BlockGap
+            } else {
+                0.dp // Products usa nav.buttonSpacing cuando es 0
+            }
+            val sortScale = if (isTv66) TV66_SORT_SCALE else 1f
 
             return CatalogHeaderMetrics(
                 isPhoneLandscape = isPhoneLandscape,
@@ -229,18 +265,20 @@ data class CatalogHeaderMetrics(
                 titleStartGap = profile.maxWidth * 0.07f,
                 titleTopGap = FireTv42Spacing.spaces(TITLE_TOP_SPACES) + catalogHeaderTop,
                 controlsTopGap = catalogHeaderTop,
-                navButtonSize = CATALOG_NAV_BUTTON_SIZE,
+                navButtonSize = navButtonSize,
                 searchBarWidth = searchBarWidth,
                 searchBarHeight = searchBarHeight,
                 filterIconSize = filterBase * FILTER_SCALE,
                 filterOffsetX = FireTv42Spacing.spaces(FILTER_OFFSET_SPACES),
                 filterToSearchGap = filterToSearchGap,
                 searchToNavGap = searchToNavGap,
+                navPairSpacing = navPairSpacing,
                 sortTopGap = sortTopGapBase + catalogSortExtra,
+                sortScale = sortScale,
                 searchIconSize = searchIconSize,
                 searchFontSize = searchFontSize,
                 usesSharedTvCatalogLayout = sharedTv,
-                productBlockWidthFraction = productBlockWidthFraction(sharedTv),
+                productBlockWidthFraction = productBlockWidthFraction(isTv42, isTv66),
             )
         }
     }

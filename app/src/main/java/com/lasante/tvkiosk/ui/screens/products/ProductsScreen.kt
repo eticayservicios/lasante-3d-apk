@@ -372,6 +372,7 @@ fun ProductsScreen(
                                         isTv66 = isTv66,
                                         isTv42 = isTv42,
                                         isTv42LargeUp = isTv42LargeUp,
+                                        sortScale = header.sortScale,
                                         modifier = Modifier.padding(top = header.sortTopGap),
                                     )
                                 }
@@ -379,9 +380,11 @@ fun ProductsScreen(
                                 Spacer(modifier = Modifier.width(header.searchToNavGap))
 
                                 val navTopPad = header.centerOnSearchBar(buttonSize) + header.controlsTopGap
+                                val navSpacing =
+                                    if (isTv66) header.navPairSpacing else nav.buttonSpacing
                                 Row(
                                     modifier = Modifier.padding(top = navTopPad),
-                                    horizontalArrangement = Arrangement.spacedBy(nav.buttonSpacing),
+                                    horizontalArrangement = Arrangement.spacedBy(navSpacing),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     GreenNavButton(
@@ -549,8 +552,32 @@ private fun ProductsSortButton(
     isTv66: Boolean,
     isTv42: Boolean = false,
     isTv42LargeUp: Boolean = false,
+    sortScale: Float = 1f,
     modifier: Modifier = Modifier,
 ) {
+    // TV66 usa la base largeCanvas y aplica sortScale (+10%).
+    val horizontalPad = when {
+        isTv66 || isTv42LargeUp -> 28.dp
+        isLandscape -> 20.dp
+        else -> 16.dp
+    } * sortScale
+    val verticalPad = when {
+        isTv66 || isTv42LargeUp -> 3.dp
+        isTv42 -> 1.dp
+        isLandscape -> 1.dp
+        else -> 2.dp
+    } * sortScale
+    val labelSize = when {
+        isTv66 || isTv42LargeUp -> 14.sp
+        isLandscape -> 11.sp
+        else -> 10.sp
+    } * sortScale
+    val iconSize = when {
+        isTv66 || isTv42LargeUp -> 20.dp
+        isLandscape -> 14.dp
+        else -> 12.dp
+    } * sortScale
+
     Surface(
         shape = RoundedCornerShape(50.dp),
         color = Color.Transparent,
@@ -561,23 +588,9 @@ private fun ProductsSortButton(
             modifier = Modifier
                 .clip(RoundedCornerShape(50.dp))
                 .background(Brush.horizontalGradient(listOf(LaSanteGreenDark, LaSanteGreen)))
-                .padding(
-                    horizontal = when {
-                        isTv42LargeUp -> 28.dp
-                        isTv66 -> 22.dp
-                        isLandscape -> 20.dp
-                        else -> 16.dp
-                    },
-                    vertical = when {
-                        isTv42LargeUp -> 3.dp
-                        isTv66 -> 2.dp
-                        isTv42 -> 1.dp
-                        isLandscape -> 1.dp
-                        else -> 2.dp
-                    },
-                ),
+                .padding(horizontal = horizontalPad, vertical = verticalPad),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp * sortScale),
         ) {
             Text(
                 text = when (sortOrder) {
@@ -586,26 +599,14 @@ private fun ProductsSortButton(
                     SortOrder.ZA -> "Z - A"
                 },
                 color = Color.White,
-                fontSize = when {
-                    isTv42LargeUp -> 14.sp
-                    isTv66 -> 12.sp
-                    isLandscape -> 11.sp
-                    else -> 10.sp
-                },
+                fontSize = labelSize,
                 fontWeight = FontWeight.Bold,
             )
             Icon(
                 Icons.Default.KeyboardArrowDown,
                 contentDescription = null,
                 tint = Color.White,
-                modifier = Modifier.size(
-                    when {
-                        isTv42LargeUp -> 20.dp
-                        isTv66 -> 16.dp
-                        isLandscape -> 14.dp
-                        else -> 12.dp
-                    },
-                ),
+                modifier = Modifier.size(iconSize),
             )
         }
     }
