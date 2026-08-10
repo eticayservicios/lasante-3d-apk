@@ -270,7 +270,7 @@ fun ProductsScreen(
                                 val density = LocalDensity.current
                                 val filterSize = header.filterIconSize
                                 val filterSizePx = with(density) { filterSize.roundToPx().coerceAtLeast(1) }
-                                val filterTopPad = header.centerOnSearchBar(filterSize)
+                                val filterTopPad = header.centerOnSearchBar(filterSize) + header.controlsTopGap
                                 Box(
                                     modifier = Modifier
                                         .padding(top = filterTopPad)
@@ -303,6 +303,7 @@ fun ProductsScreen(
                                 ) {
                                     Box(
                                         modifier = Modifier
+                                            .padding(top = header.controlsTopGap)
                                             .width(header.searchBarWidth)
                                             .height(header.searchBarHeight)
                                             .shadow(elevation = 2.dp, shape = RoundedCornerShape(50.dp))
@@ -377,7 +378,7 @@ fun ProductsScreen(
 
                                 Spacer(modifier = Modifier.width(header.searchToNavGap))
 
-                                val navTopPad = header.centerOnSearchBar(buttonSize)
+                                val navTopPad = header.centerOnSearchBar(buttonSize) + header.controlsTopGap
                                 Row(
                                     modifier = Modifier.padding(top = navTopPad),
                                     horizontalArrangement = Arrangement.spacedBy(nav.buttonSpacing),
@@ -448,6 +449,7 @@ fun ProductsScreen(
                                         isTv42 = isTv42,
                                         isTv66 = isTv66,
                                         isTv42LargeUp = isTv42LargeUp,
+                                        blockWidthFraction = header.productBlockWidthFraction,
                                         onClick = { onProductSelected(filteredProducts[index]) },
                                     )
                                 }
@@ -655,6 +657,7 @@ private fun ProductGridItem(
     isTv42: Boolean = false,
     isTv66: Boolean = false,
     isTv42LargeUp: Boolean = false,
+    blockWidthFraction: Float = 1f,
     onClick: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -688,9 +691,13 @@ private fun ProductGridItem(
         else -> 6.dp
     }
 
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = Alignment.TopCenter,
+    ) {
     Column(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxWidth(blockWidthFraction)
             .padding(bottom = 12.dp),
         horizontalAlignment = Alignment.Start,
     ) {
@@ -773,6 +780,7 @@ private fun ProductGridItem(
                 )
             }
         }
+    }
     }
 }
 

@@ -60,8 +60,16 @@ data class CatalogHeaderMetrics(
     val isLargeCanvas: Boolean,
     val badgeWidth: Dp,
     val titleStartGap: Dp,
-    /** Baja solo el título (CT/Productos); nav/Ordenar no se mueven. */
+    /**
+     * Baja el título junto con filtro/búsqueda/nav ([controlsTopGap]).
+     * Ordenar usa [sortTopGap] aparte.
+     */
     val titleTopGap: Dp,
+    /**
+     * Empuje vertical compartido de filtro + barra de búsqueda + botones nav
+     * (misma magnitud que el título en la familia Fire/Ariana/TV66).
+     */
+    val controlsTopGap: Dp,
     /** Volver y Home — un solo tamaño; cambiar aquí afecta ambos. */
     val navButtonSize: Dp,
     val searchBarWidth: Dp,
@@ -74,6 +82,13 @@ data class CatalogHeaderMetrics(
     val sortTopGap: Dp,
     val searchIconSize: Dp,
     val searchFontSize: TextUnit,
+    /**
+     * Fire / Tablet Ariana / TV66: misma familia de layout de catálogo
+     * (nudges de header y escala de cards).
+     */
+    val usesSharedTvCatalogLayout: Boolean,
+    /** Ancho del bloque completo de cada producto (cuadro + textos). */
+    val productBlockWidthFraction: Float,
 ) {
     fun centerOnSearchBar(controlSize: Dp): Dp =
         ((searchBarHeight - controlSize) / 2).coerceAtLeast(0.dp)
@@ -89,11 +104,24 @@ data class CatalogHeaderMetrics(
         private const val GRID_TOP_SPACES = 2
         /** Productos: bajar cards (+2 espacios vs base). */
         private const val PRODUCTS_GRID_TOP_SPACES = 4
-        /** Baja el título principal 2 espacios (sin mover nav/Ordenar). */
+        /** Baja el título principal 2 espacios (base global). */
         private const val TITLE_TOP_SPACES = 2
+        /** Fire/Ariana/TV66: título + filtro + búsqueda + nav, juntos. */
+        private const val CATALOG_HEADER_TOP_SPACES = 2
+        /** Fire/Ariana/TV66: Ordenar A-Z, solo ese botón. */
+        private const val CATALOG_SORT_TOP_SPACES = 3
+        /** Fire/Ariana/TV66: bloque completo de producto (−5%). */
+        private const val PRODUCT_BLOCK_WIDTH_FRACTION = 0.95f
 
         fun catalogTitleSp(navTitleSp: Float): Int =
             ((navTitleSp + 2f) * TITLE_SCALE).roundToInt().coerceAtLeast(1)
+
+        /** Misma familia: Fire, Tablet Ariana y TV66. */
+        fun usesSharedTvCatalogLayout(isTv42: Boolean, isTv66: Boolean): Boolean =
+            isTv42 || isTv66
+
+        fun productBlockWidthFraction(usesSharedTvCatalogLayout: Boolean): Float =
+            if (usesSharedTvCatalogLayout) PRODUCT_BLOCK_WIDTH_FRACTION else 1f
 
         fun isLargeCatalogCanvas(profile: DeviceProfile, canvasHeight: Dp): Boolean =
             when (profile.tier) {
@@ -168,11 +196,17 @@ data class CatalogHeaderMetrics(
                 isTv42 -> 12.dp
                 else -> 14.dp
             }
-            val sortTopGap = when {
+            val sortTopGapBase = when {
                 isPhoneLandscape -> 4.dp
                 largeCanvas -> 12.dp
                 else -> 5.dp
             }
+            // Una sola familia: Fire + Ariana + TV66 (1 espacio ≈ 6.408.dp).
+            val sharedTv = usesSharedTvCatalogLayout(isTv42, isTv66)
+            val catalogHeaderTop =
+                if (sharedTv) FireTv42Spacing.spaces(CATALOG_HEADER_TOP_SPACES) else 0.dp
+            val catalogSortExtra =
+                if (sharedTv) FireTv42Spacing.spaces(CATALOG_SORT_TOP_SPACES) else 0.dp
             val searchIconSize = when {
                 largeCanvas -> 22.dp
                 isLandscape -> 16.dp
@@ -191,9 +225,10 @@ data class CatalogHeaderMetrics(
                 isTv66 = isTv66,
                 isLargeCanvas = largeCanvas,
                 badgeWidth = badgeWidth,
-                // Título CT/Productos: +7% del ancho a la derecha (Ordenar/nav no se mueven).
+                // Título CT/Productos: +7% del ancho a la derecha.
                 titleStartGap = profile.maxWidth * 0.07f,
-                titleTopGap = FireTv42Spacing.spaces(TITLE_TOP_SPACES),
+                titleTopGap = FireTv42Spacing.spaces(TITLE_TOP_SPACES) + catalogHeaderTop,
+                controlsTopGap = catalogHeaderTop,
                 navButtonSize = CATALOG_NAV_BUTTON_SIZE,
                 searchBarWidth = searchBarWidth,
                 searchBarHeight = searchBarHeight,
@@ -201,9 +236,11 @@ data class CatalogHeaderMetrics(
                 filterOffsetX = FireTv42Spacing.spaces(FILTER_OFFSET_SPACES),
                 filterToSearchGap = filterToSearchGap,
                 searchToNavGap = searchToNavGap,
-                sortTopGap = sortTopGap,
+                sortTopGap = sortTopGapBase + catalogSortExtra,
                 searchIconSize = searchIconSize,
                 searchFontSize = searchFontSize,
+                usesSharedTvCatalogLayout = sharedTv,
+                productBlockWidthFraction = productBlockWidthFraction(sharedTv),
             )
         }
     }

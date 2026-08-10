@@ -203,6 +203,7 @@ private fun TreatmentsHeader(
             onClick = onBack,
             size = header.navButtonSize,
             playSound = true,
+            modifier = Modifier.padding(top = header.controlsTopGap),
         )
     }
 }
