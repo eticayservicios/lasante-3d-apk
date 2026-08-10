@@ -11,7 +11,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import coil.imageLoader
 import com.lasante.tvkiosk.ui.utils.ModalFrostScrim
 import com.lasante.tvkiosk.ui.utils.ModalOverlayDialog
 import com.lasante.tvkiosk.ui.utils.modalBackdropBlur
@@ -42,9 +44,17 @@ fun IntroScreen(
 ) {
     val widthClass = windowSizeClass.widthSizeClass
     val configuration = LocalConfiguration.current
+    val context = LocalContext.current
     val isTabletLandscape = configuration.screenWidthDp > configuration.screenHeightDp &&
         configuration.screenWidthDp >= 640 &&
         configuration.screenHeightDp >= 400
+
+    // Precarga Historia.gif una vez: al volver a Intro ya está en cache Coil.
+    LaunchedEffect(Unit) {
+        context.imageLoader.enqueue(
+            VitrinaUiImages.request(context, VitrinaUiImages.HISTORIA_GIF),
+        )
+    }
 
     var selectedProduct by remember { mutableStateOf<Product?>(null) }
     var isVideoPlaying by remember { mutableStateOf(false) }

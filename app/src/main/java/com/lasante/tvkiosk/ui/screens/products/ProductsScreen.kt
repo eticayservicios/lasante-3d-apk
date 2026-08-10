@@ -60,6 +60,7 @@ import com.lasante.tvkiosk.ui.components.TreatmentIconAssets
 import com.lasante.tvkiosk.ui.components.TrimTransparentTransformation
 import com.lasante.tvkiosk.ui.layout.CatalogHeaderMetrics
 import com.lasante.tvkiosk.ui.layout.CatalogScreenTitle
+import com.lasante.tvkiosk.ui.layout.HikvisionLayoutDebug
 import com.lasante.tvkiosk.ui.layout.LogCatalogHeaderProfile
 import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
 import com.lasante.tvkiosk.ui.layout.rememberCatalogLayout
@@ -227,7 +228,13 @@ fun ProductsScreen(
                     Text(
                         text = "${canvasWidth.value.toInt()}×${canvasHeight.value.toInt()} · ${profile.tier} · " +
                             "large=${header.isLargeCanvas} · btn=${buttonSize.value}dp · " +
-                            "filter=${header.filterIconSize.value}dp",
+                            "filter=${header.filterIconSize.value}dp · " +
+                            HikvisionLayoutDebug.overlayLabel() +
+                            if (header.isTv66 || profile.tier.name.contains("LARGE")) {
+                                " · TV66-ref=1280×720"
+                            } else {
+                                ""
+                            },
                         color = Color.White,
                         fontSize = 11.sp,
                         modifier = Modifier
@@ -340,7 +347,7 @@ fun ProductsScreen(
                                                     if (searchQuery.isEmpty()) {
                                                         Text(
                                                             "Buscar Producto",
-                                                            color = LaSanteTextSecondary,
+                                                            color = LaSanteTextSecondary.copy(alpha = 0.40f),
                                                             fontSize = header.searchFontSize,
                                                         )
                                                     }
@@ -379,7 +386,7 @@ fun ProductsScreen(
 
                                 Spacer(modifier = Modifier.width(header.searchToNavGap))
 
-                                val navTopPad = header.centerOnSearchBar(buttonSize) + header.controlsTopGap
+                                val navTopPad = header.navButtonsTopGap(buttonSize)
                                 val navSpacing =
                                     if (isTv66) header.navPairSpacing else nav.buttonSpacing
                                 Row(
@@ -683,10 +690,19 @@ private fun ProductGridItem(
         isLandscape -> 12.sp
         else -> 10.sp
     }
+    val descriptionFontSize = when {
+        isTv42LargeUp -> 13.sp
+        isTv66 -> 12.sp
+        isLandscape -> 11.sp
+        else -> 9.sp
+    }
     val titleBrush = Brush.horizontalGradient(
         listOf(LaSanteGreenDark, LaSanteGreen, Color(0xFFA8C829)),
     )
     val (titlePart, strengthPart) = remember(product.name) { splitProductTitleAndStrength(product.name) }
+    val shortDescription = remember(product.description, product.name) {
+        productCardShortDescription(product.description, product.name)
+    }
     val innerPad = when {
         isTv42LargeUp || isTv66 -> 10.dp
         else -> 6.dp
@@ -780,9 +796,30 @@ private fun ProductGridItem(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+            if (!shortDescription.isNullOrBlank()) {
+                Text(
+                    text = shortDescription,
+                    color = LaSanteTextSecondary.copy(alpha = 0.85f),
+                    fontSize = descriptionFontSize,
+                    fontWeight = FontWeight.Normal,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
     }
+}
+
+/**
+ * Descripción corta para el card de Productos (campo [Product.descripcion]).
+ * Omite vacíos o texto idéntico al nombre.
+ */
+private fun productCardShortDescription(rawDescription: String, productName: String): String? {
+    val text = rawDescription.trim()
+    if (text.isEmpty()) return null
+    if (text.equals(productName.trim(), ignoreCase = true)) return null
+    return text
 }
 
 /**

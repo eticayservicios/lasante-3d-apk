@@ -10,7 +10,8 @@ class RetrofitCatalogRepository(
 
     private var homeSnapshot: HomeSnapshot? = null
     private var homeCacheTime: Long = 0
-    private val CACHE_TTL_MS = 5 * 60 * 1000L
+    /** Snapshot /home en memoria (kiosco). Antes 5 min; ahora 24 h. [invalidateCache] fuerza refresh. */
+    private val CACHE_TTL_MS = 24L * 60 * 60 * 1000
 
     private data class BusinessUnitAlias(
         val fallbackId: String,

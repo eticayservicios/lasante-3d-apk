@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.lasante.tvkiosk.BuildConfig
 import com.lasante.tvkiosk.data.DisplayTitles
 import com.lasante.tvkiosk.data.Treatment
 import com.lasante.tvkiosk.ui.components.GreenNavButton
@@ -51,6 +52,7 @@ import com.lasante.tvkiosk.ui.components.TrimTransparentTransformation
 import com.lasante.tvkiosk.ui.layout.CatalogHeaderMetrics
 import com.lasante.tvkiosk.ui.layout.CatalogScreenTitle
 import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
+import com.lasante.tvkiosk.ui.layout.HikvisionLayoutDebug
 import com.lasante.tvkiosk.ui.layout.LogCatalogHeaderProfile
 import com.lasante.tvkiosk.ui.layout.SharedNavMetrics
 import com.lasante.tvkiosk.ui.layout.rememberCatalogLayout
@@ -96,78 +98,96 @@ fun TreatmentsScreen(
                 profile.tier == DeviceProfileTier.TV_REGULAR -> 10.dp
                 else -> if (profile.isWide) 18.dp else 14.dp
             }
+            val canvasW = maxWidth
+            val canvasH = maxHeight
 
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = catalog.topPadding),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                if (BuildConfig.DEBUG) {
+                    Text(
+                        text = "${canvasW.value.toInt()}×${canvasH.value.toInt()} · ${profile.tier} · " +
+                            "large=${header.isLargeCanvas} · btn=${header.navButtonSize.value}dp · " +
+                            "tv66=${header.isTv66} · ${HikvisionLayoutDebug.overlayLabel()}",
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(8.dp)
+                            .background(Color(0xCC000000), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                    )
+                }
                 Column(
                     modifier = Modifier
-                        .weight(1f)
-                        .widthIn(max = catalog.gridMaxWidth)
-                        .fillMaxWidth()
-                        .padding(horizontal = catalog.horizontalPadding),
+                        .fillMaxSize()
+                        .padding(top = catalog.topPadding),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    TreatmentsHeader(
-                        unitName = unitName,
-                        nav = catalog.nav,
-                        header = header,
-                        contentPadding = catalog.contentPadding,
-                        onBack = onBack,
-                    )
-
-                    Spacer(modifier = Modifier.height(claseTerapeuticaGap))
-
-                    Text(
-                        text = "Clase terapéutica",
-                        fontSize = catalog.titleSp.sp,
-                        fontWeight = FontWeight.Medium,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            brush = Brush.horizontalGradient(
-                                listOf(LaSanteGreen, Color(0xFFA8C829)),
-                            ),
-                        ),
-                        textAlign = TextAlign.End,
-                        color = Color.Unspecified,
+                    Column(
                         modifier = Modifier
+                            .weight(1f)
+                            .widthIn(max = catalog.gridMaxWidth)
                             .fillMaxWidth()
-                            .padding(horizontal = catalog.contentPadding),
-                    )
+                            .padding(horizontal = catalog.horizontalPadding),
+                    ) {
+                        TreatmentsHeader(
+                            unitName = unitName,
+                            nav = catalog.nav,
+                            header = header,
+                            contentPadding = catalog.contentPadding,
+                            onBack = onBack,
+                        )
 
-                    Spacer(modifier = Modifier.height(claseTerapeuticaGap))
+                        Spacer(modifier = Modifier.height(claseTerapeuticaGap))
 
-                    Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                        LazyVerticalGrid(
-                            state = gridState,
-                            columns = GridCells.Fixed(columns),
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .align(Alignment.TopCenter),
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                                start = catalog.contentPadding,
-                                end = catalog.contentPadding,
-                                top = CatalogHeaderMetrics.treatmentsGridTopPadding(),
-                                bottom = if (profile.isWide) 24.dp else 16.dp,
+                        Text(
+                            text = "Clase terapéutica",
+                            fontSize = catalog.titleSp.sp,
+                            fontWeight = FontWeight.Medium,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                brush = Brush.horizontalGradient(
+                                    listOf(LaSanteGreen, Color(0xFFA8C829)),
+                                ),
                             ),
-                            verticalArrangement = Arrangement.spacedBy(cardSpacing),
-                            horizontalArrangement = Arrangement.spacedBy(cardSpacing),
-                        ) {
-                            items(
-                                items = treatments,
-                                key = { treatment -> treatment.id },
-                            ) { treatment ->
-                                TherapeuticClassCard(
-                                    treatment = treatment,
-                                    iconSize = ui.cardIconSize,
-                                    labelFontSize = ui.cardLabelFontSize,
-                                    labelLineHeight = ui.cardLabelLineHeight,
-                                    iconFill = ui.cardIconFill,
-                                    aspectRatio = ui.cardAspectRatio,
-                                    blockWidthFraction = header.productBlockWidthFraction,
-                                    onClick = { onTreatmentSelected(treatment.id) },
-                                )
+                            textAlign = TextAlign.End,
+                            color = Color.Unspecified,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = catalog.contentPadding),
+                        )
+
+                        Spacer(modifier = Modifier.height(claseTerapeuticaGap))
+
+                        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                            LazyVerticalGrid(
+                                state = gridState,
+                                columns = GridCells.Fixed(columns),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .align(Alignment.TopCenter),
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                                    start = catalog.contentPadding,
+                                    end = catalog.contentPadding,
+                                    top = CatalogHeaderMetrics.treatmentsGridTopPadding(),
+                                    bottom = if (profile.isWide) 24.dp else 16.dp,
+                                ),
+                                verticalArrangement = Arrangement.spacedBy(cardSpacing),
+                                horizontalArrangement = Arrangement.spacedBy(cardSpacing),
+                            ) {
+                                items(
+                                    items = treatments,
+                                    key = { treatment -> treatment.id },
+                                ) { treatment ->
+                                    TherapeuticClassCard(
+                                        treatment = treatment,
+                                        iconSize = ui.cardIconSize,
+                                        labelFontSize = ui.cardLabelFontSize,
+                                        labelLineHeight = ui.cardLabelLineHeight,
+                                        iconFill = ui.cardIconFill,
+                                        aspectRatio = ui.cardAspectRatio,
+                                        blockWidthFraction = header.productBlockWidthFraction,
+                                        onClick = { onTreatmentSelected(treatment.id) },
+                                    )
+                                }
                             }
                         }
                     }
@@ -204,7 +224,8 @@ private fun TreatmentsHeader(
             onClick = onBack,
             size = header.navButtonSize,
             playSound = true,
-            modifier = Modifier.padding(top = header.controlsTopGap),
+            // Misma Y que Volver/Home en Productos (centrado a altura de search bar).
+            modifier = Modifier.padding(top = header.navButtonsTopGap()),
         )
     }
 }

@@ -1,5 +1,6 @@
 package com.lasante.tvkiosk.ui.screens.intro
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,6 +12,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.runtime.Composable
@@ -18,15 +21,19 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import android.util.Log
 import coil.compose.AsyncImage
-import coil.request.ImageRequest
+import com.lasante.tvkiosk.BuildConfig
 import com.lasante.tvkiosk.data.Product
 import com.lasante.tvkiosk.data.VitrinaUnit
+import com.lasante.tvkiosk.ui.layout.HikvisionLayoutDebug
 
 private const val PROFILE_LOG_TAG = "VitrinaProfile"
 
@@ -86,10 +93,29 @@ fun IntroResponsiveLayout(
                     "badgePullUp=${metrics.bubblesBadgeTopPullUp} " +
                     "bubbleSize=${metrics.bubbleSize} bubbleTop=${metrics.bubblesRowTopInScene} " +
                     "bubbleSpace=${metrics.bubbleSpacing} rowW=${metrics.bubblesRowWidthFraction} " +
+                    "rotateSize=${metrics.rotateButtonSize} touchSize=${metrics.touchHintSize} " +
                     "rotateEnd=${metrics.rotateButtonEndPadding} " +
                     "rotateX=${metrics.rotateButtonProtrudeOffset} " +
                     "vOffset=${metrics.vitrinaVerticalOffsetAdjustment} " +
                     "vBias=${metrics.vitrinaVerticalBias}",
+            )
+        }
+        if (BuildConfig.DEBUG) {
+            Text(
+                text = "${metrics.vitrinaProfileKey} · " +
+                    "${metrics.maxWidth.value.toInt()}×${metrics.maxHeight.value.toInt()} · " +
+                    "${HikvisionLayoutDebug.overlayLabel()} · " +
+                    "manito=${"%.1f".format(metrics.rotateButtonSize.value)} · " +
+                    "burbuja=${"%.1f".format(metrics.bubbleSize.value)} · " +
+                    "red=${"%.1f".format(metrics.socialIconSize.value)}",
+                color = Color.White,
+                fontSize = 11.sp,
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(8.dp)
+                    .zIndex(100f)
+                    .background(Color(0xCC000000), RoundedCornerShape(4.dp))
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
             )
         }
         val vitrinaPadding = Modifier.padding(
@@ -174,18 +200,19 @@ fun IntroResponsiveLayout(
                     contentScale = ContentScale.Fit,
                 )
             }
-            if (showVitrinaControls) {
-                val pullUp = metrics.historiaRailTopPullUp
-                HistoriaBadgeButton(
-                    metrics = metrics,
-                    onClick = onVideoClick,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(end = metrics.logoEndPadding)
-                        .offset(y = -pullUp)
-                        .zIndex(16f),
-                )
-            }
+            // Mantener montado (alpha) para no re-decodificar Historia.gif (~5.6MB) al volver a Intro.
+            val pullUp = metrics.historiaRailTopPullUp
+            HistoriaBadgeButton(
+                metrics = metrics,
+                enabled = showVitrinaControls,
+                onClick = onVideoClick,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(end = metrics.logoEndPadding)
+                    .offset(y = -pullUp)
+                    .alpha(if (showVitrinaControls) 1f else 0f)
+                    .zIndex(16f),
+            )
         }
     }
 }
@@ -195,24 +222,21 @@ private fun HistoriaBadgeButton(
     metrics: IntroLayoutMetrics,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     val context = LocalContext.current
     val gifModel = remember(context) {
-        ImageRequest.Builder(context)
-            .data("file:///android_asset/vitrina/ui/Historia.gif")
-            .crossfade(false)
-            .allowHardware(false)
-            .build()
+        VitrinaUiImages.request(context, VitrinaUiImages.HISTORIA_GIF)
     }
     Box(
         modifier = modifier
             .width(metrics.historiaBadgeWidth)
             .height(metrics.historiaBadgeHeight)
-            .clickable { onClick() },
+            .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.TopCenter,
     ) {
         AsyncImage(
-            model = "file:///android_asset/vitrina/ui/badge_historia.png",
+            model = VitrinaUiImages.BADGE_HISTORIA,
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Fit,
@@ -236,25 +260,15 @@ internal fun IntroActionButton(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    val isGif = assetPath.endsWith(".gif", ignoreCase = true)
-    val model = remember(assetPath, context, isGif) {
-        ImageRequest.Builder(context)
-            .data(assetPath)
-            .crossfade(false)
-            .apply {
-                if (isGif) {
-                    // Evita frames basura / flash blanco en GIFs con disposal en mid-range (Infinix).
-                    allowHardware(false)
-                }
-            }
-            .build()
+    val model = remember(assetPath, context) {
+        VitrinaUiImages.request(context, assetPath)
     }
     AsyncImage(
         model = model,
         contentDescription = null,
         modifier = modifier
             .size(size)
-            .clickable { onClick() },
+            .clickable(onClick = onClick),
         contentScale = ContentScale.Fit,
     )
 }

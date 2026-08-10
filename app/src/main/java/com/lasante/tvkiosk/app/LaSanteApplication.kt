@@ -1,11 +1,10 @@
 package com.lasante.tvkiosk.app
 
 import android.app.Application
-import android.os.Build
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.decode.GifDecoder
-import coil.decode.ImageDecoderDecoder
+import coil.memory.MemoryCache
 import com.lasante.tvkiosk.data.CatalogRepository
 import com.lasante.tvkiosk.data.remote.RetrofitCatalogRepository
 import com.lasante.tvkiosk.media.Media3AudioPlayer
@@ -27,6 +26,12 @@ class LaSanteApplication : Application(), ImageLoaderFactory {
                 // Forzamos GifDecoder.Factory() en todas las versiones de Android para evitar
                 // destellos blancos o loops corruptos en GIFs transparentes (bug de ImageDecoderDecoder)
                 add(GifDecoder.Factory())
+            }
+            // Historia.gif / gira / touch: más margen de memoria para no re-decodificar al volver a Intro.
+            .memoryCache {
+                MemoryCache.Builder(this)
+                    .maxSizePercent(0.28)
+                    .build()
             }
             .build()
 

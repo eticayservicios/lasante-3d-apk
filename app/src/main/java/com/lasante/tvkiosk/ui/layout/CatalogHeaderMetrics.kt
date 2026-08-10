@@ -96,6 +96,13 @@ data class CatalogHeaderMetrics(
     fun centerOnSearchBar(controlSize: Dp): Dp =
         ((searchBarHeight - controlSize) / 2).coerceAtLeast(0.dp)
 
+    /**
+     * Padding top unificado de Volver/Home — misma Y en CT y Productos
+     * (centrado respecto a la altura de la barra de búsqueda).
+     */
+    fun navButtonsTopGap(buttonSize: Dp = navButtonSize): Dp =
+        centerOnSearchBar(buttonSize) + controlsTopGap
+
     companion object {
         private const val TITLE_SCALE = 0.95f
         /** Filtro: escala única y clara sobre la base por perfil. */
@@ -166,8 +173,11 @@ data class CatalogHeaderMetrics(
             isLandscape: Boolean,
         ): CatalogHeaderMetrics {
             val isPhoneLandscape = profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE
-            val isTv66 = profile.tier == DeviceProfileTier.TV_LARGE
-            val isTv42 = profile.tier == DeviceProfileTier.TV_REGULAR
+            // Cinturón + tirantes: canvas Hikvision fuerza métricas TV66 aunque el tier viniera mal.
+            val isTv66 = profile.tier == DeviceProfileTier.TV_LARGE ||
+                HikvisionLayoutDebug.isForced() ||
+                Tv66Reference.matchesReferenceCanvas(profile.maxWidth, profile.maxHeight)
+            val isTv42 = profile.tier == DeviceProfileTier.TV_REGULAR && !isTv66
             val badgeWidth = uiMetrics.badgeHeight * TreatmentUiMetrics.BADGE_WIDTH_TO_HEIGHT
 
             val searchBarWidth = when {
@@ -357,7 +367,8 @@ fun LogCatalogHeaderProfile(header: CatalogHeaderMetrics, screen: String) {
             "CatalogProfile",
             "$screen titleStartGap=${header.titleStartGap} " +
                 "navBtn=${header.navButtonSize} " +
-                "large=${header.isLargeCanvas} tv42=${header.isTv42} tv66=${header.isTv66}",
+                "large=${header.isLargeCanvas} tv42=${header.isTv42} tv66=${header.isTv66} " +
+                HikvisionLayoutDebug.overlayLabel(),
         )
     }
 }

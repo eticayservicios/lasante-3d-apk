@@ -77,11 +77,31 @@ object DeviceProfileResolver {
         preferTv66: Boolean = false,
     ): DeviceProfile {
         val isLandscape = maxWidth > maxHeight
+
+        // TV66 Hikvision: canvas ref., preferTv66, o force DEBUG (Damasco).
+        if (
+            HikvisionLayoutDebug.isForced() ||
+            Tv66Reference.matchesReferenceCanvas(maxWidth, maxHeight) ||
+            preferTv66
+        ) {
+            android.util.Log.i(
+                "Tv66Profile",
+                "FORCE TV_LARGE canvas=${maxWidth.value.toInt()}×${maxHeight.value.toInt()} " +
+                    "prefer=$preferTv66 hikForce=${HikvisionLayoutDebug.isForced()}",
+            )
+            return DeviceProfile(
+                tier = DeviceProfileTier.TV_LARGE,
+                maxWidth = maxWidth,
+                maxHeight = maxHeight,
+                isLandscape = isLandscape,
+            )
+        }
+
         val isPhoneLandscape = isLandscape && maxHeight < 520.dp &&
             !(maxWidth >= 640.dp && maxHeight >= 400.dp)
         val isTabletLandscape = isLandscape && maxWidth >= 640.dp && maxHeight >= 400.dp
         val isTv = maxWidth >= 880.dp && maxHeight >= 480.dp && !isPhoneLandscape
-        val isTvLarge = isTv && (maxWidth > 1400.dp || preferTv66)
+        val isTvLarge = isTv && maxWidth > Tv66Reference.MinWidthForLargeTier
         val isTvRegular = isTv && !isTvLarge
 
         val tier = when {
@@ -132,12 +152,13 @@ object DeviceProfileResolver {
                 topPadding = 28.dp,
             )
             DeviceProfileTier.TV_LARGE -> SharedGridMetrics(
+                // Hikvision 1280×720: 4 cols; top más bajo que canvas 4K altos.
                 columns = 4,
                 horizontalPadding = sideMargin,
                 maxContentWidth = w,
                 contentPadding = 10.dp,
                 cardSpacing = 24.dp,
-                topPadding = 58.dp,
+                topPadding = if (profile.maxHeight <= Tv66Reference.Height + 40.dp) 28.dp else 58.dp,
             )
             DeviceProfileTier.TV_REGULAR -> SharedGridMetrics(
                 // Fire / Ariana (~1137) y Damasco (~1333): 4 cols.
@@ -184,10 +205,11 @@ object DeviceProfileResolver {
             titleUnderlineWidth = 150.dp,
         )
         DeviceProfileTier.TV_LARGE -> SharedNavMetrics(
+            // Título más contenido en canvas bajo Hikvision (1280×720).
             buttonSize = 53.dp,
             buttonSpacing = 12.dp,
-            titleFontSize = 36.sp,
-            titleUnderlineWidth = 320.dp,
+            titleFontSize = if (profile.maxHeight <= Tv66Reference.Height + 40.dp) 28.sp else 36.sp,
+            titleUnderlineWidth = if (profile.maxHeight <= Tv66Reference.Height + 40.dp) 240.dp else 320.dp,
         )
         DeviceProfileTier.TV_REGULAR -> SharedNavMetrics(
             buttonSize = 38.dp,
