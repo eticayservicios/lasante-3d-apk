@@ -206,10 +206,9 @@ fun IntroSocialQrModal(
             preferTv66 = preferTv66,
         ).tier == DeviceProfileTier.TV_LARGE
     }
-    // TV66: QR ~28% del ancho de pantalla (mín. 320.dp) — el scale 1.1/1.4 sobre 168.dp
-    // no se notaba en 1920.dp y además el Dialog no reportaba bien el perfil.
+    // TV66: ~22.4% del ancho (28% −20%) — el Dialog no reportaba bien el perfil antes.
     val qrSize = if (isTv66) {
-        (screenW * 0.28f).coerceIn(320.dp, 560.dp)
+        (screenW * 0.224f).coerceIn(256.dp, 448.dp)
     } else {
         168.dp
     }
