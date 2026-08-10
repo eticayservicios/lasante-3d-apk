@@ -76,9 +76,9 @@ object TreatmentUiMetrics {
     )
 
     val tv66 = ProfileMetrics(
-        // Fondo +5 espacios; icono −2.dp vs 40.
-        badgeHeight = 104.dp + FireTv42Spacing.spaces(5),
-        badgeIconSize = 38.dp,
+        // Fondo +4 espacios; icono 38 − 2 espacios.
+        badgeHeight = 104.dp + FireTv42Spacing.spaces(4),
+        badgeIconSize = 38.dp - FireTv42Spacing.spaces(2),
         cardIconSize = 420.dp,
         navButtonSize = 52.dp,
         cardLabelFontSize = scaledSp(18.sp),

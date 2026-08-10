@@ -667,7 +667,7 @@ fun ProductsScreen(
                     }
                 }
 
-                // Badge CT (clase) top-start; TV66: subir 5 espacios.
+                // Badge CT (clase) top-start; TV66: subir 7 espacios.
                 TreatmentIconBadge(
                     iconUrl = treatmentIconUrl,
                     metrics = catalog.ui,
@@ -675,7 +675,7 @@ fun ProductsScreen(
                         .align(Alignment.TopStart)
                         .offset {
                             val lift = when {
-                                isTv66 -> FireTv42Spacing.spaces(5).roundToPx()
+                                isTv66 -> FireTv42Spacing.spaces(7).roundToPx()
                                 isTv42 -> 6.dp.roundToPx()
                                 else -> 0
                             }

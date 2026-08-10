@@ -124,8 +124,8 @@ data class CatalogHeaderMetrics(
         private const val CATALOG_SORT_TOP_SPACES = 3
         /** Separación entre bloques de controles en TV66 (filtro / búsqueda / nav). */
         private const val TV66_CONTROL_BLOCK_SPACES = 3
-        /** TV66: filtro ↔ buscador = 5 espacios (aire pedido). */
-        private const val TV66_FILTER_TO_SEARCH_SPACES = 5
+        /** TV66: filtro ↔ buscador. */
+        private const val TV66_FILTER_TO_SEARCH_SPACES = 3
         /** Fire/Ariana: bloque producto −5%. TV66: cards un poco más anchas (menos aire lateral). */
         private const val PRODUCT_BLOCK_WIDTH_TV42 = 0.95f
         private const val PRODUCT_BLOCK_WIDTH_TV66 = 0.90f
@@ -302,8 +302,8 @@ data class CatalogHeaderMetrics(
                 navButtonSize = navButtonSize,
                 searchBarWidth = searchBarWidth,
                 searchBarHeight = searchBarHeight,
-                // TV66: mismo tamaño que Volver/Home.
-                filterIconSize = if (isTv66) navButtonSize else filterBase * FILTER_SCALE,
+                // TV66: mismo tamaño que Volver/Home + 2.dp.
+                filterIconSize = if (isTv66) navButtonSize + 2.dp else filterBase * FILTER_SCALE,
                 filterOffsetX = FireTv42Spacing.spaces(
                     if (isTv66) TV66_FILTER_OFFSET_SPACES else FILTER_OFFSET_SPACES,
                 ),
