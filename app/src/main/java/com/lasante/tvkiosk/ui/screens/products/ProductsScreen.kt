@@ -258,23 +258,165 @@ fun ProductsScreen(
                             .fillMaxWidth()
                             .padding(horizontal = horizontalPadding),
                     ) {
+                        if (isTv66) {
+                            // Título alineado con filtro + search + Back/Home (Ordenar fuera del eje).
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = contentPadding)
+                                        .padding(top = header.controlsTopGap),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    CatalogScreenTitle(
+                                        text = DisplayTitles.resolve(treatmentName),
+                                        nav = nav,
+                                        titleStartGap = header.titleStartGap,
+                                        titleTopGap = 0.dp,
+                                    )
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    val filterContext = LocalContext.current
+                                    val density = LocalDensity.current
+                                    val filterSize = header.filterIconSize
+                                    val filterSizePx = with(density) {
+                                        filterSize.roundToPx().coerceAtLeast(1)
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .size(filterSize)
+                                            .clickable(
+                                                interactionSource = remember { MutableInteractionSource() },
+                                                indication = null,
+                                                onClick = { showFilterSheet = true },
+                                            ),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        AsyncImage(
+                                            model = ImageRequest.Builder(filterContext)
+                                                .data("file:///android_asset/vitrina/ui/filter_button.png")
+                                                .size(filterSizePx)
+                                                .transformations(TrimTransparentTransformation())
+                                                .build(),
+                                            contentDescription = "Filtrar",
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Fit,
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(header.filterToSearchGap))
+                                    Box(
+                                        modifier = Modifier
+                                            .width(header.searchBarWidth)
+                                            .height(header.searchBarHeight)
+                                            .shadow(elevation = 2.dp, shape = RoundedCornerShape(50.dp))
+                                            .clip(RoundedCornerShape(50.dp))
+                                            .background(
+                                                Brush.horizontalGradient(
+                                                    colors = listOf(Color(0xFFF8F8F8), Color(0xFFD0D0D0)),
+                                                ),
+                                            )
+                                            .padding(horizontal = if (isLandscape) 10.dp else 8.dp),
+                                        contentAlignment = Alignment.CenterStart,
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        ) {
+                                            AsyncImage(
+                                                model = "file:///android_asset/vitrina/ui/search_icon.png",
+                                                contentDescription = null,
+                                                modifier = Modifier.size(header.searchIconSize),
+                                                contentScale = ContentScale.Fit,
+                                            )
+                                            BasicTextField(
+                                                value = searchQuery,
+                                                onValueChange = { searchQuery = it },
+                                                textStyle = TextStyle(
+                                                    color = LaSanteText,
+                                                    fontSize = header.searchFontSize,
+                                                ),
+                                                cursorBrush = SolidColor(LaSanteGreen),
+                                                modifier = Modifier.weight(1f),
+                                                singleLine = true,
+                                                decorationBox = { innerTextField ->
+                                                    if (searchQuery.isEmpty()) {
+                                                        Text(
+                                                            "Buscar Producto",
+                                                            color = LaSanteTextSecondary.copy(alpha = 0.40f),
+                                                            fontSize = header.searchFontSize,
+                                                        )
+                                                    }
+                                                    innerTextField()
+                                                },
+                                            )
+                                            if (isSearching) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(16.dp),
+                                                    strokeWidth = 2.dp,
+                                                    color = LaSanteGreen,
+                                                )
+                                            }
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.width(header.searchToNavGap))
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(header.navPairSpacing),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        GreenNavButton(
+                                            assetPath = "svg/ui/Before.svg",
+                                            contentDescription = "Volver",
+                                            onClick = onBack,
+                                            size = buttonSize,
+                                        )
+                                        GreenNavButton(
+                                            assetPath = "svg/ui/Home.svg",
+                                            contentDescription = "Inicio",
+                                            onClick = onHome,
+                                            size = buttonSize,
+                                            playSound = true,
+                                        )
+                                    }
+                                }
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = contentPadding),
+                                    horizontalArrangement = Arrangement.End,
+                                ) {
+                                    // Ordenar bajo el buscador: end = nav + gaps + search width.
+                                    ProductsSortButton(
+                                        sortOrder = sortOrder,
+                                        onSortClick = {
+                                            sortOrder = when (sortOrder) {
+                                                SortOrder.NONE -> SortOrder.AZ
+                                                SortOrder.AZ -> SortOrder.ZA
+                                                SortOrder.ZA -> SortOrder.NONE
+                                            }
+                                        },
+                                        isLandscape = isLandscape,
+                                        isTv66 = true,
+                                        isTv42 = isTv42,
+                                        isTv42LargeUp = isTv42LargeUp,
+                                        sortScale = header.sortScale,
+                                        modifier = Modifier.padding(
+                                            top = header.sortTopGap,
+                                            end = buttonSize * 2f + header.navPairSpacing + header.searchToNavGap,
+                                        ),
+                                    )
+                                }
+                            }
+                        } else {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = contentPadding)
-                                .padding(top = if (isTv66) header.controlsTopGap else 0.dp),
+                                .padding(horizontal = contentPadding),
                             verticalAlignment = Alignment.Top,
                         ) {
                             CatalogScreenTitle(
                                 text = DisplayTitles.resolve(treatmentName),
                                 nav = nav,
                                 titleStartGap = header.titleStartGap,
-                                // TV66: misma línea que filtro / search / Back-Home.
-                                titleTopGap = if (isTv66) {
-                                    header.centerOnSearchBar(buttonSize)
-                                } else {
-                                    header.titleTopGap
-                                },
+                                titleTopGap = header.titleTopGap,
                             )
 
                             Spacer(modifier = Modifier.weight(1f))
@@ -284,11 +426,8 @@ fun ProductsScreen(
                                 val density = LocalDensity.current
                                 val filterSize = header.filterIconSize
                                 val filterSizePx = with(density) { filterSize.roundToPx().coerceAtLeast(1) }
-                                val filterTopPad = if (isTv66) {
-                                    header.centerOnSearchBar(filterSize)
-                                } else {
+                                val filterTopPad =
                                     header.centerOnSearchBar(filterSize) + header.controlsTopGap
-                                }
                                 Box(
                                     modifier = Modifier
                                         .padding(top = filterTopPad)
@@ -321,7 +460,7 @@ fun ProductsScreen(
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .padding(top = if (isTv66) 0.dp else header.controlsTopGap)
+                                            .padding(top = header.controlsTopGap)
                                             .width(header.searchBarWidth)
                                             .height(header.searchBarHeight)
                                             .shadow(elevation = 2.dp, shape = RoundedCornerShape(50.dp))
@@ -397,13 +536,8 @@ fun ProductsScreen(
 
                                 Spacer(modifier = Modifier.width(header.searchToNavGap))
 
-                                val navTopPad = if (isTv66) {
-                                    header.centerOnSearchBar(buttonSize)
-                                } else {
-                                    header.navButtonsTopGap(buttonSize)
-                                }
-                                val navSpacing =
-                                    if (isTv66) header.navPairSpacing else nav.buttonSpacing
+                                val navTopPad = header.navButtonsTopGap(buttonSize)
+                                val navSpacing = nav.buttonSpacing
                                 Row(
                                     modifier = Modifier.padding(top = navTopPad),
                                     horizontalArrangement = Arrangement.spacedBy(navSpacing),
@@ -424,6 +558,7 @@ fun ProductsScreen(
                                     )
                                 }
                             }
+                        }
                         }
 
                         val scrollRailWidth = when {
@@ -543,6 +678,7 @@ fun ProductsScreen(
                 TreatmentIconBadge(
                     iconUrl = treatmentIconUrl,
                     metrics = catalog.ui,
+                    widthTrim = if (isTv66) 2.dp else 0.dp,
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .offset {
@@ -649,10 +785,13 @@ private fun TreatmentIconBadge(
     iconUrl: String?,
     metrics: TreatmentUiMetrics.ProfileMetrics,
     modifier: Modifier = Modifier,
+    /** TV66: −2.dp de ancho para que se vea menos angosto/raro. */
+    widthTrim: Dp = 0.dp,
 ) {
     val iconModel = TreatmentIconAssets.resolve(iconUrl = iconUrl)
     val badgeHeight = metrics.badgeHeight
-    val badgeWidth = badgeHeight * TreatmentUiMetrics.BADGE_WIDTH_TO_HEIGHT
+    val badgeWidth =
+        (badgeHeight * TreatmentUiMetrics.BADGE_WIDTH_TO_HEIGHT - widthTrim).coerceAtLeast(24.dp)
     val iconSize = metrics.badgeIconSize
 
     Box(
