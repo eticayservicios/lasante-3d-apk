@@ -15,6 +15,7 @@ import com.lasante.tvkiosk.ui.layout.CatalogHeaderMetrics
 import com.lasante.tvkiosk.ui.layout.DeviceProfile
 import com.lasante.tvkiosk.ui.layout.DeviceProfileResolver
 import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
+import com.lasante.tvkiosk.ui.layout.FireTv42Spacing
 import com.lasante.tvkiosk.ui.layout.TvProfileDetector
 
 /**
@@ -665,11 +666,12 @@ data class IntroLayoutMetrics(
             else -> 0.04f
         }
 
-    /** Mismo tamaño que [rotateButtonSize] en todos los perfiles. */
+    /** Mismo tamaño base que gira/touch (sin el −20% Fire/Ariana de las manitos). */
     val historyButtonSize: Dp
-        get() = rotateButtonSize
+        get() = rotateButtonSizeBase
 
-    val rotateButtonSize: Dp
+    /** Tamaño base compartido gira/touch/historia antes de ajustes por UI. */
+    private val rotateButtonSizeBase: Dp
         get() = when (vitrinaProfileKey) {
             // Infinix: gira = touch (mismo tamaño; antes gira se veía mucho más grande).
             "phone_landscape" -> 42.dp
@@ -688,33 +690,58 @@ data class IntroLayoutMetrics(
             else -> 70.dp
         }
 
-    /** Touch y gira comparten tamaño en todos los perfiles. */
+    /** Gira (manito): Fire/Ariana −20%. */
+    val rotateButtonSize: Dp
+        get() = when (vitrinaProfileKey) {
+            "tv_42", "tablet_landscape" -> rotateButtonSizeBase * 0.80f
+            else -> rotateButtonSizeBase
+        }
+
+    /** Touch y gira (manitos) comparten tamaño. */
     val touchHintSize: Dp
         get() = rotateButtonSize
 
     /** Padding inferior del hint touch.gif (sobre el cintillo frontal). */
     val touchHintBottomPadding: Dp
-        get() = when (vitrinaProfileKey) {
-            // Infinix: −2.dp más abajo dentro del cintillo.
-            "phone_landscape" -> maxHeight * 0.100f - 2.dp
-            // Fire/TV1080: −7.dp (bajar touch ~2.dp más). Damasco/otros: sin ese offset.
-            "tv_42", "tablet_landscape" ->
-                if (isTv42 && !isTv42LargeCanvas) maxHeight * 0.055f - 7.dp
-                else maxHeight * 0.055f
-            "tv_32", "tv_66" -> maxHeight * 0.055f
-            else -> maxHeight * 0.04f
+        get() {
+            // Infinix / tablet / Ariana: bajar 2 espacios (menos padding bottom).
+            val lowerNudge = when {
+                vitrinaProfileKey == "phone_landscape" -> FireTv42Spacing.spaces(2)
+                vitrinaProfileKey == "tablet_landscape" -> FireTv42Spacing.spaces(2)
+                vitrinaProfileKey == "tv_42" && isTv42LargeCanvas -> FireTv42Spacing.spaces(2)
+                else -> 0.dp
+            }
+            val base = when (vitrinaProfileKey) {
+                // Infinix: −2.dp más abajo dentro del cintillo.
+                "phone_landscape" -> maxHeight * 0.100f - 2.dp
+                // Fire/TV1080: −7.dp. Damasco/Ariana/tablet: base 0.055H.
+                "tv_42", "tablet_landscape" ->
+                    if (isTv42 && !isTv42LargeCanvas) maxHeight * 0.055f - 7.dp
+                    else maxHeight * 0.055f
+                "tv_32", "tv_66" -> maxHeight * 0.055f
+                else -> maxHeight * 0.04f
+            }
+            return (base - lowerNudge).coerceAtLeast(0.dp)
         }
 
     /**
      * Offset horizontal del touch desde el centro del cintillo frontal.
-     * Negativo = izquierda. Tablet/TV/Fire: −1%W respecto a la calibración anterior.
+     * Positivo = derecha (punto rosado / a la derecha de “Santé”).
      */
     val touchHintCenterXOffset: Dp
-        get() = when (vitrinaProfileKey) {
-            "phone_landscape" -> -(maxWidth * 0.10f)
-            "tv_66" -> -(maxWidth * 0.10f)
-            "tv_32", "tv_42", "tablet_landscape" -> -(maxWidth * 0.11f)
-            else -> -(maxWidth * 0.09f)
+        get() {
+            val base = when (vitrinaProfileKey) {
+                "phone_landscape" -> maxWidth * 0.10f
+                "tv_66" -> maxWidth * 0.10f
+                "tv_32", "tv_42", "tablet_landscape" -> maxWidth * 0.11f
+                else -> maxWidth * 0.09f
+            }
+            // Tablet Ariana: 2 espacios hacia la izquierda.
+            return if (vitrinaProfileKey == "tv_42" && isTv42LargeCanvas) {
+                base - FireTv42Spacing.spaces(2)
+            } else {
+                base
+            }
         }
 
     /** Borde derecho del cilindro 3D — botón Nuestra Historia (padding ≥ 0). */
