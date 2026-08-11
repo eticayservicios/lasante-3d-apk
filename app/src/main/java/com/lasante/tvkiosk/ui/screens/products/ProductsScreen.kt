@@ -284,26 +284,6 @@ fun ProductsScreen(
             val gridMaxWidth = catalog.gridMaxWidth
 
             Box(modifier = Modifier.fillMaxSize()) {
-                if (BuildConfig.DEBUG) {
-                    Text(
-                        text = "${canvasWidth.value.toInt()}×${canvasHeight.value.toInt()} · ${profile.tier} · " +
-                            "large=${header.isLargeCanvas} · btn=${buttonSize.value}dp · " +
-                            "filter=${header.filterIconSize.value}dp · " +
-                            HikvisionLayoutDebug.overlayLabel() +
-                            if (header.isTv66 || profile.tier.name.contains("LARGE")) {
-                                " · TV66-ref=1280×720"
-                            } else {
-                                ""
-                            },
-                        color = Color.White,
-                        fontSize = 11.sp,
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(8.dp)
-                            .background(Color(0xCC000000), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                    )
-                }
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -756,6 +736,28 @@ fun ProductsScreen(
                             top = 0.dp,
                         ),
                 )
+
+                // DEBUG arriba: abajo tapaba la 2.ª fila (parecía que los cards “se montaban”).
+                if (BuildConfig.DEBUG) {
+                    Text(
+                        text = "${canvasWidth.value.toInt()}×${canvasHeight.value.toInt()} · ${profile.tier} · " +
+                            "large=${header.isLargeCanvas} · btn=${buttonSize.value}dp · " +
+                            "filter=${header.filterIconSize.value}dp · " +
+                            HikvisionLayoutDebug.overlayLabel() +
+                            if (header.isTv66 || profile.tier.name.contains("LARGE")) {
+                                " · TV66-ref=1280×720"
+                            } else {
+                                ""
+                            },
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 4.dp)
+                            .background(Color(0xCC000000), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                    )
+                }
             }
 
             if (showFilterSheet) {
