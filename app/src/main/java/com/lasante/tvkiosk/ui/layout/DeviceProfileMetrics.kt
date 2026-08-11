@@ -256,9 +256,10 @@ object DeviceProfileResolver {
              * Gaps en “espacios” Poppins (misma unidad usada en el ajuste en tablet forzada).
              */
             DeviceProfileTier.TV_LARGE -> SharedModalMetrics(
-                modalWidthFraction = 0.70f,
+                // +5% ancho vs 0.70: más aire para la columna GLB sin achicar el modelo.
+                modalWidthFraction = 0.735f,
                 modalHeightFraction = 0.68f,
-                modelWeight = 1.15f,
+                modelWeight = 1.25f,
                 descriptionWeight = 1.40f,
                 descriptionHeightFraction = 0.92f,
                 cardHeightFraction = 0.80f,
@@ -282,9 +283,10 @@ object DeviceProfileResolver {
              * gaps en [FireTv42Spacing] (unidad nativa de este perfil).
              */
             DeviceProfileTier.TV_REGULAR -> SharedModalMetrics(
-                modalWidthFraction = 0.74f,
+                // +5% ancho / +0.10 peso GLB (misma proporción que TV66).
+                modalWidthFraction = 0.777f,
                 modalHeightFraction = 0.66f,
-                modelWeight = 1.20f,
+                modelWeight = 1.30f,
                 descriptionWeight = 1.30f,
                 descriptionHeightFraction = 0.90f,
                 cardHeightFraction = 0.82f,
@@ -307,9 +309,9 @@ object DeviceProfileResolver {
              * Más % de modal porque el canvas físico es más chico.
              */
             DeviceProfileTier.TABLET_LANDSCAPE -> SharedModalMetrics(
-                modalWidthFraction = 0.78f,
+                modalWidthFraction = 0.819f,
                 modalHeightFraction = 0.70f,
-                modelWeight = 1.20f,
+                modelWeight = 1.30f,
                 descriptionWeight = 1.25f,
                 descriptionHeightFraction = 0.90f,
                 cardHeightFraction = 0.82f,
@@ -328,9 +330,9 @@ object DeviceProfileResolver {
 
             /** Phone landscape: suele ir apilado (compact); métricas por si usa fila. */
             DeviceProfileTier.COMPACT_LANDSCAPE -> SharedModalMetrics(
-                modalWidthFraction = 0.90f,
+                modalWidthFraction = 0.945f,
                 modalHeightFraction = 0.78f,
-                modelWeight = 1.25f,
+                modelWeight = 1.35f,
                 descriptionWeight = 1.10f,
                 descriptionHeightFraction = 0.96f,
                 cardHeightFraction = 0.88f,
@@ -348,9 +350,9 @@ object DeviceProfileResolver {
             )
 
             DeviceProfileTier.COMPACT_PORTRAIT -> SharedModalMetrics(
-                modalWidthFraction = 0.94f,
+                modalWidthFraction = 0.987f,
                 modalHeightFraction = 0.82f,
-                modelWeight = 1.20f,
+                modelWeight = 1.30f,
                 descriptionWeight = 1.10f,
                 descriptionHeightFraction = 0.96f,
                 cardHeightFraction = 0.90f,
@@ -369,9 +371,9 @@ object DeviceProfileResolver {
 
             /** Default / fallback: proporciones tipo tablet. */
             else -> SharedModalMetrics(
-                modalWidthFraction = 0.76f,
+                modalWidthFraction = 0.798f,
                 modalHeightFraction = 0.68f,
-                modelWeight = 1.15f,
+                modelWeight = 1.25f,
                 descriptionWeight = 1.25f,
                 descriptionHeightFraction = 0.88f,
                 cardHeightFraction = 0.82f,
