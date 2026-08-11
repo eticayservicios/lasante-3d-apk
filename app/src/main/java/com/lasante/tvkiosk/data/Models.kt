@@ -48,13 +48,26 @@ data class Product(
     val estado: String = "ACTIVO",
     val orden: Int = 0,
     val media: ProductMedia = ProductMedia(),
-    val atributos: Map<String, String> = emptyMap()
+    val atributos: Map<String, String> = emptyMap(),
+    /** Cantidad de dosis desde API (ej. "10", "10-20"). */
+    val dosisValor: String? = null,
+    /** Unidad de dosis desde API (mg, ml, g, mcg, %, UI). */
+    val dosisUnidad: String? = null,
 ) {
     val id: String get() = productoId
     val name: String get() = nombre
     val description: String get() = descripcion
     val modelUrl: String? get() = media.modelo3d.glb
     val audioUrl: String? get() = null // Se agregará cuando el backend defina dónde viene el audio (ej: atributos o media)
+
+    /** Texto listo para UI: "10 mg". Null si falta valor o unidad. */
+    val dosisDisplay: String?
+        get() {
+            val valor = dosisValor?.trim().orEmpty()
+            val unidad = dosisUnidad?.trim().orEmpty()
+            if (valor.isEmpty() || unidad.isEmpty()) return null
+            return "$valor $unidad"
+        }
 }
 
 data class ProductMedia(

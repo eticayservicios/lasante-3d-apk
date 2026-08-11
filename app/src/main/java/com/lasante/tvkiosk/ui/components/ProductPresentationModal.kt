@@ -1,6 +1,5 @@
 package com.lasante.tvkiosk.ui.components
 
-import android.content.res.Configuration
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -19,22 +18,15 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,32 +34,52 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.border
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import com.lasante.tvkiosk.ui.layout.DeviceProfileResolver
-import com.lasante.tvkiosk.ui.layout.SharedModalMetrics
-import com.lasante.tvkiosk.ui.layout.TvProfileDetector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.lasante.tvkiosk.data.Product
+import com.lasante.tvkiosk.ui.layout.DeviceProfileResolver
+import com.lasante.tvkiosk.ui.layout.FireTv42Spacing
+import com.lasante.tvkiosk.ui.layout.SharedModalMetrics
+import com.lasante.tvkiosk.ui.layout.TvProfileDetector
 import com.lasante.tvkiosk.ui.screens.intro.VitrinaAssets
 import com.lasante.tvkiosk.ui.theme.LaSanteGreen
+import com.lasante.tvkiosk.ui.theme.LaSanteGreenDark
 import com.lasante.tvkiosk.ui.theme.LaSanteText
 import com.lasante.tvkiosk.ui.widgets.ModelViewerStub
 import kotlinx.coroutines.delay
 
 private const val MODAL_3D_DEFER_MS = 180L
+private const val CLOSE_MODAL_ASSET = "file:///android_asset/vitrina/ui/close_modal.png"
+private const val MODAL_DESCRIPTION_MAX_CHARS = 280
+private const val MODAL_BULLETS_MAX = 5
+/** Escala de la card blanca dentro de su columna. */
+private const val DESCRIPTION_CARD_WIDTH_SCALE = 1.0f
+private const val DESCRIPTION_CARD_HEIGHT_SCALE = 0.80f
+/** Ampliar GLB ~3% respecto a la escala base del perfil. */
+private const val MODEL_SCALE_BOOST = 1.03f
+/** Reducción de ancho del card sólido (espacios teclado Poppins). */
+private val DESCRIPTION_CARD_WIDTH_TRIM = FireTv42Spacing.spaces(8)
 
 private data class ProductModalMetrics(
     val modalWidthFraction: Float,
@@ -78,6 +90,7 @@ private data class ProductModalMetrics(
     val columnSpacing: Dp,
     val rowOffsetX: Dp,
     val rowOffsetY: Dp,
+    val descriptionOffsetX: Dp,
     val descriptionOffsetY: Dp,
     val descriptionHorizontalPadding: Dp,
     val descriptionTextAlign: TextAlign,
@@ -95,9 +108,10 @@ private fun SharedModalMetrics.toProductModalMetrics() = ProductModalMetrics(
     columnSpacing = columnSpacing,
     rowOffsetX = rowOffsetX,
     rowOffsetY = rowOffsetY,
+    descriptionOffsetX = descriptionOffsetX,
     descriptionOffsetY = descriptionOffsetY,
     descriptionHorizontalPadding = descriptionHorizontalPadding,
-    descriptionTextAlign = TextAlign.Center,
+    descriptionTextAlign = TextAlign.Start,
     modelScaleToUnits = modelScaleToUnits,
     descriptionAlignTop = descriptionAlignTop,
     alignRowTop = alignRowTop,
@@ -144,6 +158,9 @@ fun ProductPresentationModal(
     val fallbackImageUrl = remember(product) {
         product.resolvePresentationImage()
     }
+    val closeSize = (if (isCompact) 38.dp else 40.dp) * 0.95f
+    // Franja a la derecha del card para el close (top al lado, no arriba).
+    val closeSideSlot = closeSize + FireTv42Spacing.spaces(2)
 
     LaunchedEffect(product.productoId, modelUrl, fallbackImageUrl) {
         Log.d(
@@ -170,94 +187,134 @@ fun ProductPresentationModal(
         Box(
             modifier = Modifier
                 .fillMaxWidth(if (isCompact) 0.94f else layout.modalWidthFraction)
-                .fillMaxHeight(if (isCompact) 0.82f else layout.modalHeightFraction),
+                .fillMaxHeight(if (isCompact) 0.82f else layout.modalHeightFraction)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = {},
+                ),
         ) {
-            Card(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = {},
-                    ),
-                shape = RoundedCornerShape(if (isCompact) 18.dp else 22.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-            ) {
-                if (isCompact) {
-                    Column(
+            if (isCompact) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    ProductModelStage(
+                        modelUrl = modelUrl,
+                        fallbackImageUrl = fallbackImageUrl,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1.25f),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth(DESCRIPTION_CARD_WIDTH_SCALE)
+                                .padding(end = DESCRIPTION_CARD_WIDTH_TRIM)
+                                .fillMaxHeight(DESCRIPTION_CARD_HEIGHT_SCALE),
+                            verticalAlignment = Alignment.Top,
+                        ) {
+                            ProductDescriptionPanel(
+                                product = product,
+                                businessUnitName = businessUnitName,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight(),
+                                compact = true,
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .width(closeSideSlot)
+                                    .fillMaxHeight(),
+                                contentAlignment = Alignment.TopCenter,
+                            ) {
+                                ProductModalCloseButton(
+                                    onClick = onClose,
+                                    size = closeSize,
+                                    modifier = Modifier.zIndex(12f),
+                                )
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Dos columnas independientes: GLB/miniatura | card (sin solape).
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 8.dp, vertical = 10.dp),
+                ) {
+                    Row(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                            .offset(x = layout.rowOffsetX, y = layout.rowOffsetY),
+                        verticalAlignment = if (layout.alignRowTop) {
+                            Alignment.Top
+                        } else {
+                            Alignment.CenterVertically
+                        },
+                        horizontalArrangement = Arrangement.spacedBy(layout.columnSpacing),
                     ) {
                         ProductModelStage(
                             modelUrl = modelUrl,
                             fallbackImageUrl = fallbackImageUrl,
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1.25f),
+                                .weight(layout.modelWeight)
+                                .fillMaxHeight()
+                                .clipToBounds(),
+                            scaleToUnits = layout.modelScaleToUnits * MODEL_SCALE_BOOST,
                         )
-                        ProductDescriptionPanel(
-                            product = product,
-                            businessUnitName = businessUnitName,
+                        Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                            compact = true,
-                        )
-                    }
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 8.dp, vertical = 10.dp),
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .offset(x = layout.rowOffsetX, y = layout.rowOffsetY),
-                            verticalAlignment = if (layout.alignRowTop) {
-                                Alignment.Top
-                            } else {
-                                Alignment.CenterVertically
-                            },
-                            horizontalArrangement = Arrangement.spacedBy(layout.columnSpacing),
+                                .weight(layout.descriptionWeight)
+                                .fillMaxHeight(layout.descriptionHeightFraction)
+                                .offset(
+                                    x = layout.descriptionOffsetX,
+                                    y = layout.descriptionOffsetY,
+                                ),
+                            contentAlignment = Alignment.CenterStart,
                         ) {
-                            ProductModelStage(
-                                modelUrl = modelUrl,
-                                fallbackImageUrl = fallbackImageUrl,
+                            Row(
                                 modifier = Modifier
-                                    .weight(layout.modelWeight)
-                                    .fillMaxHeight(),
-                                scaleToUnits = layout.modelScaleToUnits,
-                            )
-                            ProductDescriptionPanel(
-                                product = product,
-                                businessUnitName = businessUnitName,
-                                modifier = Modifier
-                                    .weight(layout.descriptionWeight)
-                                    .fillMaxHeight(layout.descriptionHeightFraction)
-                                    .offset(y = layout.descriptionOffsetY),
-                                horizontalPadding = layout.descriptionHorizontalPadding,
-                                descriptionTextAlign = layout.descriptionTextAlign,
-                                alignContentTop = layout.descriptionAlignTop,
-                            )
+                                    .fillMaxWidth(DESCRIPTION_CARD_WIDTH_SCALE)
+                                    .padding(end = DESCRIPTION_CARD_WIDTH_TRIM)
+                                    .fillMaxHeight(DESCRIPTION_CARD_HEIGHT_SCALE),
+                                verticalAlignment = Alignment.Top,
+                            ) {
+                                ProductDescriptionPanel(
+                                    product = product,
+                                    businessUnitName = businessUnitName,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight(),
+                                    horizontalPadding = layout.descriptionHorizontalPadding,
+                                    descriptionTextAlign = layout.descriptionTextAlign,
+                                    alignContentTop = layout.descriptionAlignTop,
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .width(closeSideSlot)
+                                        .fillMaxHeight(),
+                                    contentAlignment = Alignment.TopCenter,
+                                ) {
+                                    ProductModalCloseButton(
+                                        onClick = onClose,
+                                        size = closeSize,
+                                        modifier = Modifier.zIndex(12f),
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
-            ProductModalCloseButton(
-                onClick = onClose,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .offset(
-                        x = if (isCompact) 6.dp else 10.dp,
-                        y = if (isCompact) (-12).dp else (-16).dp,
-                    )
-                    .zIndex(10f),
-                size = if (isCompact) 38.dp else 40.dp,
-            )
         }
     }
 }
@@ -348,71 +405,249 @@ private fun ProductDescriptionPanel(
     compact: Boolean = false,
     horizontalPadding: Dp? = null,
     descriptionTextAlign: TextAlign? = null,
-    alignContentTop: Boolean = false,
-    onClose: (() -> Unit)? = null,
+    alignContentTop: Boolean = true,
 ) {
-    val panelHorizontalPadding = horizontalPadding ?: if (compact) 18.dp else 30.dp
-    val panelDescriptionAlign = descriptionTextAlign ?: if (compact) TextAlign.Start else TextAlign.Center
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(if (compact) 18.dp else 20.dp))
-            .background(Color.White.copy(alpha = if (compact) 0.42f else 0.34f))
-            .verticalScroll(rememberScrollState())
-            .padding(
-                horizontal = panelHorizontalPadding,
-                vertical = if (compact) 16.dp else 24.dp,
-            ),
-        verticalArrangement = if (alignContentTop || compact) Arrangement.Top else Arrangement.Center,
-    ) {
-        ProductModalHeader(
-            product = product,
-            onClose = onClose,
-            centered = false,
-            showClose = false,
-        )
-
-        if (!businessUnitName.isNullOrBlank()) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = businessUnitName,
-                color = LaSanteText.copy(alpha = 0.58f),
-                style = MaterialTheme.typography.bodyMedium,
-                fontSize = if (compact) 12.sp else 14.sp,
-            )
+    val panelHorizontalPadding = horizontalPadding ?: if (compact) 18.dp else 28.dp
+    val (titlePart, strengthPart) = remember(product.name, product.dosisDisplay) {
+        val apiDosis = product.dosisDisplay
+        if (!apiDosis.isNullOrBlank()) {
+            product.name.trim() to apiDosis
+        } else {
+            // Fallback legado: dosis embutida en el nombre.
+            splitModalTitleAndStrength(product.name)
         }
+    }
+    val bullets = remember(product.description, product.atributos) {
+        product.modalBulletLines()
+    }
+    val corner = if (compact) 18.dp else 20.dp
+    val cornerShape = RoundedCornerShape(corner)
+    val titleBrush = Brush.horizontalGradient(
+        listOf(LaSanteGreenDark, LaSanteGreen, Color(0xFFA8C829)),
+    )
+    val titleFontFamily = MaterialTheme.typography.bodyLarge.fontFamily
+    // Sombra suave (mock): elevación difusa + leve sesgo arriba/derecha.
+    val shadowElevation = if (compact) 12.dp else 20.dp
 
-        Spacer(modifier = Modifier.height(if (compact) 12.dp else 16.dp))
-
-        Text(
-            text = product.description.ifBlank { "Sin descripción disponible." },
-            modifier = Modifier.fillMaxWidth(),
-            color = LaSanteText.copy(alpha = 0.82f),
-            style = MaterialTheme.typography.bodyMedium,
-            fontSize = if (compact) 14.sp else 17.sp,
-            lineHeight = if (compact) 19.sp else 24.sp,
-            textAlign = panelDescriptionAlign,
+    Box(modifier = modifier) {
+        // Capa de sombra desplazada (arriba + derecha), sin bloque sólido.
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .offset(
+                    x = if (compact) 3.dp else 5.dp,
+                    y = if (compact) (-2).dp else (-3).dp,
+                )
+                .shadow(
+                    elevation = shadowElevation,
+                    shape = cornerShape,
+                    clip = false,
+                    ambientColor = Color.Black.copy(alpha = 0.16f),
+                    spotColor = Color.Black.copy(alpha = 0.22f),
+                ),
         )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .shadow(
+                    elevation = if (compact) 8.dp else 14.dp,
+                    shape = cornerShape,
+                    clip = false,
+                    ambientColor = Color.Black.copy(alpha = 0.10f),
+                    spotColor = Color.Black.copy(alpha = 0.18f),
+                )
+                .background(Color.White, cornerShape)
+                .clip(cornerShape)
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    start = panelHorizontalPadding,
+                    end = panelHorizontalPadding,
+                    top = if (compact) 20.dp else 28.dp,
+                    bottom = if (compact) 18.dp else 24.dp,
+                ),
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = Alignment.Start,
+        ) {
+            // Título Poppins + verde degradado (mock / listado productos).
+            Text(
+                text = titlePart,
+                style = TextStyle(
+                    brush = titleBrush,
+                    fontFamily = titleFontFamily,
+                    fontSize = if (compact) 18.sp else 21.6.sp,
+                    lineHeight = if (compact) 21.6.sp else 25.2.sp,
+                    fontWeight = FontWeight.Medium,
+                ),
+                color = Color.Unspecified,
+                textAlign = TextAlign.Start,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
 
-        val visibleAttributes = product.atributos.filterKeys { it.shouldShowInProductModal() }
+            if (!strengthPart.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = strengthPart,
+                    color = LaSanteText,
+                    fontSize = if (compact) 14.sp else 16.sp,
+                    lineHeight = if (compact) 18.sp else 20.sp,
+                    fontWeight = FontWeight.Normal,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
 
-        if (visibleAttributes.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(if (compact) 12.dp else 18.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                visibleAttributes.forEach { (key, value) ->
-                    Text(
-                        text = "$key: $value",
-                        color = LaSanteText.copy(alpha = 0.82f),
-                        fontSize = if (compact) 12.sp else 14.sp,
-                        lineHeight = if (compact) 16.sp else 20.sp,
-                    )
+            if (!businessUnitName.isNullOrBlank() && compact) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = businessUnitName,
+                    color = LaSanteText.copy(alpha = 0.55f),
+                    fontSize = 12.sp,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(if (compact) 14.dp else 18.dp))
+
+            if (bullets.isEmpty()) {
+                Text(
+                    text = "Sin descripción disponible.",
+                    color = LaSanteText.copy(alpha = 0.75f),
+                    fontSize = if (compact) 13.sp else 14.sp,
+                    lineHeight = if (compact) 18.sp else 20.sp,
+                )
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 10.dp)) {
+                    bullets.forEachIndexed { index, line ->
+                        ModalBulletLine(
+                            text = line,
+                            emphasizeLabel = index == 0 && line.contains(':'),
+                            compact = compact,
+                        )
+                    }
                 }
             }
         }
-        if (alignContentTop) {
-            Spacer(modifier = Modifier.height(if (compact) 8.dp else 12.dp))
-        }
     }
 }
+
+@Composable
+private fun ModalBulletLine(
+    text: String,
+    emphasizeLabel: Boolean,
+    compact: Boolean,
+) {
+    val bodySize = if (compact) 13.sp else 14.sp
+    val bodyLine = if (compact) 18.sp else 20.sp
+    val annotated = remember(text, emphasizeLabel) {
+        buildAnnotatedString {
+            append("• ")
+            val colon = text.indexOf(':')
+            if (emphasizeLabel && colon in 1 until text.lastIndex) {
+                val label = text.take(colon + 1)
+                val rest = text.substring(colon + 1).trimStart()
+                withStyle(
+                    SpanStyle(
+                        fontWeight = FontWeight.Bold,
+                        fontStyle = FontStyle.Italic,
+                        color = LaSanteText,
+                    ),
+                ) {
+                    append(label)
+                }
+                if (rest.isNotEmpty()) {
+                    append(' ')
+                    withStyle(SpanStyle(fontWeight = FontWeight.Normal, color = LaSanteText)) {
+                        append(rest)
+                    }
+                }
+            } else {
+                withStyle(SpanStyle(fontWeight = FontWeight.Normal, color = LaSanteText)) {
+                    append(text)
+                }
+            }
+        }
+    }
+    Text(
+        text = annotated,
+        fontSize = bodySize,
+        lineHeight = bodyLine,
+        textAlign = TextAlign.Start,
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+/**
+ * Bullets del modal: características (atributos) si hay; si no, frases de la descripción.
+ */
+private fun Product.modalBulletLines(): List<String> {
+    val fromAttrs = atributos
+        .filterKeys { it.shouldShowInProductModal() }
+        .entries
+        .take(MODAL_BULLETS_MAX)
+        .map { (k, v) ->
+            val value = v.trim()
+            if (value.isEmpty()) k.trim() else "${k.trim()}: $value"
+        }
+        .filter { it.isNotBlank() }
+    if (fromAttrs.isNotEmpty()) return fromAttrs
+
+    val raw = description.trim()
+    if (raw.isEmpty()) return emptyList()
+
+    val byLines = raw
+        .split('\n', '•', '●', '·')
+        .map { it.trim().trimStart('-', '*', '–').trim() }
+        .filter { it.isNotBlank() }
+    if (byLines.size >= 2) {
+        return byLines.take(MODAL_BULLETS_MAX).map { shortenModalText(it, 140) }
+    }
+
+    // Una sola descripción → partir por oraciones.
+    val sentences = raw
+        .split(Regex("(?<=[.!?])\\s+"))
+        .map { it.trim() }
+        .filter { it.isNotBlank() }
+    return when {
+        sentences.size >= 2 -> sentences.take(MODAL_BULLETS_MAX).map { shortenModalText(it, 160) }
+        else -> listOf(shortenModalText(raw, MODAL_DESCRIPTION_MAX_CHARS))
+    }
+}
+
+private fun shortenModalText(text: String, maxChars: Int): String {
+    if (text.length <= maxChars) return text
+    val cut = text.take(maxChars)
+    val lastStop = maxOf(cut.lastIndexOf('.'), cut.lastIndexOf('!'), cut.lastIndexOf('?'))
+    if (lastStop >= maxChars / 3) return cut.take(lastStop + 1).trim()
+    val lastSpace = cut.lastIndexOf(' ')
+    val base = if (lastSpace > maxChars / 4) cut.take(lastSpace) else cut
+    return base.trimEnd(',', ';', ':', ' ') + "…"
+}
+
+private fun splitModalTitleAndStrength(rawName: String): Pair<String, String?> {
+    val name = rawName.trim()
+    if (name.isEmpty()) return "" to null
+
+    val dosageMatch = MODAL_DOSAGE_SUFFIX.find(name)
+    if (dosageMatch != null) {
+        val title = dosageMatch.groupValues[1].trim().trimEnd('-', '–', '—').trim()
+        val strength = dosageMatch.groupValues[2].trim()
+        if (title.isNotEmpty()) return title to strength
+    }
+
+    val dashIndex = name.lastIndexOf(" - ")
+    if (dashIndex > 0) {
+        val title = name.substring(0, dashIndex).trim()
+        val strength = name.substring(dashIndex + 3).trim()
+        if (title.isNotEmpty() && strength.isNotEmpty()) return title to strength
+    }
+
+    return name to null
+}
+
+private val MODAL_DOSAGE_SUFFIX = Regex(
+    """^(.+?)\s+(\d+[.,]?\d*(?:\s*[-–/]\s*\d+[.,]?\d*)?\s*(?:mg|g|ml|mcg|µg|ui|%))\s*$""",
+    RegexOption.IGNORE_CASE,
+)
 
 private fun String.shouldShowInProductModal(): Boolean {
     val normalized = lowercase().replace("[^a-z0-9]+".toRegex(), "")
@@ -428,65 +663,27 @@ private fun String.shouldShowInProductModal(): Boolean {
 }
 
 @Composable
-private fun ProductModalHeader(
-    product: Product,
-    onClose: (() -> Unit)?,
-    centered: Boolean,
-    showClose: Boolean = true,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .widthIn(min = 0.dp),
-            horizontalAlignment = if (centered) Alignment.CenterHorizontally else Alignment.Start,
-        ) {
-            Text(
-                text = product.name,
-                color = LaSanteText,
-                style = MaterialTheme.typography.titleLarge,
-                fontSize = if (centered) 22.sp else 26.sp,
-                lineHeight = if (centered) 26.sp else 30.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = if (centered) TextAlign.Center else TextAlign.Start,
-            )
-            Spacer(modifier = Modifier.height(if (centered) 8.dp else 10.dp))
-            Box(
-                modifier = Modifier
-                    .width(if (centered) 72.dp else 92.dp)
-                    .height(if (centered) 5.dp else 6.dp)
-                    .background(LaSanteGreen, CircleShape),
-            )
-        }
-        if (showClose && onClose != null) {
-            ProductModalCloseButton(onClick = onClose)
-        }
-    }
-}
-
-@Composable
 private fun ProductModalCloseButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    size: androidx.compose.ui.unit.Dp = 40.dp,
+    size: Dp = 40.dp * 0.95f,
 ) {
-    IconButton(
-        onClick = onClick,
+    Box(
         modifier = modifier
             .size(size)
             .clip(CircleShape)
-            .background(Color.White)
-            .border(1.5.dp, LaSanteGreen.copy(alpha = 0.35f), CircleShape),
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            Icons.Default.Close,
+        AsyncImage(
+            model = CLOSE_MODAL_ASSET,
             contentDescription = "Cerrar",
-            tint = LaSanteGreen,
-            modifier = Modifier.size(size * 0.48f),
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Fit,
         )
     }
 }

@@ -223,6 +223,8 @@ fun ProductsScreen(
                                     modelo3d = com.lasante.tvkiosk.data.Model3D(null, null, null),
                                 ),
                                 atributos = emptyMap(),
+                                dosisValor = item.dosisValor,
+                                dosisUnidad = item.dosisUnidad,
                             )
                         }
                     }
@@ -955,7 +957,14 @@ private fun ProductGridItem(
     val titleBrush = Brush.horizontalGradient(
         listOf(LaSanteGreenDark, LaSanteGreen, Color(0xFFA8C829)),
     )
-    val (titlePart, strengthPart) = remember(product.name) { splitProductTitleAndStrength(product.name) }
+    val (titlePart, strengthPart) = remember(product.name, product.dosisDisplay) {
+        val apiDosis = product.dosisDisplay
+        if (!apiDosis.isNullOrBlank()) {
+            product.name.trim() to apiDosis
+        } else {
+            splitProductTitleAndStrength(product.name)
+        }
+    }
     val shortDescription = remember(product.description, product.name) {
         productCardShortDescription(product.description, product.name)
     }

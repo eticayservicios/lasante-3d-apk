@@ -69,6 +69,8 @@ data class VitrinaProductDto(
     @SerializedName("slug")          val slug: String? = null,
     @SerializedName("nombre")        val nombre: String? = null,
     @SerializedName("descripcion")   val descripcion: String? = null,
+    @SerializedName("dosisValor")    val dosisValor: String? = null,
+    @SerializedName("dosisUnidad")   val dosisUnidad: String? = null,
     @SerializedName("estado")        val estado: String? = "ACTIVO",
     @SerializedName("orden")         val orden: Int? = null,
     @SerializedName("slot")          val slot: Int? = null,
@@ -104,6 +106,8 @@ data class ProductoDto(
     @SerializedName("slug")        val slug: String? = null,
     @SerializedName("nombre")      val nombre: String? = null,
     @SerializedName("descripcion") val descripcion: String? = null,
+    @SerializedName("dosisValor")  val dosisValor: String? = null,
+    @SerializedName("dosisUnidad") val dosisUnidad: String? = null,
     @SerializedName("media")       val media: ItemMediaDto? = null
 )
 
@@ -167,5 +171,7 @@ data class SearchItemDto(
     @SerializedName("id")          val id: String,
     @SerializedName("nombre")      val nombre: String,
     @SerializedName("descripcion") val descripcion: String? = null,
+    @SerializedName("dosisValor")  val dosisValor: String? = null,
+    @SerializedName("dosisUnidad") val dosisUnidad: String? = null,
     @SerializedName("tipo")        val tipo: String? = null
 )

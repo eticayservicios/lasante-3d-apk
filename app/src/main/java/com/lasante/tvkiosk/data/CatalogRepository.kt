@@ -35,7 +35,9 @@ data class SearchItem(
     val id: String,
     val nombre: String,
     val descripcion: String?,
-    val tipo: String?
+    val tipo: String?,
+    val dosisValor: String? = null,
+    val dosisUnidad: String? = null,
 )
 
 

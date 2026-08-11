@@ -177,7 +177,9 @@ class RetrofitCatalogRepository(
             estado        = "ACTIVO",
             orden         = 0,
             media         = media.toProductMedia(),
-            atributos = emptyMap()
+            atributos = emptyMap(),
+            dosisValor = dosisValor,
+            dosisUnidad = dosisUnidad,
         )
     }
 
@@ -218,6 +220,8 @@ class RetrofitCatalogRepository(
                 "slot" to resolvedSlot.toString(),
                 "modalEnabled" to modalEnabled.toString(),
             ),
+            dosisValor = dosisValor,
+            dosisUnidad = dosisUnidad,
         )
     }
 

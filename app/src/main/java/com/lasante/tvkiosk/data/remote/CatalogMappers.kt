@@ -13,5 +13,7 @@ fun SearchItemDto.toDomain() = SearchItem(
     id = id,
     nombre = nombre,
     descripcion = descripcion,
-    tipo = tipo
+    tipo = tipo,
+    dosisValor = dosisValor,
+    dosisUnidad = dosisUnidad,
 )
