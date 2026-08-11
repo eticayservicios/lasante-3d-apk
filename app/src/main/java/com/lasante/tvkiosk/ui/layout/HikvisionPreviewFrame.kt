@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -17,12 +18,11 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 
 /**
- * Cuando [HikvisionLayoutDebug] está ON, monta la UI dentro de un marco fijo
- * **1280×720 dp** (canvas Hikvision) centrado con letterbox.
+ * Cuando [HikvisionLayoutDebug] está ON, monta la UI en canvas lógico **1280×720 dp**
+ * (mismas constraints que el panel Hikvision) y la **escala** para llenar el host.
  *
- * Si el dispositivo (p. ej. Damasco con barras de sistema) no alcanza 1280×720,
- * se escala uniformemente para caber — sin aplastar el aspect — para que métricas
- * y clipping coincidan con el panel físico.
+ * En la TV física 1280×720 ocupa toda la pantalla; en Damasco (≈1333×800) sin escala
+ * se veía un rectángulo más chico con bandas. Con scale≈1.04 llena el ancho como Hikvision.
  */
 @Composable
 fun HikvisionPreviewFrame(content: @Composable () -> Unit) {
@@ -39,16 +39,23 @@ fun HikvisionPreviewFrame(content: @Composable () -> Unit) {
         val scale = minOf(
             maxWidth / Tv66Reference.Width,
             maxHeight / Tv66Reference.Height,
-        ).coerceAtMost(1f)
+        )
+        LaunchedEffect(maxWidth, maxHeight, scale) {
+            HikvisionLayoutDebug.updatePreviewHost(
+                hostWidthDp = maxWidth.value,
+                hostHeightDp = maxHeight.value,
+                appliedScale = scale,
+            )
+        }
 
-        // Slot visual del letterbox (tamaño escalado).
+        // Slot visual = ref × scale (llena el host en el eje limitante).
         Box(
             modifier = Modifier
                 .width(Tv66Reference.Width * scale)
                 .height(Tv66Reference.Height * scale)
                 .clipToBounds(),
         ) {
-            // Canvas lógico siempre 1280×720; scale solo visual.
+            // Canvas lógico siempre 1280×720; el scale es solo visual.
             Box(
                 modifier = Modifier
                     .requiredWidth(Tv66Reference.Width)

@@ -120,7 +120,8 @@ fun TreatmentsScreen(
                     Text(
                         text = "${canvasW.value.toInt()}×${canvasH.value.toInt()} · ${profile.tier} · " +
                             "large=${header.isLargeCanvas} · btn=${header.navButtonSize.value}dp · " +
-                            "tv66=${header.isTv66} · ${HikvisionLayoutDebug.overlayLabel()}",
+                            "tv66=${header.isTv66} · fill=${"%.2f".format(ui.cardIconFill)} · " +
+                            HikvisionLayoutDebug.overlayLabel(),
                         color = Color.White,
                         fontSize = 11.sp,
                         modifier = Modifier
@@ -168,9 +169,9 @@ fun TreatmentsScreen(
                                 .fillMaxWidth()
                                 .padding(
                                     start = catalog.contentPadding,
-                                    // TV66: alinear con el back (el header deja un Spacer=nav a la derecha).
+                                    // TV66: alinear con back; +3 espacios a la izquierda (end↑).
                                     end = catalog.contentPadding + if (header.isTv66) {
-                                        header.navButtonSize
+                                        header.navButtonSize + FireTv42Spacing.spaces(3)
                                     } else {
                                         0.dp
                                     },

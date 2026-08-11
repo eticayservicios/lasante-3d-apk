@@ -184,6 +184,25 @@ data class CatalogHeaderMetrics(
          */
         fun scrollEndUnderHome(contentPadding: Dp): Dp = contentPadding
 
+        /**
+         * Inset izquierdo del card dentro de la celda (block centrado con fraction < 1).
+         * Así el título queda **al ras** del borde izquierdo de los cards CT/Productos.
+         */
+        fun titleAlignWithCardInset(
+            profile: DeviceProfile,
+            grid: SharedGridMetrics,
+            blockWidthFraction: Float,
+            columns: Int = grid.columns,
+        ): Dp {
+            if (blockWidthFraction >= 0.999f) return 0.dp
+            val columnWidth = minOf(profile.maxWidth, grid.maxContentWidth)
+            val inner = (columnWidth - grid.horizontalPadding * 2f).coerceAtLeast(0.dp)
+            val gridInner = (inner - grid.contentPadding * 2f).coerceAtLeast(0.dp)
+            val gaps = grid.cardSpacing * (columns - 1).coerceAtLeast(0)
+            val cell = ((gridInner - gaps) / columns).coerceAtLeast(0.dp)
+            return cell * ((1f - blockWidthFraction) / 2f)
+        }
+
         fun resolve(
             profile: DeviceProfile,
             uiMetrics: TreatmentUiMetrics.ProfileMetrics,
@@ -327,12 +346,23 @@ fun rememberCatalogLayout(maxWidth: Dp, maxHeight: Dp): CatalogLayout {
         )
         val largeCanvas = CatalogHeaderMetrics.isLargeCatalogCanvas(screen.profile, maxHeight)
         val ui = TreatmentUiMetrics.forProfile(screen.profile, largeCanvas = largeCanvas)
-        val header = CatalogHeaderMetrics.resolve(
+        val headerBase = CatalogHeaderMetrics.resolve(
             profile = screen.profile,
             uiMetrics = ui,
             largeCanvas = largeCanvas,
             isLandscape = screen.profile.isLandscape,
         )
+        val header = if (headerBase.usesSharedTvCatalogLayout) {
+            headerBase.copy(
+                titleStartGap = CatalogHeaderMetrics.titleAlignWithCardInset(
+                    profile = screen.profile,
+                    grid = screen.grid,
+                    blockWidthFraction = headerBase.productBlockWidthFraction,
+                ),
+            )
+        } else {
+            headerBase
+        }
         CatalogLayout(
             profile = screen.profile,
             grid = screen.grid,
