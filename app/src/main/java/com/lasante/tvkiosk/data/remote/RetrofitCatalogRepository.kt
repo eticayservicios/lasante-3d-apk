@@ -440,6 +440,8 @@ class RetrofitCatalogRepository(
             emptyList()
         }
 
+    override fun cachedVitrinaUnitsOrNull(): List<VitrinaUnit>? = homeSnapshot?.vitrinaUnits
+
     override suspend fun getVitrinaConfig(): VitrinaConfig =
         runCatching { getSnapshot().vitrinaConfig }.getOrElse { VitrinaConfig() }
 

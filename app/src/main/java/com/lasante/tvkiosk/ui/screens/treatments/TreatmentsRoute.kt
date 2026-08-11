@@ -10,6 +10,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lasante.tvkiosk.data.CatalogRepository
 import com.lasante.tvkiosk.ui.components.ErrorScreen
+import com.lasante.tvkiosk.ui.components.LaSanteBackground
 import com.lasante.tvkiosk.ui.components.LoadingScreen
 import com.lasante.tvkiosk.ui.components.UiState
 
@@ -32,8 +33,10 @@ fun TreatmentsRoute(
     }
 
     when (val state = viewModel.uiState) {
-        is UiState.Loading -> LoadingScreen()
-        is UiState.Error -> ErrorScreen(message = state.message, onRetry = { retryKey++ })
+        is UiState.Loading -> LaSanteBackground { LoadingScreen() }
+        is UiState.Error -> LaSanteBackground {
+            ErrorScreen(message = state.message, onRetry = { retryKey++ })
+        }
         is UiState.Success -> TreatmentsScreen(
             unitName = state.data.unitName,
             treatments = state.data.treatments,

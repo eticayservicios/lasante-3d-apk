@@ -11,6 +11,7 @@ import com.lasante.tvkiosk.data.CatalogRepository
 import com.lasante.tvkiosk.data.Product
 import com.lasante.tvkiosk.ui.components.ProductPresentationModal
 import com.lasante.tvkiosk.ui.components.ErrorScreen
+import com.lasante.tvkiosk.ui.components.LaSanteBackground
 import com.lasante.tvkiosk.ui.components.LoadingScreen
 import com.lasante.tvkiosk.navigation.Args
 import com.lasante.tvkiosk.ui.components.UiState
@@ -24,6 +25,23 @@ private data class ProductsData(
     val isViewAllTreatments: Boolean = false,
 )
 
+private fun starProductsData(
+    catalogRepository: CatalogRepository,
+    unitId: String,
+): ProductsData? {
+    val stars = catalogRepository.cachedVitrinaUnitsOrNull()
+        ?.firstOrNull { it.unit.id == unitId }
+        ?.products
+        ?.distinctBy { it.productoId }
+        ?: return null
+    return ProductsData(
+        treatmentName = "Productos Estrella",
+        treatmentIconUrl = null,
+        products = stars,
+        isStarProductsMode = true,
+    )
+}
+
 @Composable
 fun ProductsRoute(
     catalogRepository: CatalogRepository,
@@ -33,19 +51,36 @@ fun ProductsRoute(
     onBack: () -> Unit,
     onHome: () -> Unit,
 ) {
-    var uiState by remember { mutableStateOf<UiState<ProductsData>>(UiState.Loading) }
+    val isStarProducts = treatmentId == Args.STAR_PRODUCTS_ID
+    // Estrellas: /home ya está en memoria desde Intro → Success al instante (sin flash negro).
+    var uiState by remember(unitId, treatmentId) {
+        mutableStateOf<UiState<ProductsData>>(
+            if (isStarProducts) {
+                starProductsData(catalogRepository, unitId)
+                    ?.let { UiState.Success(it) }
+                    ?: UiState.Loading
+            } else {
+                UiState.Loading
+            },
+        )
+    }
     var retryKey by remember { mutableIntStateOf(0) }
     var selectedProduct by remember(treatmentId) { mutableStateOf<Product?>(null) }
 
     LaunchedEffect(unitId, treatmentId, retryKey) {
-        uiState = UiState.Loading
+        // No forzar Loading en estrellas si ya hay datos cacheados (evita flash).
+        val cachedStars = if (isStarProducts) starProductsData(catalogRepository, unitId) else null
+        if (cachedStars == null) {
+            uiState = UiState.Loading
+        } else if (uiState !is UiState.Success) {
+            uiState = UiState.Success(cachedStars)
+        }
+
         uiState = try {
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                val isStarProducts = treatmentId == Args.STAR_PRODUCTS_ID
                 val isViewAll = treatmentId == Args.ALL_TREATMENTS_ID
 
                 if (isStarProducts) {
-                    // Solo /home cacheado (vitrina.units) — sin catálogo completo ni GLBs extra.
                     val stars = catalogRepository.getVitrinaUnits()
                         .firstOrNull { it.unit.id == unitId }
                         ?.products
@@ -89,8 +124,10 @@ fun ProductsRoute(
     }
 
     when (val state = uiState) {
-        is UiState.Loading -> LoadingScreen()
-        is UiState.Error   -> ErrorScreen(message = state.message, onRetry = { retryKey++ })
+        is UiState.Loading -> LaSanteBackground { LoadingScreen() }
+        is UiState.Error   -> LaSanteBackground {
+            ErrorScreen(message = state.message, onRetry = { retryKey++ })
+        }
         is UiState.Success -> Box(modifier = Modifier.fillMaxSize()) {
             Box(
                 modifier = Modifier

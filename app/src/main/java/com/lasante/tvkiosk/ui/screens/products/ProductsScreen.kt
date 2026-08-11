@@ -101,14 +101,15 @@ private sealed class ProductGridVisual {
 /**
  * Grilla: solo imágenes 2D (SceneView en LazyGrid rompe clics y se monta sobre el header).
  * GLB solo en el modal al abrir el producto.
+ * Orden alineado con burbujas / modal: miniatura → principal → vista previa 3D.
  */
 private fun Product.gridVisual(): ProductGridVisual {
-    val principal = media.imagenes2d.principal?.trim()?.takeIf { it.isNotBlank() }
     val miniatura = media.imagenes2d.miniatura?.trim()?.takeIf { it.isNotBlank() }
+    val principal = media.imagenes2d.principal?.trim()?.takeIf { it.isNotBlank() }
     val preview = media.modelo3d.vistaPrevia?.trim()?.takeIf { it.isNotBlank() }
     return when {
-        principal != null -> ProductGridVisual.Photo(principal)
         miniatura != null -> ProductGridVisual.Photo(miniatura)
+        principal != null -> ProductGridVisual.Photo(principal)
         preview != null -> ProductGridVisual.Photo(preview)
         else -> ProductGridVisual.Placeholder
     }

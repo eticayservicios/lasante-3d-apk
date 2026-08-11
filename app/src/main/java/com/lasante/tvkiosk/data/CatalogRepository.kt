@@ -18,6 +18,8 @@ interface CatalogRepository {
     suspend fun getProduct(productId: String): Product?
     suspend fun getFeaturedProducts(): List<Product>
     suspend fun getVitrinaUnits(): List<VitrinaUnit>
+    /** Snapshot en memoria de /home (sin suspend). Null si aún no se cargó. */
+    fun cachedVitrinaUnitsOrNull(): List<VitrinaUnit>? = null
     suspend fun getVitrinaConfig(): VitrinaConfig
     suspend fun getScreenSaverVideos(): List<ScreenSaverVideo>
     suspend fun getInstitutionalVideoUrl(): String?
