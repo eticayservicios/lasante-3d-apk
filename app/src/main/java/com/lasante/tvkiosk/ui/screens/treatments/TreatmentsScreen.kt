@@ -166,7 +166,15 @@ fun TreatmentsScreen(
                             color = Color.Unspecified,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = catalog.contentPadding),
+                                .padding(
+                                    start = catalog.contentPadding,
+                                    // TV66: alinear con el back (el header deja un Spacer=nav a la derecha).
+                                    end = catalog.contentPadding + if (header.isTv66) {
+                                        header.navButtonSize
+                                    } else {
+                                        0.dp
+                                    },
+                                ),
                         )
 
                         Spacer(modifier = Modifier.height(subtitleToGridGap))

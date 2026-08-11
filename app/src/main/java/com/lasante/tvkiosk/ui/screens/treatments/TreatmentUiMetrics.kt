@@ -85,7 +85,8 @@ object TreatmentUiMetrics {
         navButtonSize = 52.dp,
         cardLabelFontSize = scaledSp(18.sp),
         cardLabelLineHeight = scaledSp(21.sp),
-        cardIconFill = 0.70f,
+        // Hikvision: −30% para que no se corten arriba del card.
+        cardIconFill = 0.70f * 0.70f,
         cardAspectRatio = 1.08f,
     )
 
