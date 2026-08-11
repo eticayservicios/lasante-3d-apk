@@ -177,7 +177,7 @@ fun IntroResponsiveLayout(
                     .zIndex(20f),
             )
 
-            // Rail derecho: BadgeHistoria arriba; logo = altura de vitrina, centrado con ella.
+            // Rail derecho: BadgeHistoria + logo, mismo end (alineados a la derecha).
             val logoH = metrics.vitrinaVisualHeight.coerceAtLeast(48.dp)
             val logoW = (logoH * (229f / 1004f)).coerceAtLeast(12.dp)
             val railWidth = maxOf(metrics.historiaBadgeWidth, logoW)
@@ -189,7 +189,7 @@ fun IntroResponsiveLayout(
                     .width(railWidth)
                     .height(logoH)
                     .zIndex(15f),
-                contentAlignment = Alignment.Center,
+                contentAlignment = Alignment.CenterEnd,
             ) {
                 AsyncImage(
                     model = "file:///android_asset/vitrina/ui/logo_la_sante_vertical.png",

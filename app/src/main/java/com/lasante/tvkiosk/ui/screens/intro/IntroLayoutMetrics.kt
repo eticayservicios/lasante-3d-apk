@@ -401,7 +401,7 @@ data class IntroLayoutMetrics(
     val logoEndPadding: Dp
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> maxWidth * 0.055f
-            "tv_66" -> maxWidth * 0.048f
+            "tv_66" -> maxWidth * 0.048f + FireTv42Spacing.spaces(1)
             // Fire/TV1080: 0.07. Damasco/otros tablet: 0.052.
             "tv_42", "tablet_landscape" -> when {
                 isTv42 && !isTv42LargeCanvas -> maxWidth * 0.07f
@@ -499,9 +499,9 @@ data class IntroLayoutMetrics(
                 val lowered = bubblesBadgeTopPullUp - maxHeight * 0.03f
                 if (lowered < 0.dp) 0.dp else lowered
             }
-            // TV66: bajar 1 espacio (menos pull-up = más abajo).
+            // TV66: bajar 2 espacios (menos pull-up = más abajo).
             "tv_66" -> {
-                val lowered = bubblesBadgeTopPullUp - FireTv42Spacing.spaces(1)
+                val lowered = bubblesBadgeTopPullUp - FireTv42Spacing.spaces(2)
                 if (lowered < 0.dp) 0.dp else lowered
             }
             else -> bubblesBadgeTopPullUp
@@ -701,11 +701,11 @@ data class IntroLayoutMetrics(
             else -> 70.dp
         }
 
-    /** Gira (manito): Fire/Ariana −15% (escala hacia TV66); TV66 ≈ −14.5% neto. */
+    /** Gira/touch (manitos): Fire/Ariana −15%; TV66 −14.5% y luego −20% (Hikvision físico). */
     val rotateButtonSize: Dp
         get() = when (vitrinaProfileKey) {
             "tv_42", "tablet_landscape" -> rotateButtonSizeBase * 0.85f
-            "tv_66" -> rotateButtonSizeBase * 0.95f * 0.90f
+            "tv_66" -> rotateButtonSizeBase * 0.95f * 0.90f * 0.80f
             else -> rotateButtonSizeBase
         }
 
@@ -716,9 +716,10 @@ data class IntroLayoutMetrics(
     /** Padding inferior del hint touch.gif (sobre el cintillo frontal). */
     val touchHintBottomPadding: Dp
         get() {
-            // Infinix / tablet / Fire+Ariana / TV66: bajar 2 espacios.
+            // Infinix / tablet / Fire+Ariana: bajar 2 espacios. TV66: −1 (subir 1 vs previo).
             val lowerNudge = when (vitrinaProfileKey) {
-                "phone_landscape", "tablet_landscape", "tv_42", "tv_66" -> FireTv42Spacing.spaces(2)
+                "phone_landscape", "tablet_landscape", "tv_42" -> FireTv42Spacing.spaces(2)
+                "tv_66" -> FireTv42Spacing.spaces(1)
                 else -> 0.dp
             }
             val base = when (vitrinaProfileKey) {

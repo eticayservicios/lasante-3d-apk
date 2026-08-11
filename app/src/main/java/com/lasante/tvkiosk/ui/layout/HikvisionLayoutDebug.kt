@@ -15,7 +15,7 @@ import com.lasante.tvkiosk.BuildConfig
  */
 object HikvisionLayoutDebug {
     /** ON = ver toda la app como Hikvision TV66 (viewport 1280×720). */
-    const val FORCE_HIKVISION_LAYOUT: Boolean = false
+    const val FORCE_HIKVISION_LAYOUT: Boolean = true
 
     fun isForced(): Boolean = BuildConfig.DEBUG && FORCE_HIKVISION_LAYOUT
 
