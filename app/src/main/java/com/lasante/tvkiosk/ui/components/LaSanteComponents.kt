@@ -89,6 +89,7 @@ fun GreenNavButton(
     playSound: Boolean = false,
 ) {
     val context = LocalContext.current
+    val isSvg = assetPath.endsWith(".svg", ignoreCase = true)
     Box(
         modifier = modifier
             .padding(top = 2.dp)
@@ -104,7 +105,9 @@ fun GreenNavButton(
         AsyncImage(
             model = ImageRequest.Builder(context)
                 .data("file:///android_asset/$assetPath")
-                .decoderFactory(SvgDecoder.Factory())
+                .apply {
+                    if (isSvg) decoderFactory(SvgDecoder.Factory())
+                }
                 .build(),
             contentDescription = contentDescription,
             modifier = Modifier.fillMaxSize(),

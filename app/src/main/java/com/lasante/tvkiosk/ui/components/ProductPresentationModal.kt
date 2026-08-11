@@ -59,7 +59,6 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.lasante.tvkiosk.data.Product
 import com.lasante.tvkiosk.ui.layout.DeviceProfileResolver
-import com.lasante.tvkiosk.ui.layout.FireTv42Spacing
 import com.lasante.tvkiosk.ui.layout.SharedModalMetrics
 import com.lasante.tvkiosk.ui.layout.TvProfileDetector
 import com.lasante.tvkiosk.ui.screens.intro.VitrinaAssets
@@ -73,13 +72,8 @@ private const val MODAL_3D_DEFER_MS = 180L
 private const val CLOSE_MODAL_ASSET = "file:///android_asset/vitrina/ui/close_modal.png"
 private const val MODAL_DESCRIPTION_MAX_CHARS = 280
 private const val MODAL_BULLETS_MAX = 5
-/** Escala de la card blanca dentro de su columna. */
+/** Ancho del bloque card+close dentro de su columna (el trim viene del perfil). */
 private const val DESCRIPTION_CARD_WIDTH_SCALE = 1.0f
-private const val DESCRIPTION_CARD_HEIGHT_SCALE = 0.80f
-/** Ampliar GLB ~3% respecto a la escala base del perfil. */
-private const val MODEL_SCALE_BOOST = 1.03f
-/** Reducción de ancho del card sólido (espacios teclado Poppins). */
-private val DESCRIPTION_CARD_WIDTH_TRIM = FireTv42Spacing.spaces(8)
 
 private data class ProductModalMetrics(
     val modalWidthFraction: Float,
@@ -87,7 +81,10 @@ private data class ProductModalMetrics(
     val modelWeight: Float,
     val descriptionWeight: Float,
     val descriptionHeightFraction: Float,
+    val cardHeightFraction: Float,
     val columnSpacing: Dp,
+    val cardWidthTrim: Dp,
+    val closeSideGap: Dp,
     val rowOffsetX: Dp,
     val rowOffsetY: Dp,
     val descriptionOffsetX: Dp,
@@ -105,7 +102,10 @@ private fun SharedModalMetrics.toProductModalMetrics() = ProductModalMetrics(
     modelWeight = modelWeight,
     descriptionWeight = descriptionWeight,
     descriptionHeightFraction = descriptionHeightFraction,
+    cardHeightFraction = cardHeightFraction,
     columnSpacing = columnSpacing,
+    cardWidthTrim = cardWidthTrim,
+    closeSideGap = closeSideGap,
     rowOffsetX = rowOffsetX,
     rowOffsetY = rowOffsetY,
     descriptionOffsetX = descriptionOffsetX,
@@ -160,7 +160,7 @@ fun ProductPresentationModal(
     }
     val closeSize = (if (isCompact) 38.dp else 40.dp) * 0.95f
     // Franja a la derecha del card para el close (top al lado, no arriba).
-    val closeSideSlot = closeSize + FireTv42Spacing.spaces(2)
+    val closeSideSlot = closeSize + layout.closeSideGap
 
     LaunchedEffect(product.productoId, modelUrl, fallbackImageUrl) {
         Log.d(
@@ -217,8 +217,8 @@ fun ProductPresentationModal(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth(DESCRIPTION_CARD_WIDTH_SCALE)
-                                .padding(end = DESCRIPTION_CARD_WIDTH_TRIM)
-                                .fillMaxHeight(DESCRIPTION_CARD_HEIGHT_SCALE),
+                                .padding(end = layout.cardWidthTrim)
+                                .fillMaxHeight(layout.cardHeightFraction),
                             verticalAlignment = Alignment.Top,
                         ) {
                             ProductDescriptionPanel(
@@ -269,7 +269,7 @@ fun ProductPresentationModal(
                                 .weight(layout.modelWeight)
                                 .fillMaxHeight()
                                 .clipToBounds(),
-                            scaleToUnits = layout.modelScaleToUnits * MODEL_SCALE_BOOST,
+                            scaleToUnits = layout.modelScaleToUnits,
                         )
                         Box(
                             modifier = Modifier
@@ -284,8 +284,8 @@ fun ProductPresentationModal(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth(DESCRIPTION_CARD_WIDTH_SCALE)
-                                    .padding(end = DESCRIPTION_CARD_WIDTH_TRIM)
-                                    .fillMaxHeight(DESCRIPTION_CARD_HEIGHT_SCALE),
+                                    .padding(end = layout.cardWidthTrim)
+                                    .fillMaxHeight(layout.cardHeightFraction),
                                 verticalAlignment = Alignment.Top,
                             ) {
                                 ProductDescriptionPanel(

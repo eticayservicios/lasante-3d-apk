@@ -20,6 +20,8 @@ private data class ProductsData(
     val treatmentName: String,
     val treatmentIconUrl: String?,
     val products: List<Product>,
+    val isStarProductsMode: Boolean = false,
+    val isViewAllTreatments: Boolean = false,
 )
 
 @Composable
@@ -39,27 +41,47 @@ fun ProductsRoute(
         uiState = UiState.Loading
         uiState = try {
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                val treatments = catalogRepository.getTreatments(unitId)
+                val isStarProducts = treatmentId == Args.STAR_PRODUCTS_ID
                 val isViewAll = treatmentId == Args.ALL_TREATMENTS_ID
-                val treatment = treatments.firstOrNull { it.id == treatmentId }
-                val products = if (isViewAll) {
-                    catalogRepository.getProductsForUnit(unitId)
-                } else {
-                    catalogRepository.getProducts(treatmentId)
-                }
-                UiState.Success(
-                    ProductsData(
-                        treatmentName = when {
-                            isViewAll -> "Ver todo"
-                            else -> DisplayTitles.resolve(
-                                treatment?.name,
-                                treatmentId.substringAfter("_").ifBlank { treatmentId },
-                            )
-                        },
-                        treatmentIconUrl = if (isViewAll) null else treatment?.media?.icono,
-                        products = products
+
+                if (isStarProducts) {
+                    // Solo /home cacheado (vitrina.units) — sin catálogo completo ni GLBs extra.
+                    val stars = catalogRepository.getVitrinaUnits()
+                        .firstOrNull { it.unit.id == unitId }
+                        ?.products
+                        .orEmpty()
+                        .distinctBy { it.productoId }
+                    UiState.Success(
+                        ProductsData(
+                            treatmentName = "Productos Estrella",
+                            treatmentIconUrl = null,
+                            products = stars,
+                            isStarProductsMode = true,
+                        ),
                     )
-                )
+                } else {
+                    val treatments = catalogRepository.getTreatments(unitId)
+                    val treatment = treatments.firstOrNull { it.id == treatmentId }
+                    val products = if (isViewAll) {
+                        catalogRepository.getProductsForUnit(unitId)
+                    } else {
+                        catalogRepository.getProducts(treatmentId)
+                    }
+                    UiState.Success(
+                        ProductsData(
+                            treatmentName = when {
+                                isViewAll -> "Ver todo"
+                                else -> DisplayTitles.resolve(
+                                    treatment?.name,
+                                    treatmentId.substringAfter("_").ifBlank { treatmentId },
+                                )
+                            },
+                            treatmentIconUrl = if (isViewAll) null else treatment?.media?.icono,
+                            products = products,
+                            isViewAllTreatments = isViewAll,
+                        ),
+                    )
+                }
             }
         } catch (e: Exception) {
             UiState.Error(e.message ?: "Error de conexión")
@@ -81,7 +103,8 @@ fun ProductsRoute(
                     products          = state.data.products,
                     catalogRepository = catalogRepository,
                     unitId            = unitId,
-                    isViewAllTreatments = treatmentId == Args.ALL_TREATMENTS_ID,
+                    isViewAllTreatments = state.data.isViewAllTreatments,
+                    isStarProductsMode = state.data.isStarProductsMode,
                     onBack            = onBack,
                     onHome            = onHome,
                     onProductSelected = { product -> selectedProduct = product },

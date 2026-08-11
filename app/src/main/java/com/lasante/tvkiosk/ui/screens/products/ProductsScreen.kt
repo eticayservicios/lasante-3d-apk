@@ -55,6 +55,7 @@ import com.lasante.tvkiosk.data.DisplayTitles
 import com.lasante.tvkiosk.data.Product
 import com.lasante.tvkiosk.ui.components.GreenNavButton
 import com.lasante.tvkiosk.ui.components.LaSanteBackground
+import com.lasante.tvkiosk.ui.components.ProductosEstrellasBadge
 import com.lasante.tvkiosk.ui.components.RealGreenScrollBar
 import com.lasante.tvkiosk.ui.components.TreatmentIconAssets
 import com.lasante.tvkiosk.ui.components.TrimTransparentTransformation
@@ -74,6 +75,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
+
+private const val CLOSE_NAV_ASSET = "vitrina/ui/close_modal.png"
 
 private enum class SortOrder { NONE, AZ, ZA }
 
@@ -120,6 +123,7 @@ fun ProductsScreen(
     catalogRepository: CatalogRepository,
     unitId: String,
     isViewAllTreatments: Boolean = false,
+    isStarProductsMode: Boolean = false,
     onBack: () -> Unit,
     onHome: () -> Unit,
     onProductSelected: (Product) -> Unit,
@@ -144,43 +148,71 @@ fun ProductsScreen(
                 else -> if (isLandscape) 4 else 2
             }
             val buttonSize = header.navButtonSize
-            LogCatalogHeaderProfile(header = header, screen = "Products")
+            LogCatalogHeaderProfile(
+                header = header,
+                screen = if (isStarProductsMode) "ProductosEstrella" else "Products",
+            )
 
             var searchQuery by remember { mutableStateOf("") }
             var sortOrder by remember { mutableStateOf(SortOrder.NONE) }
-            val defaultFilter = if (isViewAllTreatments) {
-                ProductFilter.BUSINESS_UNIT
-            } else {
-                ProductFilter.THERAPEUTIC_CLASS
+            val defaultFilter = when {
+                isStarProductsMode -> ProductFilter.STAR_PRODUCTS
+                isViewAllTreatments -> ProductFilter.BUSINESS_UNIT
+                else -> ProductFilter.THERAPEUTIC_CLASS
             }
-            var productFilter by remember(unitId, isViewAllTreatments) {
+            var productFilter by remember(unitId, isViewAllTreatments, isStarProductsMode) {
                 mutableStateOf(defaultFilter)
             }
             var showFilterSheet by remember { mutableStateOf(false) }
             var isSearching by remember { mutableStateOf(false) }
             var globalSearchResults by remember { mutableStateOf<List<Product>>(emptyList()) }
             var unitProducts by remember(unitId) { mutableStateOf<List<Product>>(emptyList()) }
-            var starProducts by remember(unitId) { mutableStateOf<List<Product>>(emptyList()) }
-            var scopeLoading by remember(unitId) { mutableStateOf(true) }
+            // Modo estrellas: la ruta ya trae los slots de /home; evita lista vacía al abrir.
+            var starProducts by remember(unitId, isStarProductsMode, products) {
+                mutableStateOf(if (isStarProductsMode) products else emptyList())
+            }
+            var scopeLoading by remember(unitId) { mutableStateOf(!isStarProductsMode) }
 
             val coroutineScope = rememberCoroutineScope()
 
             // Carga en IO: en Main bloqueaba el UI (ANR al filtrar Unidad de negocio).
-            LaunchedEffect(unitId) {
+            // getVitrinaUnits / getProductsForUnit usan snapshot /home o catálogo ya cacheado.
+            LaunchedEffect(unitId, isStarProductsMode) {
                 scopeLoading = true
                 val loaded = withContext(Dispatchers.IO) {
                     runCatching {
-                        val unit = catalogRepository.getProductsForUnit(unitId)
                         val stars = catalogRepository.getVitrinaUnits()
                             .firstOrNull { it.unit.id == unitId }
                             ?.products
                             .orEmpty()
                             .distinctBy { it.productoId }
+                        // En modo estrellas no hace falta el catálogo completo de la unidad al abrir.
+                        val unit = if (isStarProductsMode) {
+                            emptyList()
+                        } else {
+                            catalogRepository.getProductsForUnit(unitId)
+                        }
                         unit to stars
                     }.getOrElse { emptyList<Product>() to emptyList() }
                 }
                 unitProducts = loaded.first
-                starProducts = loaded.second
+                if (loaded.second.isNotEmpty()) {
+                    starProducts = loaded.second
+                } else if (isStarProductsMode) {
+                    starProducts = products
+                }
+                scopeLoading = false
+            }
+
+            // Si en modo estrellas el usuario cambia a "Unidad de negocio", cargar catálogo bajo demanda.
+            LaunchedEffect(productFilter, unitId) {
+                if (productFilter != ProductFilter.BUSINESS_UNIT) return@LaunchedEffect
+                if (unitProducts.isNotEmpty()) return@LaunchedEffect
+                scopeLoading = true
+                unitProducts = withContext(Dispatchers.IO) {
+                    runCatching { catalogRepository.getProductsForUnit(unitId) }
+                        .getOrElse { emptyList() }
+                }
                 scopeLoading = false
             }
 
@@ -195,7 +227,8 @@ fun ProductsScreen(
                 val query = searchQuery
                 val scopeProducts = when (productFilter) {
                     ProductFilter.BUSINESS_UNIT -> unitProducts.ifEmpty { products }
-                    ProductFilter.THERAPEUTIC_CLASS -> products
+                    ProductFilter.THERAPEUTIC_CLASS ->
+                        if (isStarProductsMode) starProducts.ifEmpty { products } else products
                     ProductFilter.STAR_PRODUCTS -> starProducts
                 }
                 try {
@@ -248,12 +281,19 @@ fun ProductsScreen(
                 productFilter,
                 sortOrder,
                 scopeLoading,
+                isStarProductsMode,
             ) {
                 val scopeProducts = when (productFilter) {
                     ProductFilter.BUSINESS_UNIT ->
                         if (scopeLoading && unitProducts.isEmpty()) emptyList()
                         else unitProducts.ifEmpty { products }
-                    ProductFilter.THERAPEUTIC_CLASS -> products
+                    ProductFilter.THERAPEUTIC_CLASS ->
+                        if (isStarProductsMode) {
+                            if (scopeLoading && starProducts.isEmpty()) emptyList()
+                            else starProducts.ifEmpty { products }
+                        } else {
+                            products
+                        }
                     ProductFilter.STAR_PRODUCTS ->
                         if (scopeLoading && starProducts.isEmpty()) emptyList()
                         else starProducts
@@ -299,7 +339,31 @@ fun ProductsScreen(
                             .fillMaxWidth()
                             .padding(horizontal = horizontalPadding),
                     ) {
-                        if (header.usesSharedTvCatalogLayout) {
+                        if (isStarProductsMode) {
+                            // Mock: badge | search | Home + Close; Ordenar bajo el buscador (sin filtro ni título).
+                            StarProductsHeader(
+                                header = header,
+                                contentPadding = contentPadding,
+                                buttonSize = buttonSize,
+                                isLandscape = isLandscape,
+                                isTv66 = isTv66,
+                                isTv42 = isTv42,
+                                isTv42LargeUp = isTv42LargeUp,
+                                searchQuery = searchQuery,
+                                onSearchQueryChange = { searchQuery = it },
+                                isSearching = isSearching,
+                                sortOrder = sortOrder,
+                                onSortClick = {
+                                    sortOrder = when (sortOrder) {
+                                        SortOrder.NONE -> SortOrder.AZ
+                                        SortOrder.AZ -> SortOrder.ZA
+                                        SortOrder.ZA -> SortOrder.NONE
+                                    }
+                                },
+                                onHome = onHome,
+                                onClose = onBack,
+                            )
+                        } else if (header.usesSharedTvCatalogLayout) {
                             // Familia Fire/Ariana/TV66: título | filtro | search | nav; Ordenar aparte.
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 Row(
@@ -718,26 +782,40 @@ fun ProductsScreen(
                     }
                 }
 
-                // Badge CT: Ariana/Fire → −9 esp X, lift 4; TV66 → lift 7.
-                TreatmentIconBadge(
-                    iconUrl = treatmentIconUrl,
-                    metrics = catalog.ui,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .offset {
-                            val (dx, lift) = when {
-                                isTv66 -> 0.dp to FireTv42Spacing.spaces(7)
-                                isTv42 || catalog.largeCanvas ->
-                                    (-FireTv42Spacing.spaces(9)) to FireTv42Spacing.spaces(4)
-                                else -> 0.dp to 0.dp
-                            }
-                            IntOffset(x = dx.roundToPx(), y = -lift.roundToPx())
+                // Badge superior izquierdo: CT en productos; Productos Estrellas en modo estrellas.
+                val topBadgeModifier = Modifier
+                    .align(Alignment.TopStart)
+                    .offset {
+                        val (dx, lift) = when {
+                            isTv66 -> 0.dp to FireTv42Spacing.spaces(7)
+                            isTv42 || catalog.largeCanvas ->
+                                (-FireTv42Spacing.spaces(9)) to FireTv42Spacing.spaces(4)
+                            else -> 0.dp to 0.dp
                         }
-                        .padding(
-                            start = horizontalPadding + contentPadding,
-                            top = 0.dp,
-                        ),
-                )
+                        // Estrellas: bajar 5 espacios respecto al ancla CT.
+                        val y = if (isStarProductsMode) {
+                            -lift + FireTv42Spacing.spaces(5)
+                        } else {
+                            -lift
+                        }
+                        IntOffset(x = dx.roundToPx(), y = y.roundToPx())
+                    }
+                    .padding(
+                        start = horizontalPadding + contentPadding,
+                        top = 0.dp,
+                    )
+                if (isStarProductsMode) {
+                    ProductosEstrellasBadge(
+                        height = catalog.ui.badgeHeight.coerceAtMost(header.searchBarHeight * 1.35f),
+                        modifier = topBadgeModifier,
+                    )
+                } else {
+                    TreatmentIconBadge(
+                        iconUrl = treatmentIconUrl,
+                        metrics = catalog.ui,
+                        modifier = topBadgeModifier,
+                    )
+                }
 
                 // DEBUG arriba: abajo tapaba la 2.ª fila (parecía que los cards “se montaban”).
                 if (BuildConfig.DEBUG) {
@@ -787,6 +865,134 @@ fun ProductsScreen(
                     onDismiss = { showFilterSheet = false },
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun StarProductsHeader(
+    header: CatalogHeaderMetrics,
+    contentPadding: Dp,
+    buttonSize: Dp,
+    isLandscape: Boolean,
+    isTv66: Boolean,
+    isTv42: Boolean,
+    isTv42LargeUp: Boolean,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    isSearching: Boolean,
+    sortOrder: SortOrder,
+    onSortClick: () -> Unit,
+    onHome: () -> Unit,
+    onClose: () -> Unit,
+) {
+    val navSpacing = if (header.navPairSpacing > 0.dp) {
+        header.navPairSpacing
+    } else {
+        header.navButtonSize * 0.12f
+    }
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = contentPadding)
+                .padding(top = header.controlsTopGap),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Spacer(modifier = Modifier.weight(1f))
+            Box(
+                modifier = Modifier
+                    .width(header.searchBarWidth)
+                    .height(header.searchBarHeight)
+                    .shadow(elevation = 2.dp, shape = RoundedCornerShape(50.dp))
+                    .clip(RoundedCornerShape(50.dp))
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(Color(0xFFF8F8F8), Color(0xFFD0D0D0)),
+                        ),
+                    )
+                    .padding(horizontal = if (isLandscape) 10.dp else 8.dp),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    AsyncImage(
+                        model = "file:///android_asset/vitrina/ui/search_icon.png",
+                        contentDescription = null,
+                        modifier = Modifier.size(header.searchIconSize),
+                        contentScale = ContentScale.Fit,
+                    )
+                    BasicTextField(
+                        value = searchQuery,
+                        onValueChange = onSearchQueryChange,
+                        textStyle = TextStyle(
+                            color = LaSanteText,
+                            fontSize = header.searchFontSize,
+                        ),
+                        cursorBrush = SolidColor(LaSanteGreen),
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        decorationBox = { innerTextField ->
+                            if (searchQuery.isEmpty()) {
+                                Text(
+                                    "Buscar Producto",
+                                    color = LaSanteTextSecondary.copy(alpha = 0.40f),
+                                    fontSize = header.searchFontSize,
+                                )
+                            }
+                            innerTextField()
+                        },
+                    )
+                    if (isSearching) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = LaSanteGreen,
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.width(header.searchToNavGap))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(navSpacing),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                GreenNavButton(
+                    assetPath = "svg/ui/Home.svg",
+                    contentDescription = "Inicio",
+                    onClick = onHome,
+                    size = buttonSize,
+                    playSound = true,
+                )
+                GreenNavButton(
+                    assetPath = CLOSE_NAV_ASSET,
+                    contentDescription = "Cerrar",
+                    onClick = onClose,
+                    size = buttonSize,
+                )
+            }
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = contentPadding),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            ProductsSortButton(
+                sortOrder = sortOrder,
+                onSortClick = onSortClick,
+                isLandscape = isLandscape,
+                isTv66 = isTv66,
+                isTv42 = isTv42,
+                isTv42LargeUp = isTv42LargeUp,
+                sortScale = header.sortScale,
+                modifier = Modifier.padding(
+                    top = header.sortTopGap,
+                    end = buttonSize * 2f + navSpacing + header.searchToNavGap,
+                ),
+            )
         }
     }
 }

@@ -1,7 +1,6 @@
 package com.lasante.tvkiosk.ui.screens.intro
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,13 +11,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,20 +30,16 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.lasante.tvkiosk.data.Product
+import com.lasante.tvkiosk.ui.components.ProductosEstrellasBadge
 import com.lasante.tvkiosk.ui.theme.LaSanteOrange
 
 /** Verde del conector / badge (mockup). */
 private val BubblesConnectorGreen = Color(0xFF88B72E)
-private val BubblesBadgeGreenStart = Color(0xFF6FA320)
-private val BubblesBadgeGreenEnd = Color(0xFFA4D23A)
 /** Azul claro del puntito decorativo (mockup; no el azul de marca oscuro). */
 private val BubblesDotBlue = Color(0xFF6295B9)
 
@@ -69,6 +59,7 @@ fun VitrinaBubblesRow(
     visible: Boolean,
     metrics: IntroLayoutMetrics,
     onProductClick: (Product) -> Unit,
+    onStarProductsClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val alpha = rememberVitrinaInteractionAlpha(visible)
@@ -174,53 +165,15 @@ fun VitrinaBubblesRow(
             }
 
             // Badge centrado en la columna de redes (mitad de los iconos).
-            ProductosEstrellasInlineBadge(
+            ProductosEstrellasBadge(
                 height = badgeHeight,
+                onClick = onStarProductsClick,
                 modifier = Modifier
                     .align(Alignment.CenterStart)
                     .offset(x = badgeOffsetX)
                     .onSizeChanged { measuredBadgeWidth = with(density) { it.width.toDp() } },
             )
         }
-    }
-}
-
-@Composable
-private fun ProductosEstrellasInlineBadge(
-    height: Dp,
-    modifier: Modifier = Modifier,
-) {
-    val fontSize = when {
-        height >= 60.dp -> 18.sp
-        height >= 50.dp -> 16.sp
-        height >= 42.dp -> 15.sp
-        height >= 32.dp -> 12.sp
-        height >= 26.dp -> 10.sp
-        else -> 9.sp
-    }
-    Box(
-        modifier = modifier
-            .height(height)
-            .wrapContentWidth()
-            .clip(RoundedCornerShape(percent = 50))
-            .background(
-                Brush.horizontalGradient(
-                    colors = listOf(BubblesBadgeGreenStart, BubblesBadgeGreenEnd),
-                ),
-            )
-            .padding(horizontal = height * 0.45f),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = "PRODUCTOS ESTRELLAS",
-            color = Color.White,
-            fontSize = fontSize,
-            fontWeight = FontWeight.Bold,
-            fontFamily = MaterialTheme.typography.bodyLarge.fontFamily,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            softWrap = false,
-        )
     }
 }
 

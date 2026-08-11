@@ -48,6 +48,7 @@ fun BusinessUnitVitrina(
     onWakeFromIdle: () -> Unit,
     onRotationAnimationFinished: () -> Unit = {},
     onUnitClick: (String) -> Unit,
+    onStarProductsClick: () -> Unit = {},
     onDragStart: () -> Unit,
     onDrag: (Float) -> Unit,
     onDragEnd: () -> Unit,
@@ -131,6 +132,10 @@ fun BusinessUnitVitrina(
                         onProductClick = { product ->
                             onWakeFromIdle()
                             onProductClick(product)
+                        },
+                        onStarProductsClick = {
+                            onWakeFromIdle()
+                            onStarProductsClick()
                         },
                         modifier = Modifier
                             .align(Alignment.TopCenter)

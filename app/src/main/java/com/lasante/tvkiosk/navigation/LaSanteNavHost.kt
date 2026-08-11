@@ -53,6 +53,11 @@ fun LaSanteNavHost(
             onNavigateToTreatments = { unitId ->
                 navController.navigate("${Routes.TREATMENTS}/$unitId")
             },
+            onNavigateToStarProducts = { unitId ->
+                navController.navigate(
+                    "${Routes.PRODUCTS}/$unitId/${Args.STAR_PRODUCTS_ID}",
+                )
+            },
         )
 
         NavHost(

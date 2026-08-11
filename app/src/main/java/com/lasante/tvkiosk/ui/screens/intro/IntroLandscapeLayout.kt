@@ -65,6 +65,7 @@ fun IntroResponsiveLayout(
     onVideoClick: () -> Unit,
     onRotateClick: () -> Unit,
     onNavigateToTreatments: (String) -> Unit,
+    onNavigateToStarProducts: (String) -> Unit = {},
     onSocialClick: (String, String) -> Unit,
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -157,6 +158,14 @@ fun IntroResponsiveLayout(
                     onUnitClick = { unitId ->
                         onWakeFromIdle()
                         onNavigateToTreatments(unitId)
+                    },
+                    onStarProductsClick = {
+                        onWakeFromIdle()
+                        val active = resolveActiveVitrinaUnit(vitrinaUnits, activeVitrinaIndex)
+                        val unitId = active?.second?.unit?.id
+                        if (!unitId.isNullOrBlank()) {
+                            onNavigateToStarProducts(unitId)
+                        }
                     },
                     onDragStart = onDragStart,
                     onDrag = onDrag,

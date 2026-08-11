@@ -248,72 +248,146 @@ object DeviceProfileResolver {
         )
     }
 
-    fun modalMetrics(profile: DeviceProfile): SharedModalMetrics = when (profile.tier) {
-        DeviceProfileTier.COMPACT_LANDSCAPE -> SharedModalMetrics(
-            modalWidthFraction = 0.70f,
-            modalHeightFraction = 0.68f,
-            modelWeight = 1.15f,
-            descriptionWeight = 1.35f,
-            descriptionHeightFraction = 0.96f,
-            columnSpacing = FireTv42Spacing.spaces(10),
-            rowOffsetX = (-20).dp,
-            rowOffsetY = (-12).dp,
-            descriptionOffsetX = 0.dp,
-            descriptionOffsetY = 0.dp,
-            descriptionHorizontalPadding = 20.dp,
-            modelScaleToUnits = 1.656f,
-            descriptionAlignTop = true,
-            alignRowTop = true,
-        )
-        DeviceProfileTier.TV_LARGE -> SharedModalMetrics(
-            // Modal 70% para zoom GLB; card más ancha (+peso columna / full width).
-            modalWidthFraction = 0.70f,
-            modalHeightFraction = 0.68f,
-            modelWeight = 1.15f,
-            descriptionWeight = 1.40f,
-            descriptionHeightFraction = 0.92f,
-            columnSpacing = FireTv42Spacing.spaces(10),
-            rowOffsetX = (-8).dp,
-            rowOffsetY = (-8).dp,
-            descriptionOffsetX = 0.dp,
-            descriptionOffsetY = FireTv42Spacing.spaces(1),
-            descriptionHorizontalPadding = 30.dp,
-            modelScaleToUnits = 1.72f,
-            descriptionAlignTop = true,
-            alignRowTop = false,
-        )
-        DeviceProfileTier.TV_REGULAR -> SharedModalMetrics(
-            modalWidthFraction = 0.70f,
-            modalHeightFraction = 0.66f,
-            modelWeight = 1.15f,
-            descriptionWeight = 1.40f,
-            descriptionHeightFraction = 0.90f,
-            columnSpacing = FireTv42Spacing.spaces(10),
-            rowOffsetX = (-8).dp,
-            rowOffsetY = (-8).dp,
-            descriptionOffsetX = 0.dp,
-            descriptionOffsetY = FireTv42Spacing.spaces(1),
-            descriptionHorizontalPadding = 28.dp,
-            modelScaleToUnits = 1.656f,
-            descriptionAlignTop = true,
-            alignRowTop = false,
-        )
-        else -> SharedModalMetrics(
-            modalWidthFraction = 0.70f,
-            modalHeightFraction = 0.66f,
-            modelWeight = 1.10f,
-            descriptionWeight = 1.35f,
-            descriptionHeightFraction = 0.88f,
-            columnSpacing = FireTv42Spacing.spaces(10),
-            rowOffsetX = (-6).dp,
-            rowOffsetY = (-6).dp,
-            descriptionOffsetX = 0.dp,
-            descriptionOffsetY = FireTv42Spacing.spaces(1),
-            descriptionHorizontalPadding = 28.dp,
-            modelScaleToUnits = 1.656f,
-            descriptionAlignTop = true,
-            alignRowTop = false,
-        )
+    fun modalMetrics(profile: DeviceProfile): SharedModalMetrics {
+        val w = profile.maxWidth
+        return when (profile.tier) {
+            /**
+             * Hikvision TV66 1280×720 — referencia visual validada.
+             * Gaps en “espacios” Poppins (misma unidad usada en el ajuste en tablet forzada).
+             */
+            DeviceProfileTier.TV_LARGE -> SharedModalMetrics(
+                modalWidthFraction = 0.70f,
+                modalHeightFraction = 0.68f,
+                modelWeight = 1.15f,
+                descriptionWeight = 1.40f,
+                descriptionHeightFraction = 0.92f,
+                cardHeightFraction = 0.80f,
+                columnSpacing = FireTv42Spacing.spaces(10),
+                cardWidthTrim = FireTv42Spacing.spaces(8),
+                closeSideGap = FireTv42Spacing.spaces(2),
+                rowOffsetX = (-8).dp,
+                rowOffsetY = (-8).dp,
+                descriptionOffsetX = 0.dp,
+                descriptionOffsetY = FireTv42Spacing.spaces(1),
+                descriptionHorizontalPadding = 30.dp,
+                // Base TV66 × +3% zoom GLB.
+                modelScaleToUnits = 1.72f * 1.03f,
+                descriptionAlignTop = true,
+                alignRowTop = false,
+            )
+
+            /**
+             * Fire / Television_1080 (TV_REGULAR).
+             * Misma intención de diseño; % un poco más alto (canvas distinto) y
+             * gaps en [FireTv42Spacing] (unidad nativa de este perfil).
+             */
+            DeviceProfileTier.TV_REGULAR -> SharedModalMetrics(
+                modalWidthFraction = 0.74f,
+                modalHeightFraction = 0.66f,
+                modelWeight = 1.20f,
+                descriptionWeight = 1.30f,
+                descriptionHeightFraction = 0.90f,
+                cardHeightFraction = 0.82f,
+                columnSpacing = FireTv42Spacing.spaces(10),
+                cardWidthTrim = FireTv42Spacing.spaces(8),
+                closeSideGap = FireTv42Spacing.spaces(2),
+                rowOffsetX = (-8).dp,
+                rowOffsetY = (-8).dp,
+                descriptionOffsetX = 0.dp,
+                descriptionOffsetY = FireTv42Spacing.spaces(1),
+                descriptionHorizontalPadding = 28.dp,
+                modelScaleToUnits = 1.656f * 1.03f,
+                descriptionAlignTop = true,
+                alignRowTop = false,
+            )
+
+            /**
+             * Tablets (Damasco / Infinix / landscape): gaps relativos al ancho,
+             * no [FireTv42Spacing] (comentario histórico: no Damasco/Infinix).
+             * Más % de modal porque el canvas físico es más chico.
+             */
+            DeviceProfileTier.TABLET_LANDSCAPE -> SharedModalMetrics(
+                modalWidthFraction = 0.78f,
+                modalHeightFraction = 0.70f,
+                modelWeight = 1.20f,
+                descriptionWeight = 1.25f,
+                descriptionHeightFraction = 0.90f,
+                cardHeightFraction = 0.82f,
+                columnSpacing = (w * 0.05f).coerceIn(28.dp, 64.dp),
+                cardWidthTrim = (w * 0.04f).coerceIn(20.dp, 52.dp),
+                closeSideGap = (w * 0.012f).coerceIn(8.dp, 16.dp),
+                rowOffsetX = (-6).dp,
+                rowOffsetY = (-6).dp,
+                descriptionOffsetX = 0.dp,
+                descriptionOffsetY = (w * 0.006f).coerceIn(4.dp, 10.dp),
+                descriptionHorizontalPadding = 24.dp,
+                modelScaleToUnits = 1.55f * 1.02f,
+                descriptionAlignTop = true,
+                alignRowTop = false,
+            )
+
+            /** Phone landscape: suele ir apilado (compact); métricas por si usa fila. */
+            DeviceProfileTier.COMPACT_LANDSCAPE -> SharedModalMetrics(
+                modalWidthFraction = 0.90f,
+                modalHeightFraction = 0.78f,
+                modelWeight = 1.25f,
+                descriptionWeight = 1.10f,
+                descriptionHeightFraction = 0.96f,
+                cardHeightFraction = 0.88f,
+                columnSpacing = 12.dp,
+                cardWidthTrim = 8.dp,
+                closeSideGap = 8.dp,
+                rowOffsetX = (-12).dp,
+                rowOffsetY = (-8).dp,
+                descriptionOffsetX = 0.dp,
+                descriptionOffsetY = 0.dp,
+                descriptionHorizontalPadding = 18.dp,
+                modelScaleToUnits = 1.45f * 1.02f,
+                descriptionAlignTop = true,
+                alignRowTop = true,
+            )
+
+            DeviceProfileTier.COMPACT_PORTRAIT -> SharedModalMetrics(
+                modalWidthFraction = 0.94f,
+                modalHeightFraction = 0.82f,
+                modelWeight = 1.20f,
+                descriptionWeight = 1.10f,
+                descriptionHeightFraction = 0.96f,
+                cardHeightFraction = 0.90f,
+                columnSpacing = 10.dp,
+                cardWidthTrim = 6.dp,
+                closeSideGap = 8.dp,
+                rowOffsetX = 0.dp,
+                rowOffsetY = 0.dp,
+                descriptionOffsetX = 0.dp,
+                descriptionOffsetY = 0.dp,
+                descriptionHorizontalPadding = 16.dp,
+                modelScaleToUnits = 1.38f,
+                descriptionAlignTop = true,
+                alignRowTop = true,
+            )
+
+            /** Default / fallback: proporciones tipo tablet. */
+            else -> SharedModalMetrics(
+                modalWidthFraction = 0.76f,
+                modalHeightFraction = 0.68f,
+                modelWeight = 1.15f,
+                descriptionWeight = 1.25f,
+                descriptionHeightFraction = 0.88f,
+                cardHeightFraction = 0.82f,
+                columnSpacing = (w * 0.045f).coerceIn(24.dp, 56.dp),
+                cardWidthTrim = (w * 0.035f).coerceIn(16.dp, 48.dp),
+                closeSideGap = (w * 0.012f).coerceIn(8.dp, 14.dp),
+                rowOffsetX = (-6).dp,
+                rowOffsetY = (-6).dp,
+                descriptionOffsetX = 0.dp,
+                descriptionOffsetY = 6.dp,
+                descriptionHorizontalPadding = 24.dp,
+                modelScaleToUnits = 1.50f * 1.02f,
+                descriptionAlignTop = true,
+                alignRowTop = false,
+            )
+        }
     }
 }
 
@@ -324,7 +398,13 @@ data class SharedModalMetrics(
     val modelWeight: Float,
     val descriptionWeight: Float,
     val descriptionHeightFraction: Float,
+    /** Alto del card sólido dentro de su columna (0–1). */
+    val cardHeightFraction: Float = 0.80f,
     val columnSpacing: Dp,
+    /** Recorte de ancho del bloque card+close (equiv. “−N espacios” en TV). */
+    val cardWidthTrim: Dp = 0.dp,
+    /** Separación horizontal entre card y botón close. */
+    val closeSideGap: Dp = 8.dp,
     val rowOffsetX: Dp,
     val rowOffsetY: Dp,
     val descriptionOffsetX: Dp = 0.dp,
