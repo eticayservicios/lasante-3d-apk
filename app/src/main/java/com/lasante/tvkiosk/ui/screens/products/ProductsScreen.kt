@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -52,8 +53,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.lasante.tvkiosk.BuildConfig
@@ -62,6 +61,7 @@ import com.lasante.tvkiosk.data.DisplayTitles
 import com.lasante.tvkiosk.data.Product
 import com.lasante.tvkiosk.ui.components.GreenNavButton
 import com.lasante.tvkiosk.ui.components.LaSanteBackground
+import com.lasante.tvkiosk.ui.components.LaSanteScreenTitle
 import com.lasante.tvkiosk.ui.components.ProductosEstrellasBadge
 import com.lasante.tvkiosk.ui.components.RealGreenScrollBar
 import com.lasante.tvkiosk.ui.components.TreatmentIconAssets
@@ -429,7 +429,13 @@ fun ProductsScreen(
                                             .clickable(
                                                 interactionSource = remember { MutableInteractionSource() },
                                                 indication = null,
-                                                onClick = { showFilterSheet = true },
+                                                onClick = {
+                                                    coroutineScope.launch {
+                                                        yield()
+                                                        delay(32)
+                                                        showFilterSheet = true
+                                                    }
+                                                },
                                             ),
                                         contentAlignment = Alignment.Center,
                                     ) {
@@ -575,7 +581,13 @@ fun ProductsScreen(
                                         .clickable(
                                             interactionSource = remember { MutableInteractionSource() },
                                             indication = null,
-                                            onClick = { showFilterSheet = true },
+                                            onClick = {
+                                                coroutineScope.launch {
+                                                    yield()
+                                                    delay(32)
+                                                    showFilterSheet = true
+                                                }
+                                            },
                                         ),
                                     contentAlignment = Alignment.Center,
                                 ) {
@@ -1399,128 +1411,162 @@ private fun TherapeuticClassFilterSheet(
     var draftFormas by remember(initialFilter) { mutableStateOf(initialFilter.formas) }
     var draftStarsOnly by remember(initialFilter) { mutableStateOf(initialFilter.starProductsOnly) }
     var presentationExpanded by remember { mutableStateOf(false) }
+    val poppins = MaterialTheme.typography.bodyLarge.fontFamily
+    // Altura fija del desplegable (4 opciones) para que el modal no cambie de tamaño.
+    val presentationMenuHeight = 188.dp
 
     BackHandler(onBack = onDismiss)
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            dismissOnBackPress = true,
-            dismissOnClickOutside = true,
-        ),
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.45f))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onDismiss,
+            ),
+        contentAlignment = Alignment.Center,
     ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center,
+        Column(
+            modifier = Modifier
+                .fillMaxWidth(0.464f)
+                .widthIn(max = 608.dp)
+                .fillMaxHeight(0.78f)
+                .shadow(18.dp, RoundedCornerShape(22.dp))
+                .clip(RoundedCornerShape(22.dp))
+                .background(Color.White)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = {},
+                )
+                .padding(horizontal = 24.dp)
+                .padding(top = 10.dp, bottom = 22.dp),
         ) {
-            // Hikvision TV66 1280×720: modal ~58% ancho.
-            Column(
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.58f)
-                    .widthIn(max = 760.dp)
-                    .shadow(18.dp, RoundedCornerShape(22.dp))
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(Color.White)
-                    .padding(horizontal = 28.dp, vertical = 22.dp),
+                    .align(Alignment.CenterHorizontally)
+                    .width(42.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(Color(0xFF2F2F2F)),
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top,
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
+                LaSanteScreenTitle(
+                    text = "Filtros",
+                    fontSize = 28,
+                    textBrush = FilterTitleBrush,
+                    underlineBrush = Brush.horizontalGradient(
+                        listOf(Color(0xFF8FA88A), Color(0xFFD5D8D2), Color.White),
+                    ),
+                    underlineMatchTextWidth = true,
+                    underlineWidth = 72.dp,
+                    fontFamily = poppins,
+                    fontWeight = FontWeight.SemiBold,
+                    allCaps = false,
+                    textAlign = TextAlign.Start,
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(FilterGreenBrush)
+                        .clickable(onClick = onDismiss),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = "Cerrar",
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(22.dp),
+            ) {
+                // Columna izquierda: presentación + Limpiar
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = "Presentación del producto",
+                        modifier = Modifier.fillMaxWidth(),
+                        color = Color(0xFF4B5563),
+                        fontFamily = poppins,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp,
+                        textAlign = TextAlign.Start,
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(FilterGreenBrush)
+                            .clickable { presentationExpanded = !presentationExpanded }
+                            .padding(horizontal = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         Text(
-                            text = "Filtros",
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                brush = FilterTitleBrush,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 28.sp,
-                            ),
+                            text = when {
+                                draftFormas.isEmpty() -> "Seleccionar presentación"
+                                draftFormas.size == 1 -> draftFormas.first().label
+                                else -> "${draftFormas.size} seleccionadas"
+                            },
+                            modifier = Modifier.weight(1f),
+                            color = Color.White,
+                            fontFamily = poppins,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Box(
-                            modifier = Modifier
-                                .width(72.dp)
-                                .height(3.dp)
-                                .clip(RoundedCornerShape(2.dp))
-                                .background(FilterGreenBrush),
+                        Icon(
+                            imageVector = if (presentationExpanded) {
+                                Icons.Filled.KeyboardArrowUp
+                            } else {
+                                Icons.Filled.KeyboardArrowDown
+                            },
+                            contentDescription = null,
+                            tint = Color.White,
                         )
                     }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    // Slot fijo: abierto o cerrado, misma altura → el modal no salta.
                     Box(
                         modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(FilterGreenBrush)
-                            .clickable(onClick = onDismiss),
-                        contentAlignment = Alignment.Center,
+                            .fillMaxWidth()
+                            .height(presentationMenuHeight),
                     ) {
-                        Icon(
-                            imageVector = Icons.Filled.Close,
-                            contentDescription = "Cerrar",
-                            tint = Color.White,
-                            modifier = Modifier.size(22.dp),
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(22.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(28.dp),
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Presentación del producto",
-                            color = Color(0xFF4B5563),
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 15.sp,
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(46.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(FilterGreenBrush)
-                                .clickable { presentationExpanded = !presentationExpanded }
-                                .padding(horizontal = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = when {
-                                    draftFormas.isEmpty() -> "Seleccionar presentación"
-                                    draftFormas.size == 1 -> draftFormas.first().label
-                                    else -> "${draftFormas.size} seleccionadas"
-                                },
-                                modifier = Modifier.weight(1f),
-                                color = Color.White,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 14.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Icon(
-                                imageVector = if (presentationExpanded) {
-                                    Icons.Filled.KeyboardArrowUp
-                                } else {
-                                    Icons.Filled.KeyboardArrowDown
-                                },
-                                contentDescription = null,
-                                tint = Color.White,
-                            )
-                        }
-
                         if (presentationExpanded) {
-                            Spacer(modifier = Modifier.height(8.dp))
                             Column(
                                 modifier = Modifier
-                                    .fillMaxWidth()
+                                    .fillMaxSize()
                                     .shadow(6.dp, RoundedCornerShape(12.dp))
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(Color.White)
                                     .border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(12.dp))
-                                    .padding(vertical = 6.dp),
+                                    .padding(vertical = 4.dp),
                             ) {
                                 FormaFarmaceutica.entries.forEach { forma ->
                                     val checked = forma in draftFormas
@@ -1541,64 +1587,11 @@ private fun TherapeuticClassFilterSheet(
                         }
                     }
 
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Productos Estrellas",
-                            color = Color(0xFF4B5563),
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 15.sp,
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Se mostrará únicamente los productos estrellas relacionados a esta unidad de negocio.",
-                            color = Color(0xFF6B7280),
-                            fontSize = 12.sp,
-                            lineHeight = 16.sp,
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .drawBehind {
-                                    val stroke = Stroke(
-                                        width = 1.5.dp.toPx(),
-                                        pathEffect = PathEffect.dashPathEffect(
-                                            floatArrayOf(10f, 8f),
-                                            0f,
-                                        ),
-                                    )
-                                    drawRoundRect(
-                                        color = Color(0xFFD1D5DB),
-                                        style = stroke,
-                                        cornerRadius = CornerRadius(12.dp.toPx()),
-                                    )
-                                }
-                                .clickable { draftStarsOnly = !draftStarsOnly }
-                                .padding(horizontal = 12.dp, vertical = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            FilterSquareCheckbox(checked = draftStarsOnly)
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = "Mostrar Productos estrellas",
-                                color = FilterStarGold,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(28.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
+                    Spacer(modifier = Modifier.weight(1f))
                     Box(
                         modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp)
+                            .width(168.dp)
+                            .height(44.dp)
                             .clip(RoundedCornerShape(50.dp))
                             .background(FilterGreenBrush)
                             .clickable(onClick = onClear),
@@ -1607,14 +1600,76 @@ private fun TherapeuticClassFilterSheet(
                         Text(
                             text = "Limpiar filtros",
                             color = Color.White,
+                            fontFamily = poppins,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
+                            fontSize = 14.sp,
                         )
                     }
+                }
+
+                // Columna derecha: estrellas + Aplicar
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = "Productos Estrellas",
+                        modifier = Modifier.fillMaxWidth(),
+                        color = Color(0xFF4B5563),
+                        fontFamily = poppins,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp,
+                        textAlign = TextAlign.Start,
+                    )
+                    Text(
+                        text = "Se mostrará únicamente los productos estrellas relacionados a esta unidad de negocio.",
+                        modifier = Modifier.fillMaxWidth(),
+                        color = Color(0xFF6B7280),
+                        fontFamily = poppins,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
+                        textAlign = TextAlign.Start,
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .drawBehind {
+                                val stroke = Stroke(
+                                    width = 1.5.dp.toPx(),
+                                    pathEffect = PathEffect.dashPathEffect(
+                                        floatArrayOf(10f, 8f),
+                                        0f,
+                                    ),
+                                )
+                                drawRoundRect(
+                                    color = Color(0xFFD1D5DB),
+                                    style = stroke,
+                                    cornerRadius = CornerRadius(12.dp.toPx()),
+                                )
+                            }
+                            .clickable { draftStarsOnly = !draftStarsOnly }
+                            .padding(horizontal = 12.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        FilterSquareCheckbox(checked = draftStarsOnly)
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "Mostrar Productos estrellas",
+                            color = FilterStarGold,
+                            fontFamily = poppins,
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 14.sp,
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
                     Box(
                         modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp)
+                            .width(168.dp)
+                            .height(44.dp)
                             .clip(RoundedCornerShape(50.dp))
                             .background(FilterBlueBrush)
                             .clickable {
@@ -1630,8 +1685,9 @@ private fun TherapeuticClassFilterSheet(
                         Text(
                             text = "Aplicar filtros",
                             color = Color.White,
+                            fontFamily = poppins,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
+                            fontSize = 14.sp,
                         )
                     }
                 }
@@ -1651,16 +1707,20 @@ private fun FilterSquareCheckboxRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onToggle)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         FilterSquareCheckbox(checked = checked)
         Spacer(modifier = Modifier.width(10.dp))
         Text(
             text = label,
+            modifier = Modifier.weight(1f),
             color = labelColor,
             fontSize = 15.sp,
             fontWeight = if (checked) FontWeight.SemiBold else FontWeight.Normal,
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
