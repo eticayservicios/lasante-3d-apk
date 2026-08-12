@@ -88,6 +88,10 @@ private const val CLOSE_NAV_ASSET = "vitrina/ui/close_modal.png"
 private val FilterGreenBrush = Brush.horizontalGradient(listOf(FilterGreenStart, FilterGreenEnd))
 private val FilterBlueBrush = Brush.horizontalGradient(listOf(FilterBlueStart, FilterBlueEnd))
 private val FilterTitleBrush = Brush.horizontalGradient(listOf(FilterGreenStart, FilterGreenEnd))
+/** Degradado tipo línea de CT: gris oscuro del título → gris claro (sin verde). */
+private val FilterSubtitleBrush = Brush.horizontalGradient(
+    listOf(LaSanteText, LaSanteTextSecondary, Color(0xFFD5D8D2)),
+)
 
 private enum class SortOrder { NONE, AZ, ZA }
 
@@ -1412,8 +1416,16 @@ private fun TherapeuticClassFilterSheet(
     var draftStarsOnly by remember(initialFilter) { mutableStateOf(initialFilter.starProductsOnly) }
     var presentationExpanded by remember { mutableStateOf(false) }
     val poppins = MaterialTheme.typography.bodyLarge.fontFamily
-    // Altura fija del desplegable (4 opciones) para que el modal no cambie de tamaño.
-    val presentationMenuHeight = 188.dp
+    val filterActionShape = RoundedCornerShape(50.dp)
+    // Mock: selector menos redondeado que Limpiar/Aplicar.
+    val filterSelectShape = RoundedCornerShape(10.dp)
+    // Columna izq. 3 opciones + Otros alineado a Suspensión.
+    val presentationMenuHeight = 108.dp
+    val filterSubtitleStyle = TextStyle(
+        brush = FilterSubtitleBrush,
+        fontFamily = poppins,
+        fontWeight = FontWeight.Normal,
+    )
 
     BackHandler(onBack = onDismiss)
 
@@ -1430,9 +1442,10 @@ private fun TherapeuticClassFilterSheet(
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth(0.464f)
-                .widthIn(max = 608.dp)
-                .fillMaxHeight(0.78f)
+                .fillMaxWidth(0.53f)
+                .widthIn(max = 700.dp)
+                // 0.70 → −5% ≈ 0.665
+                .fillMaxHeight(0.665f)
                 .shadow(18.dp, RoundedCornerShape(22.dp))
                 .clip(RoundedCornerShape(22.dp))
                 .background(Color.White)
@@ -1441,8 +1454,9 @@ private fun TherapeuticClassFilterSheet(
                     indication = null,
                     onClick = {},
                 )
-                .padding(horizontal = 24.dp)
-                .padding(top = 10.dp, bottom = 22.dp),
+                // Padding interno +~5%
+                .padding(horizontal = 34.dp)
+                .padding(top = 14.dp, bottom = 26.dp),
         ) {
             Box(
                 modifier = Modifier
@@ -1457,7 +1471,7 @@ private fun TherapeuticClassFilterSheet(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Top,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 LaSanteScreenTitle(
                     text = "Filtros",
@@ -1474,24 +1488,15 @@ private fun TherapeuticClassFilterSheet(
                     textAlign = TextAlign.Start,
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(FilterGreenBrush)
-                        .clickable(onClick = onDismiss),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Close,
-                        contentDescription = "Cerrar",
-                        tint = Color.White,
-                        modifier = Modifier.size(22.dp),
-                    )
-                }
+                GreenNavButton(
+                    assetPath = CLOSE_NAV_ASSET,
+                    contentDescription = "Cerrar",
+                    size = 40.dp,
+                    onClick = onDismiss,
+                )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
             Row(
                 modifier = Modifier
@@ -1499,7 +1504,6 @@ private fun TherapeuticClassFilterSheet(
                     .fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(22.dp),
             ) {
-                // Columna izquierda: presentación + Limpiar
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -1509,10 +1513,7 @@ private fun TherapeuticClassFilterSheet(
                     Text(
                         text = "Presentación del producto",
                         modifier = Modifier.fillMaxWidth(),
-                        color = Color(0xFF4B5563),
-                        fontFamily = poppins,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 15.sp,
+                        style = filterSubtitleStyle.copy(fontSize = 15.sp),
                         textAlign = TextAlign.Start,
                     )
                     Spacer(modifier = Modifier.height(10.dp))
@@ -1520,7 +1521,7 @@ private fun TherapeuticClassFilterSheet(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(46.dp)
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(filterSelectShape)
                             .background(FilterGreenBrush)
                             .clickable { presentationExpanded = !presentationExpanded }
                             .padding(horizontal = 14.dp),
@@ -1552,36 +1553,62 @@ private fun TherapeuticClassFilterSheet(
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
-                    // Slot fijo: abierto o cerrado, misma altura → el modal no salta.
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(presentationMenuHeight),
+                        contentAlignment = Alignment.TopStart,
                     ) {
                         if (presentationExpanded) {
                             Column(
                                 modifier = Modifier
-                                    .fillMaxSize()
+                                    .fillMaxWidth()
                                     .shadow(6.dp, RoundedCornerShape(12.dp))
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(Color.White)
                                     .border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(12.dp))
-                                    .padding(vertical = 4.dp),
+                                    .padding(top = 2.dp, bottom = 2.dp),
                             ) {
-                                FormaFarmaceutica.entries.forEach { forma ->
-                                    val checked = forma in draftFormas
-                                    FilterSquareCheckboxRow(
-                                        label = forma.label,
-                                        checked = checked,
-                                        labelColor = LaSanteText,
-                                        onToggle = {
-                                            draftFormas = if (checked) {
-                                                draftFormas - forma
-                                            } else {
-                                                draftFormas + forma
+                                // Izq: Comprimidos / Cápsulas / Suspensión. Der: solo Otros = altura Suspensión.
+                                listOf(
+                                    FormaFarmaceutica.COMPRIMIDOS to null,
+                                    FormaFarmaceutica.CAPSULAS to null,
+                                    FormaFarmaceutica.SUSPENSION to FormaFarmaceutica.OTROS,
+                                ).forEach { (left, right) ->
+                                    Row(modifier = Modifier.fillMaxWidth()) {
+                                        Box(modifier = Modifier.weight(1f)) {
+                                            val checked = left in draftFormas
+                                            FilterSquareCheckboxRow(
+                                                label = left.label,
+                                                checked = checked,
+                                                labelColor = LaSanteText,
+                                                onToggle = {
+                                                    draftFormas = if (checked) {
+                                                        draftFormas - left
+                                                    } else {
+                                                        draftFormas + left
+                                                    }
+                                                },
+                                            )
+                                        }
+                                        Box(modifier = Modifier.weight(1f)) {
+                                            if (right != null) {
+                                                val checked = right in draftFormas
+                                                FilterSquareCheckboxRow(
+                                                    label = right.label,
+                                                    checked = checked,
+                                                    labelColor = LaSanteText,
+                                                    onToggle = {
+                                                        draftFormas = if (checked) {
+                                                            draftFormas - right
+                                                        } else {
+                                                            draftFormas + right
+                                                        }
+                                                    },
+                                                )
                                             }
-                                        },
-                                    )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1592,7 +1619,7 @@ private fun TherapeuticClassFilterSheet(
                         modifier = Modifier
                             .width(168.dp)
                             .height(44.dp)
-                            .clip(RoundedCornerShape(50.dp))
+                            .clip(filterActionShape)
                             .background(FilterGreenBrush)
                             .clickable(onClick = onClear),
                         contentAlignment = Alignment.Center,
@@ -1601,13 +1628,12 @@ private fun TherapeuticClassFilterSheet(
                             text = "Limpiar filtros",
                             color = Color.White,
                             fontFamily = poppins,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.Normal,
                             fontSize = 14.sp,
                         )
                     }
                 }
 
-                // Columna derecha: estrellas + Aplicar
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -1617,19 +1643,18 @@ private fun TherapeuticClassFilterSheet(
                     Text(
                         text = "Productos Estrellas",
                         modifier = Modifier.fillMaxWidth(),
-                        color = Color(0xFF4B5563),
-                        fontFamily = poppins,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 15.sp,
+                        style = filterSubtitleStyle.copy(fontSize = 15.sp),
                         textAlign = TextAlign.Start,
                     )
                     Text(
                         text = "Se mostrará únicamente los productos estrellas relacionados a esta unidad de negocio.",
-                        modifier = Modifier.fillMaxWidth(),
-                        color = Color(0xFF6B7280),
-                        fontFamily = poppins,
-                        fontSize = 12.sp,
-                        lineHeight = 16.sp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 2.dp),
+                        style = filterSubtitleStyle.copy(
+                            fontSize = 12.sp,
+                            lineHeight = 15.sp,
+                        ),
                         textAlign = TextAlign.Start,
                     )
                     Spacer(modifier = Modifier.height(12.dp))
@@ -1670,7 +1695,7 @@ private fun TherapeuticClassFilterSheet(
                         modifier = Modifier
                             .width(168.dp)
                             .height(44.dp)
-                            .clip(RoundedCornerShape(50.dp))
+                            .clip(filterActionShape)
                             .background(FilterBlueBrush)
                             .clickable {
                                 onApply(
@@ -1686,7 +1711,7 @@ private fun TherapeuticClassFilterSheet(
                             text = "Aplicar filtros",
                             color = Color.White,
                             fontFamily = poppins,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.Normal,
                             fontSize = 14.sp,
                         )
                     }
@@ -1707,16 +1732,16 @@ private fun FilterSquareCheckboxRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onToggle)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .padding(horizontal = 10.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         FilterSquareCheckbox(checked = checked)
-        Spacer(modifier = Modifier.width(10.dp))
+        Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = label,
             modifier = Modifier.weight(1f),
             color = labelColor,
-            fontSize = 15.sp,
+            fontSize = 14.sp,
             fontWeight = if (checked) FontWeight.SemiBold else FontWeight.Normal,
             maxLines = 1,
             softWrap = false,
