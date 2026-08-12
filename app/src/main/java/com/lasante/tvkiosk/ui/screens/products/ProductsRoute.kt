@@ -31,7 +31,7 @@ private fun starProductsData(
 ): ProductsData? {
     val stars = catalogRepository.cachedVitrinaUnitsOrNull()
         ?.firstOrNull { it.unit.id == unitId }
-        ?.products
+        ?.starProducts
         ?.distinctBy { it.productoId }
         ?: return null
     return ProductsData(
@@ -83,7 +83,7 @@ fun ProductsRoute(
                 if (isStarProducts) {
                     val stars = catalogRepository.getVitrinaUnits()
                         .firstOrNull { it.unit.id == unitId }
-                        ?.products
+                        ?.starProducts
                         .orEmpty()
                         .distinctBy { it.productoId }
                     UiState.Success(

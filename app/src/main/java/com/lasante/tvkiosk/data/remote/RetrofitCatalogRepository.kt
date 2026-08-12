@@ -180,6 +180,7 @@ class RetrofitCatalogRepository(
             atributos = emptyMap(),
             dosisValor = dosisValor,
             dosisUnidad = dosisUnidad,
+            formaFarmaceutica = formaFarmaceutica,
         )
     }
 
@@ -222,8 +223,24 @@ class RetrofitCatalogRepository(
             ),
             dosisValor = dosisValor,
             dosisUnidad = dosisUnidad,
+            formaFarmaceutica = formaFarmaceutica,
         )
     }
+
+    private fun mapVitrinaStarProducts(
+        unitId: String,
+        starProducts: List<VitrinaStarProductDto>,
+    ): List<Product> =
+        starProducts
+            .sortedBy { it.order }
+            .mapNotNull { star ->
+                star.product?.toProduct(
+                    defaultUnitId = unitId,
+                    defaultTreatmentId = star.treatmentId.orEmpty(),
+                    defaultOrder = star.order,
+                )
+            }
+            .distinctBy { it.productoId }
 
     private fun HomeDto.toSnapshot(): HomeSnapshot {
         val catalogEntries = unidades.flatMap { unit ->
@@ -299,7 +316,7 @@ class RetrofitCatalogRepository(
             .take(vitrina?.maxUnits ?: 5)
             .mapIndexed { index, unit ->
                 val unitId = unit.unitId ?: unit.id
-                val resolvedProducts = unit.slots.orEmpty()
+                val resolvedFeatured = unit.slots.orEmpty()
                     .filter { it.visible && it.product != null }
                     .sortedBy { it.order ?: it.slot }
                     .mapNotNull { slot ->
@@ -311,13 +328,15 @@ class RetrofitCatalogRepository(
                             modalEnabled = slot.modalEnabled,
                         )
                     }
+                val resolvedStars = mapVitrinaStarProducts(unitId, unit.starProducts.orEmpty())
+                    .ifEmpty { resolvedFeatured }
                 android.util.Log.i(
                     "RetrofitCatalogRepository",
                     "unit[$index]=$unitId slots=${unit.slots.orEmpty().size} " +
-                        "visible=${unit.slots.orEmpty().count { it.visible && it.product != null }} " +
-                        "resolved=${resolvedProducts.size} " +
-                        "slotMap=${resolvedProducts.map { "${it.productoId}@slot${it.atributos["slot"]}" }} " +
-                        "glbs=${resolvedProducts.map { it.media.modelo3d.glbFrasco ?: it.media.modelo3d.glb }}",
+                    "visible=${unit.slots.orEmpty().count { it.visible && it.product != null }} " +
+                        "featured=${resolvedFeatured.size} stars=${resolvedStars.size} " +
+                        "slotMap=${resolvedFeatured.map { "${it.productoId}@slot${it.atributos["slot"]}" }} " +
+                        "glbs=${resolvedFeatured.map { it.media.modelo3d.glbFrasco ?: it.media.modelo3d.glb }}",
                 )
 
                 VitrinaUnit(
@@ -327,7 +346,8 @@ class RetrofitCatalogRepository(
                         descripcion = unit.descripcion ?: "",
                         media = UnitMedia(icono = unit.icono)
                     ),
-                    products = resolvedProducts,
+                    products = resolvedFeatured,
+                    starProducts = resolvedStars,
                     rotationDegrees = ((vitrina?.rotationStepDegrees ?: 72) * index).toFloat()
                 )
             }

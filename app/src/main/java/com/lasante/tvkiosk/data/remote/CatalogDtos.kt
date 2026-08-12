@@ -49,7 +49,17 @@ data class VitrinaUnitDto(
     @SerializedName("icono")       val icono: String? = null,
     @SerializedName("orden")       val orden: Int? = null,
     @SerializedName("slots")       val slots: List<VitrinaSlotDto>? = null,
+    @SerializedName("starProducts") val starProducts: List<VitrinaStarProductDto>? = null,
     @SerializedName("productos")   val productos: List<VitrinaProductDto>? = null
+)
+
+data class VitrinaStarProductDto(
+    @SerializedName("id")           val id: String? = null,
+    @SerializedName("order")        val order: Int = 0,
+    @SerializedName("unitId")       val unitId: String? = null,
+    @SerializedName("treatmentId")  val treatmentId: String? = null,
+    @SerializedName("productId")    val productId: String? = null,
+    @SerializedName("product")      val product: VitrinaProductDto? = null
 )
 
 data class VitrinaSlotDto(
@@ -71,6 +81,7 @@ data class VitrinaProductDto(
     @SerializedName("descripcion")   val descripcion: String? = null,
     @SerializedName("dosisValor")    val dosisValor: String? = null,
     @SerializedName("dosisUnidad")   val dosisUnidad: String? = null,
+    @SerializedName("formaFarmaceutica") val formaFarmaceutica: String? = null,
     @SerializedName("estado")        val estado: String? = "ACTIVO",
     @SerializedName("orden")         val orden: Int? = null,
     @SerializedName("slot")          val slot: Int? = null,
@@ -108,6 +119,7 @@ data class ProductoDto(
     @SerializedName("descripcion") val descripcion: String? = null,
     @SerializedName("dosisValor")  val dosisValor: String? = null,
     @SerializedName("dosisUnidad") val dosisUnidad: String? = null,
+    @SerializedName("formaFarmaceutica") val formaFarmaceutica: String? = null,
     @SerializedName("media")       val media: ItemMediaDto? = null
 )
 

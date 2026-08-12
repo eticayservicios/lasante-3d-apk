@@ -53,6 +53,8 @@ data class Product(
     val dosisValor: String? = null,
     /** Unidad de dosis desde API (mg, ml, g, mcg, %, UI). */
     val dosisUnidad: String? = null,
+    /** Forma farmacéutica manual (comprimidos, capsulas, suspension, otros). */
+    val formaFarmaceutica: String? = null,
 ) {
     val id: String get() = productoId
     val name: String get() = nombre
@@ -99,6 +101,9 @@ data class FeaturedCollection(
 
 data class VitrinaUnit(
     val unit: BusinessUnit,
+    /** Hasta 4 destacados sobre la vitrina 3D. */
     val products: List<Product>,
+    /** Hasta 16 productos estrella (pantalla Productos Estrella / filtro CT). */
+    val starProducts: List<Product> = emptyList(),
     val rotationDegrees: Float = 0f
 )

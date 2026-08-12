@@ -30,3 +30,10 @@ val SpecialtyPediatria = Color(0xFFE91E63)
 
 val LaSanteOrange = Color(0xFFFFA205)
 val LaSanteBlue = Color(0xFF172D64)
+
+/** Paleta mock filtro CT (Hikvision). */
+val FilterGreenStart = Color(0xFFA8C829)
+val FilterGreenEnd = Color(0xFF4B991B)
+val FilterBlueStart = Color(0xFF00193E)
+val FilterBlueEnd = Color(0xFF1F6096)
+val FilterStarGold = Color(0xFFFFB000)

@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -32,10 +33,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -47,6 +52,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.lasante.tvkiosk.BuildConfig
@@ -77,6 +84,10 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 
 private const val CLOSE_NAV_ASSET = "vitrina/ui/close_modal.png"
+
+private val FilterGreenBrush = Brush.horizontalGradient(listOf(FilterGreenStart, FilterGreenEnd))
+private val FilterBlueBrush = Brush.horizontalGradient(listOf(FilterBlueStart, FilterBlueEnd))
+private val FilterTitleBrush = Brush.horizontalGradient(listOf(FilterGreenStart, FilterGreenEnd))
 
 private enum class SortOrder { NONE, AZ, ZA }
 
@@ -165,6 +176,8 @@ fun ProductsScreen(
                 mutableStateOf(defaultFilter)
             }
             var showFilterSheet by remember { mutableStateOf(false) }
+            /** Filtro CT (presentación + estrellas, AND). UI del sheet nuevo va al final. */
+            var ctCatalogFilter by remember(unitId) { mutableStateOf(TherapeuticClassCatalogFilter()) }
             var isSearching by remember { mutableStateOf(false) }
             var globalSearchResults by remember { mutableStateOf<List<Product>>(emptyList()) }
             var unitProducts by remember(unitId) { mutableStateOf<List<Product>>(emptyList()) }
@@ -184,7 +197,7 @@ fun ProductsScreen(
                     runCatching {
                         val stars = catalogRepository.getVitrinaUnits()
                             .firstOrNull { it.unit.id == unitId }
-                            ?.products
+                            ?.starProducts
                             .orEmpty()
                             .distinctBy { it.productoId }
                         // En modo estrellas no hace falta el catálogo completo de la unidad al abrir.
@@ -217,7 +230,11 @@ fun ProductsScreen(
                 scopeLoading = false
             }
 
-            LaunchedEffect(searchQuery, products, unitProducts, starProducts, productFilter) {
+            val starProductIds = remember(starProducts) {
+                starProducts.map { it.productoId }.toSet()
+            }
+
+            LaunchedEffect(searchQuery, products, unitProducts, starProducts, productFilter, ctCatalogFilter, starProductIds) {
                 if (searchQuery.length < 3) {
                     globalSearchResults = emptyList()
                     isSearching = false
@@ -232,9 +249,18 @@ fun ProductsScreen(
                         if (isStarProductsMode) starProducts.ifEmpty { products } else products
                     ProductFilter.STAR_PRODUCTS -> starProducts
                 }
+                val searchable = if (
+                    !isStarProductsMode &&
+                    !isViewAllTreatments &&
+                    productFilter == ProductFilter.THERAPEUTIC_CLASS
+                ) {
+                    applyTherapeuticClassCatalogFilter(scopeProducts, starProductIds, ctCatalogFilter)
+                } else {
+                    scopeProducts
+                }
                 try {
                     val localResults = withContext(Dispatchers.Default) {
-                        scopeProducts.filter {
+                        searchable.filter {
                             it.nombre.contains(query, ignoreCase = true) ||
                                 it.descripcion.contains(query, ignoreCase = true)
                         }
@@ -264,7 +290,7 @@ fun ProductsScreen(
                     }
                 } catch (_: Exception) {
                     globalSearchResults = withContext(Dispatchers.Default) {
-                        scopeProducts.filter {
+                        searchable.filter {
                             it.nombre.contains(query, ignoreCase = true) ||
                                 it.descripcion.contains(query, ignoreCase = true)
                         }
@@ -283,6 +309,8 @@ fun ProductsScreen(
                 sortOrder,
                 scopeLoading,
                 isStarProductsMode,
+                ctCatalogFilter,
+                starProductIds,
             ) {
                 val scopeProducts = when (productFilter) {
                     ProductFilter.BUSINESS_UNIT ->
@@ -299,10 +327,19 @@ fun ProductsScreen(
                         if (scopeLoading && starProducts.isEmpty()) emptyList()
                         else starProducts
                 }
+                val ctScopedProducts = if (
+                    !isStarProductsMode &&
+                    !isViewAllTreatments &&
+                    productFilter == ProductFilter.THERAPEUTIC_CLASS
+                ) {
+                    applyTherapeuticClassCatalogFilter(scopeProducts, starProductIds, ctCatalogFilter)
+                } else {
+                    scopeProducts
+                }
                 val displayProducts = if (searchQuery.length >= 3) {
                     globalSearchResults
                 } else {
-                    scopeProducts.filter {
+                    ctScopedProducts.filter {
                         searchQuery.isBlank() ||
                             it.name.contains(searchQuery, ignoreCase = true) ||
                             it.description.contains(searchQuery, ignoreCase = true)
@@ -842,29 +879,56 @@ fun ProductsScreen(
             }
 
             if (showFilterSheet) {
-                FilterBottomSheet(
-                    selectedFilter = productFilter,
-                    onFilterSelected = { selected ->
-                        // Cerrar sheet primero; aplicar filtro en el siguiente frame (evita ANR).
-                        showFilterSheet = false
-                        coroutineScope.launch {
-                            yield()
-                            delay(48)
-                            productFilter = selected
-                        }
-                    },
-                    onClearFilters = {
-                        showFilterSheet = false
-                        coroutineScope.launch {
-                            yield()
-                            delay(48)
-                            productFilter = defaultFilter
-                            searchQuery = ""
-                            sortOrder = SortOrder.NONE
-                        }
-                    },
-                    onDismiss = { showFilterSheet = false },
-                )
+                val useCtCatalogSheet =
+                    !isStarProductsMode &&
+                        !isViewAllTreatments &&
+                        productFilter == ProductFilter.THERAPEUTIC_CLASS
+                if (useCtCatalogSheet) {
+                    TherapeuticClassFilterSheet(
+                        initialFilter = ctCatalogFilter,
+                        onApply = { applied ->
+                            showFilterSheet = false
+                            coroutineScope.launch {
+                                yield()
+                                delay(48)
+                                ctCatalogFilter = applied
+                            }
+                        },
+                        onClear = {
+                            showFilterSheet = false
+                            coroutineScope.launch {
+                                yield()
+                                delay(48)
+                                ctCatalogFilter = TherapeuticClassCatalogFilter()
+                            }
+                        },
+                        onDismiss = { showFilterSheet = false },
+                    )
+                } else {
+                    FilterBottomSheet(
+                        selectedFilter = productFilter,
+                        onFilterSelected = { selected ->
+                            showFilterSheet = false
+                            coroutineScope.launch {
+                                yield()
+                                delay(48)
+                                productFilter = selected
+                            }
+                        },
+                        onClearFilters = {
+                            showFilterSheet = false
+                            coroutineScope.launch {
+                                yield()
+                                delay(48)
+                                productFilter = defaultFilter
+                                ctCatalogFilter = TherapeuticClassCatalogFilter()
+                                searchQuery = ""
+                                sortOrder = SortOrder.NONE
+                            }
+                        },
+                        onDismiss = { showFilterSheet = false },
+                    )
+                }
             }
         }
     }
@@ -1324,6 +1388,309 @@ private val PRODUCT_DOSAGE_SUFFIX = Regex(
     """^(.+?)\s+(\d+[.,]?\d*\s*(?:mg|g|ml|mcg|µg|ui|%))\s*$""",
     RegexOption.IGNORE_CASE,
 )
+
+@Composable
+private fun TherapeuticClassFilterSheet(
+    initialFilter: TherapeuticClassCatalogFilter,
+    onApply: (TherapeuticClassCatalogFilter) -> Unit,
+    onClear: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var draftFormas by remember(initialFilter) { mutableStateOf(initialFilter.formas) }
+    var draftStarsOnly by remember(initialFilter) { mutableStateOf(initialFilter.starProductsOnly) }
+    var presentationExpanded by remember { mutableStateOf(false) }
+
+    BackHandler(onBack = onDismiss)
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+        ),
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            // Hikvision TV66 1280×720: modal ~58% ancho.
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth(0.58f)
+                    .widthIn(max = 760.dp)
+                    .shadow(18.dp, RoundedCornerShape(22.dp))
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(Color.White)
+                    .padding(horizontal = 28.dp, vertical = 22.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Filtros",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                brush = FilterTitleBrush,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 28.sp,
+                            ),
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Box(
+                            modifier = Modifier
+                                .width(72.dp)
+                                .height(3.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(FilterGreenBrush),
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(FilterGreenBrush)
+                            .clickable(onClick = onDismiss),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = "Cerrar",
+                            tint = Color.White,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(22.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(28.dp),
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Presentación del producto",
+                            color = Color(0xFF4B5563),
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 15.sp,
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(46.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(FilterGreenBrush)
+                                .clickable { presentationExpanded = !presentationExpanded }
+                                .padding(horizontal = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = when {
+                                    draftFormas.isEmpty() -> "Seleccionar presentación"
+                                    draftFormas.size == 1 -> draftFormas.first().label
+                                    else -> "${draftFormas.size} seleccionadas"
+                                },
+                                modifier = Modifier.weight(1f),
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Icon(
+                                imageVector = if (presentationExpanded) {
+                                    Icons.Filled.KeyboardArrowUp
+                                } else {
+                                    Icons.Filled.KeyboardArrowDown
+                                },
+                                contentDescription = null,
+                                tint = Color.White,
+                            )
+                        }
+
+                        if (presentationExpanded) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .shadow(6.dp, RoundedCornerShape(12.dp))
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color.White)
+                                    .border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(12.dp))
+                                    .padding(vertical = 6.dp),
+                            ) {
+                                FormaFarmaceutica.entries.forEach { forma ->
+                                    val checked = forma in draftFormas
+                                    FilterSquareCheckboxRow(
+                                        label = forma.label,
+                                        checked = checked,
+                                        labelColor = LaSanteText,
+                                        onToggle = {
+                                            draftFormas = if (checked) {
+                                                draftFormas - forma
+                                            } else {
+                                                draftFormas + forma
+                                            }
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Productos Estrellas",
+                            color = Color(0xFF4B5563),
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 15.sp,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Se mostrará únicamente los productos estrellas relacionados a esta unidad de negocio.",
+                            color = Color(0xFF6B7280),
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp,
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .drawBehind {
+                                    val stroke = Stroke(
+                                        width = 1.5.dp.toPx(),
+                                        pathEffect = PathEffect.dashPathEffect(
+                                            floatArrayOf(10f, 8f),
+                                            0f,
+                                        ),
+                                    )
+                                    drawRoundRect(
+                                        color = Color(0xFFD1D5DB),
+                                        style = stroke,
+                                        cornerRadius = CornerRadius(12.dp.toPx()),
+                                    )
+                                }
+                                .clickable { draftStarsOnly = !draftStarsOnly }
+                                .padding(horizontal = 12.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            FilterSquareCheckbox(checked = draftStarsOnly)
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Mostrar Productos estrellas",
+                                color = FilterStarGold,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(28.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(50.dp))
+                            .background(FilterGreenBrush)
+                            .clickable(onClick = onClear),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "Limpiar filtros",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(50.dp))
+                            .background(FilterBlueBrush)
+                            .clickable {
+                                onApply(
+                                    TherapeuticClassCatalogFilter(
+                                        formas = draftFormas,
+                                        starProductsOnly = draftStarsOnly,
+                                    ),
+                                )
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "Aplicar filtros",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FilterSquareCheckboxRow(
+    label: String,
+    checked: Boolean,
+    labelColor: Color,
+    onToggle: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onToggle)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        FilterSquareCheckbox(checked = checked)
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(
+            text = label,
+            color = labelColor,
+            fontSize = 15.sp,
+            fontWeight = if (checked) FontWeight.SemiBold else FontWeight.Normal,
+        )
+    }
+}
+
+/** Checkbox cuadrado del mock (borde verde; check blanco cuando está activo). */
+@Composable
+private fun FilterSquareCheckbox(checked: Boolean) {
+    val shape = RoundedCornerShape(4.dp)
+    Box(
+        modifier = Modifier
+            .size(22.dp)
+            .clip(shape)
+            .border(
+                width = 2.dp,
+                color = if (checked) FilterGreenEnd else FilterGreenStart,
+                shape = shape,
+            )
+            .background(if (checked) FilterGreenEnd else Color.Transparent),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (checked) {
+            Icon(
+                imageVector = Icons.Filled.Check,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(16.dp),
+            )
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
