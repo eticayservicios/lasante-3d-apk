@@ -391,6 +391,147 @@ object DeviceProfileResolver {
             )
         }
     }
+
+    /**
+     * Modal de filtros CT (presentación + estrellas).
+     * Baseline visual = [DeviceProfileTier.TV_LARGE] (Hikvision 1280×720 validado).
+     */
+    fun filterSheetMetrics(profile: DeviceProfile): FilterSheetMetrics {
+        return when (profile.tier) {
+            DeviceProfileTier.TV_LARGE -> FilterSheetMetrics(
+                widthFraction = 0.53f,
+                heightFraction = 0.60f,
+                maxWidth = 700.dp,
+                paddingH = 66.dp,
+                paddingTop = 45.dp,
+                paddingBottom = 36.dp,
+                titleSp = 28,
+                subtitleSp = 15,
+                helpSp = 12,
+                helpLineSp = 15,
+                optionSp = 13,
+                buttonSp = 14,
+                selectSp = 14,
+                titleUnderlineWidth = 72.dp,
+                closeSize = 40.dp,
+                selectHeight = 46.dp,
+                actionWidth = 168.dp,
+                actionHeight = 44.dp,
+                actionFillColumn = false,
+                menuHeight = 108.dp,
+                columnGap = 22.dp,
+                checkboxSize = 22.dp,
+                checkboxIconSize = 16.dp,
+            )
+
+            DeviceProfileTier.TV_REGULAR -> FilterSheetMetrics(
+                widthFraction = 0.56f,
+                heightFraction = 0.62f,
+                maxWidth = 720.dp,
+                paddingH = 56.dp,
+                paddingTop = 36.dp,
+                paddingBottom = 30.dp,
+                titleSp = 26,
+                subtitleSp = 14,
+                helpSp = 12,
+                helpLineSp = 15,
+                optionSp = 13,
+                buttonSp = 14,
+                selectSp = 14,
+                titleUnderlineWidth = 68.dp,
+                closeSize = 38.dp,
+                selectHeight = 44.dp,
+                actionWidth = 160.dp,
+                actionHeight = 42.dp,
+                actionFillColumn = false,
+                menuHeight = 104.dp,
+                columnGap = 18.dp,
+                checkboxSize = 22.dp,
+                checkboxIconSize = 16.dp,
+            )
+
+            DeviceProfileTier.TABLET_LANDSCAPE,
+            DeviceProfileTier.DEFAULT,
+            -> FilterSheetMetrics(
+                widthFraction = 0.62f,
+                // Damasco: −0,5 cm ≈ −0.04 de alto de pantalla
+                heightFraction = 0.62f,
+                maxWidth = 640.dp,
+                paddingH = 40.dp,
+                paddingTop = 28.dp,
+                paddingBottom = 24.dp,
+                titleSp = 24,
+                subtitleSp = 14,
+                helpSp = 11,
+                helpLineSp = 14,
+                optionSp = 12,
+                buttonSp = 13,
+                selectSp = 13,
+                titleUnderlineWidth = 64.dp,
+                closeSize = 36.dp,
+                selectHeight = 42.dp,
+                actionWidth = 148.dp,
+                actionHeight = 40.dp,
+                actionFillColumn = false,
+                menuHeight = 100.dp,
+                columnGap = 14.dp,
+                checkboxSize = 20.dp,
+                checkboxIconSize = 14.dp,
+            )
+
+            DeviceProfileTier.COMPACT_LANDSCAPE -> FilterSheetMetrics(
+                widthFraction = 0.92f,
+                heightFraction = 0.72f,
+                maxWidth = 520.dp,
+                paddingH = 24.dp,
+                paddingTop = 20.dp,
+                paddingBottom = 20.dp,
+                titleSp = 22,
+                subtitleSp = 13,
+                helpSp = 11,
+                helpLineSp = 14,
+                optionSp = 12,
+                buttonSp = 13,
+                selectSp = 13,
+                titleUnderlineWidth = 56.dp,
+                closeSize = 32.dp,
+                selectHeight = 40.dp,
+                actionWidth = 140.dp,
+                actionHeight = 40.dp,
+                actionFillColumn = true,
+                menuHeight = 96.dp,
+                columnGap = 10.dp,
+                checkboxSize = 20.dp,
+                checkboxIconSize = 14.dp,
+            )
+
+            DeviceProfileTier.COMPACT_PORTRAIT -> FilterSheetMetrics(
+                widthFraction = 0.96f,
+                heightFraction = 0.78f,
+                maxWidth = 520.dp,
+                paddingH = 20.dp,
+                paddingTop = 16.dp,
+                paddingBottom = 16.dp,
+                titleSp = 22,
+                subtitleSp = 13,
+                helpSp = 11,
+                helpLineSp = 14,
+                optionSp = 12,
+                buttonSp = 13,
+                selectSp = 13,
+                titleUnderlineWidth = 56.dp,
+                closeSize = 32.dp,
+                selectHeight = 40.dp,
+                actionWidth = 140.dp,
+                actionHeight = 40.dp,
+                actionFillColumn = true,
+                menuHeight = 96.dp,
+                columnGap = 10.dp,
+                checkboxSize = 20.dp,
+                checkboxIconSize = 14.dp,
+            )
+        }
+    }
 }
 
 @Immutable
@@ -415,4 +556,33 @@ data class SharedModalMetrics(
     val modelScaleToUnits: Float,
     val descriptionAlignTop: Boolean,
     val alignRowTop: Boolean,
+)
+
+/** Métricas del modal de filtros de clase terapéutica. */
+@Immutable
+data class FilterSheetMetrics(
+    val widthFraction: Float,
+    val heightFraction: Float,
+    val maxWidth: Dp,
+    val paddingH: Dp,
+    val paddingTop: Dp,
+    val paddingBottom: Dp,
+    val titleSp: Int,
+    val subtitleSp: Int,
+    val helpSp: Int,
+    val helpLineSp: Int,
+    val optionSp: Int,
+    val buttonSp: Int,
+    val selectSp: Int,
+    val titleUnderlineWidth: Dp,
+    val closeSize: Dp,
+    val selectHeight: Dp,
+    val actionWidth: Dp,
+    val actionHeight: Dp,
+    /** En compact: el botón de acción usa casi todo el ancho de la columna. */
+    val actionFillColumn: Boolean,
+    val menuHeight: Dp,
+    val columnGap: Dp,
+    val checkboxSize: Dp,
+    val checkboxIconSize: Dp,
 )

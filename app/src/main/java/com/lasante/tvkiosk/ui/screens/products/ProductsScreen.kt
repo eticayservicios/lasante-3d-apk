@@ -68,6 +68,8 @@ import com.lasante.tvkiosk.ui.components.TreatmentIconAssets
 import com.lasante.tvkiosk.ui.components.TrimTransparentTransformation
 import com.lasante.tvkiosk.ui.layout.CatalogHeaderMetrics
 import com.lasante.tvkiosk.ui.layout.CatalogScreenTitle
+import com.lasante.tvkiosk.ui.layout.DeviceProfile
+import com.lasante.tvkiosk.ui.layout.DeviceProfileResolver
 import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
 import com.lasante.tvkiosk.ui.layout.FireTv42Spacing
 import com.lasante.tvkiosk.ui.layout.HikvisionLayoutDebug
@@ -902,6 +904,7 @@ fun ProductsScreen(
                 if (useCtCatalogSheet) {
                     TherapeuticClassFilterSheet(
                         initialFilter = ctCatalogFilter,
+                        profile = profile,
                         onApply = { applied ->
                             showFilterSheet = false
                             coroutineScope.launch {
@@ -1408,6 +1411,7 @@ private val PRODUCT_DOSAGE_SUFFIX = Regex(
 @Composable
 private fun TherapeuticClassFilterSheet(
     initialFilter: TherapeuticClassCatalogFilter,
+    profile: DeviceProfile,
     onApply: (TherapeuticClassCatalogFilter) -> Unit,
     onClear: () -> Unit,
     onDismiss: () -> Unit,
@@ -1416,15 +1420,23 @@ private fun TherapeuticClassFilterSheet(
     var draftStarsOnly by remember(initialFilter) { mutableStateOf(initialFilter.starProductsOnly) }
     var presentationExpanded by remember { mutableStateOf(false) }
     val poppins = MaterialTheme.typography.bodyLarge.fontFamily
+    val m = remember(profile) { DeviceProfileResolver.filterSheetMetrics(profile) }
     val filterActionShape = RoundedCornerShape(50.dp)
     val filterSelectShape = RoundedCornerShape(50.dp)
-    // Columna izq. 3 opciones + Otros alineado a Suspensión.
-    val presentationMenuHeight = 108.dp
     val filterSubtitleStyle = TextStyle(
         brush = FilterSubtitleBrush,
         fontFamily = poppins,
         fontWeight = FontWeight.Normal,
     )
+    val actionModifier = if (m.actionFillColumn) {
+        Modifier
+            .fillMaxWidth(0.9f)
+            .height(m.actionHeight)
+    } else {
+        Modifier
+            .width(m.actionWidth)
+            .height(m.actionHeight)
+    }
 
     BackHandler(onBack = onDismiss)
 
@@ -1446,20 +1458,19 @@ private fun TherapeuticClassFilterSheet(
         )
         Column(
             modifier = Modifier
-                .fillMaxWidth(0.53f)
-                .widthIn(max = 700.dp)
-                .fillMaxHeight(0.60f)
+                .fillMaxWidth(m.widthFraction)
+                .widthIn(max = m.maxWidth)
+                .fillMaxHeight(m.heightFraction)
                 .shadow(8.dp, RoundedCornerShape(22.dp))
                 .clip(RoundedCornerShape(22.dp))
                 .background(Color.White)
-                // Consume el toque en el panel (hermano del scrim, no anidado).
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
                     onClick = {},
                 )
-                .padding(horizontal = 66.dp)
-                .padding(top = 45.dp, bottom = 36.dp),
+                .padding(horizontal = m.paddingH)
+                .padding(top = m.paddingTop, bottom = m.paddingBottom),
         ) {
             Box(
                 modifier = Modifier
@@ -1478,13 +1489,13 @@ private fun TherapeuticClassFilterSheet(
             ) {
                 LaSanteScreenTitle(
                     text = "Filtros",
-                    fontSize = 28,
+                    fontSize = m.titleSp,
                     textBrush = FilterTitleBrush,
                     underlineBrush = Brush.horizontalGradient(
                         listOf(Color(0xFF8FA88A), Color(0xFFD5D8D2), Color.White),
                     ),
                     underlineMatchTextWidth = true,
-                    underlineWidth = 72.dp,
+                    underlineWidth = m.titleUnderlineWidth,
                     fontFamily = poppins,
                     fontWeight = FontWeight.SemiBold,
                     allCaps = false,
@@ -1494,7 +1505,7 @@ private fun TherapeuticClassFilterSheet(
                 GreenNavButton(
                     assetPath = CLOSE_NAV_ASSET,
                     contentDescription = "Cerrar",
-                    size = 40.dp,
+                    size = m.closeSize,
                     onClick = onDismiss,
                 )
             }
@@ -1505,7 +1516,7 @@ private fun TherapeuticClassFilterSheet(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(22.dp),
+                horizontalArrangement = Arrangement.spacedBy(m.columnGap),
             ) {
                 Column(
                     modifier = Modifier
@@ -1516,14 +1527,14 @@ private fun TherapeuticClassFilterSheet(
                     Text(
                         text = "Presentación del producto",
                         modifier = Modifier.fillMaxWidth(),
-                        style = filterSubtitleStyle.copy(fontSize = 15.sp),
+                        style = filterSubtitleStyle.copy(fontSize = m.subtitleSp.sp),
                         textAlign = TextAlign.Start,
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(46.dp)
+                            .height(m.selectHeight)
                             .clip(filterSelectShape)
                             .background(FilterGreenBrush)
                             .clickable { presentationExpanded = !presentationExpanded }
@@ -1540,7 +1551,7 @@ private fun TherapeuticClassFilterSheet(
                             color = Color.White,
                             fontFamily = poppins,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 14.sp,
+                            fontSize = m.selectSp.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -1560,13 +1571,12 @@ private fun TherapeuticClassFilterSheet(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(presentationMenuHeight)
+                                .height(m.menuHeight)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(Color.White)
                                 .border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(12.dp))
                                 .padding(top = 2.dp, bottom = 2.dp),
                         ) {
-                            // Filas 1-2: solo columna izq. Fila 3: Suspensión | Otros (misma altura).
                             listOf(
                                 FormaFarmaceutica.COMPRIMIDOS to null,
                                 FormaFarmaceutica.CAPSULAS to null,
@@ -1582,6 +1592,9 @@ private fun TherapeuticClassFilterSheet(
                                             label = left.label,
                                             checked = checked,
                                             labelColor = LaSanteText,
+                                            optionSp = m.optionSp,
+                                            checkboxSize = m.checkboxSize,
+                                            checkboxIconSize = m.checkboxIconSize,
                                             onToggle = {
                                                 draftFormas = if (checked) {
                                                     draftFormas - left
@@ -1598,6 +1611,9 @@ private fun TherapeuticClassFilterSheet(
                                                 label = right.label,
                                                 checked = checked,
                                                 labelColor = LaSanteText,
+                                                optionSp = m.optionSp,
+                                                checkboxSize = m.checkboxSize,
+                                                checkboxIconSize = m.checkboxIconSize,
                                                 onToggle = {
                                                     draftFormas = if (checked) {
                                                         draftFormas - right
@@ -1615,9 +1631,7 @@ private fun TherapeuticClassFilterSheet(
 
                     Spacer(modifier = Modifier.weight(1f))
                     Box(
-                        modifier = Modifier
-                            .width(168.dp)
-                            .height(44.dp)
+                        modifier = actionModifier
                             .clip(filterActionShape)
                             .background(FilterGreenBrush)
                             .clickable {
@@ -1633,7 +1647,7 @@ private fun TherapeuticClassFilterSheet(
                             color = Color.White,
                             fontFamily = poppins,
                             fontWeight = FontWeight.Normal,
-                            fontSize = 14.sp,
+                            fontSize = m.buttonSp.sp,
                         )
                     }
                 }
@@ -1647,7 +1661,7 @@ private fun TherapeuticClassFilterSheet(
                     Text(
                         text = "Productos Estrellas",
                         modifier = Modifier.fillMaxWidth(),
-                        style = filterSubtitleStyle.copy(fontSize = 15.sp),
+                        style = filterSubtitleStyle.copy(fontSize = m.subtitleSp.sp),
                         textAlign = TextAlign.Start,
                     )
                     Text(
@@ -1656,8 +1670,8 @@ private fun TherapeuticClassFilterSheet(
                             .fillMaxWidth()
                             .padding(top = 2.dp),
                         style = filterSubtitleStyle.copy(
-                            fontSize = 12.sp,
-                            lineHeight = 15.sp,
+                            fontSize = m.helpSp.sp,
+                            lineHeight = m.helpLineSp.sp,
                         ),
                         textAlign = TextAlign.Start,
                     )
@@ -1683,22 +1697,24 @@ private fun TherapeuticClassFilterSheet(
                             .padding(horizontal = 12.dp, vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        FilterSquareCheckbox(checked = draftStarsOnly)
+                        FilterSquareCheckbox(
+                            checked = draftStarsOnly,
+                            size = m.checkboxSize,
+                            iconSize = m.checkboxIconSize,
+                        )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             text = "Mostrar Productos estrellas",
                             color = FilterStarGold,
                             fontFamily = poppins,
                             fontWeight = FontWeight.Normal,
-                            fontSize = 14.sp,
+                            fontSize = m.selectSp.sp,
                         )
                     }
 
                     Spacer(modifier = Modifier.weight(1f))
                     Box(
-                        modifier = Modifier
-                            .width(168.dp)
-                            .height(44.dp)
+                        modifier = actionModifier
                             .clip(filterActionShape)
                             .background(FilterBlueBrush)
                             .clickable {
@@ -1716,7 +1732,7 @@ private fun TherapeuticClassFilterSheet(
                             color = Color.White,
                             fontFamily = poppins,
                             fontWeight = FontWeight.Normal,
-                            fontSize = 14.sp,
+                            fontSize = m.buttonSp.sp,
                         )
                     }
                 }
@@ -1730,6 +1746,9 @@ private fun FilterSquareCheckboxRow(
     label: String,
     checked: Boolean,
     labelColor: Color,
+    optionSp: Int,
+    checkboxSize: Dp,
+    checkboxIconSize: Dp,
     onToggle: () -> Unit,
 ) {
     Row(
@@ -1739,13 +1758,17 @@ private fun FilterSquareCheckboxRow(
             .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        FilterSquareCheckbox(checked = checked)
+        FilterSquareCheckbox(
+            checked = checked,
+            size = checkboxSize,
+            iconSize = checkboxIconSize,
+        )
         Spacer(modifier = Modifier.width(6.dp))
         Text(
             text = label,
             modifier = Modifier.weight(1f),
             color = labelColor,
-            fontSize = 13.sp,
+            fontSize = optionSp.sp,
             fontWeight = if (checked) FontWeight.SemiBold else FontWeight.Normal,
             maxLines = 1,
             softWrap = false,
@@ -1756,11 +1779,15 @@ private fun FilterSquareCheckboxRow(
 
 /** Checkbox cuadrado del mock (borde verde; check blanco cuando está activo). */
 @Composable
-private fun FilterSquareCheckbox(checked: Boolean) {
+private fun FilterSquareCheckbox(
+    checked: Boolean,
+    size: Dp = 22.dp,
+    iconSize: Dp = 16.dp,
+) {
     val shape = RoundedCornerShape(4.dp)
     Box(
         modifier = Modifier
-            .size(22.dp)
+            .size(size)
             .clip(shape)
             .border(
                 width = 2.dp,
@@ -1775,7 +1802,7 @@ private fun FilterSquareCheckbox(checked: Boolean) {
                 imageVector = Icons.Filled.Check,
                 contentDescription = null,
                 tint = Color.White,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(iconSize),
             )
         }
     }
