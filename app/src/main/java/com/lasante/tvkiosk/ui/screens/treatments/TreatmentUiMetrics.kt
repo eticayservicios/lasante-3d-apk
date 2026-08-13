@@ -43,7 +43,8 @@ object TreatmentUiMetrics {
         navButtonSize = 38.dp,
         cardLabelFontSize = scaledSp(12.sp),
         cardLabelLineHeight = scaledSp(14.sp),
-        cardIconFill = 0.62f,
+        // TV42: iconos −30% vs fill previo 0.62.
+        cardIconFill = 0.62f * 0.70f,
         cardAspectRatio = 1.07f,
     )
 
@@ -73,7 +74,8 @@ object TreatmentUiMetrics {
         navButtonSize = 52.dp,
         cardLabelFontSize = scaledSp(20.sp),
         cardLabelLineHeight = scaledSp(23.sp),
-        cardIconFill = CARD_ICON_FILL_LARGE,
+        // Television_1080 / Ariana: iconos −30% (fill 0.86 → 0.60).
+        cardIconFill = CARD_ICON_FILL_LARGE * 0.70f,
         cardAspectRatio = 1.12f,
     )
 

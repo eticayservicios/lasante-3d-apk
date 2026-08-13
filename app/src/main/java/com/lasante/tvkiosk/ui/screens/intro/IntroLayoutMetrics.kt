@@ -196,16 +196,20 @@ data class IntroLayoutMetrics(
 
     /**
      * Ancho de la rampa verde (punto + horizontal + diagonal).
-     * TV66 = 282.dp (calibrado al mock Elementos Estrella).
+     * TV66 Hikvision = 282.dp; TV42 = misma geometría escalada por ancho vs 1280.
      */
     val starLineStartWidth: Dp
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 188.dp
             "phone_portrait" -> 197.dp
-            "tv_42", "tablet_landscape" -> when {
-                isTv42LargeCanvas -> 269.dp
-                isTv42 -> 235.dp
-                else -> 246.dp
+            "tv_42", "tablet_landscape" -> {
+                // Escala desde Hikvision 282.dp @ [Tv66Reference.Width].
+                val scaled = 282.dp * (maxWidth / Tv66Reference.Width)
+                when {
+                    isTv42LargeCanvas -> scaled.coerceIn(248.dp, 282.dp)
+                    isTv42 -> scaled.coerceIn(220.dp, 250.dp)
+                    else -> 246.dp
+                }
             }
             "tv_66" -> 282.dp
             "tv_32" -> 224.dp
@@ -216,16 +220,19 @@ data class IntroLayoutMetrics(
 
     /**
      * Tamaño Poppins de "PRODUCTOS ESTRELLAS" (Intro).
-     * TV66 calibrado ~20.sp (mock Elementos Estrella).
+     * TV66 = 19.sp; TV42 escala desde Hikvision.
      */
     val starTitleFontSize: TextUnit
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 14.sp
             "phone_portrait" -> 14.sp
-            "tv_42", "tablet_landscape" -> when {
-                isTv42LargeCanvas -> 18.sp
-                isTv42 -> 16.sp
-                else -> 16.sp
+            "tv_42", "tablet_landscape" -> {
+                val scale = (maxWidth / Tv66Reference.Width).coerceIn(0.75f, 1f)
+                when {
+                    isTv42LargeCanvas -> (19f * scale).sp
+                    isTv42 -> (17f * scale).sp
+                    else -> 16.sp
+                }
             }
             "tv_66" -> 19.sp
             "tv_32" -> 15.sp

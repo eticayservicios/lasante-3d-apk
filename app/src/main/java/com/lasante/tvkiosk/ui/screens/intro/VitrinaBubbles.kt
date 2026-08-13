@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.lasante.tvkiosk.data.Product
+import com.lasante.tvkiosk.ui.layout.FireTv42Spacing
 import com.lasante.tvkiosk.ui.utils.clickableWithSound
 import com.lasante.tvkiosk.ui.utils.UiSound
 
@@ -51,18 +52,18 @@ import com.lasante.tvkiosk.ui.utils.UiSound
 private val StarLineGreen = Color(0xFF2FAD11)
 
 /**
- * Degradado vertical del título (mock Elementos Estrella / subrayados):
- * gris oscuro arriba → blanco abajo.
+ * Degradado vertical del título (mock Elementos Estrella):
+ * gris oscuro → gris medio (sin blanco puro: en fondo claro desaparecía).
  */
 private val StarTitleBrush = Brush.verticalGradient(
     colors = listOf(
         Color(0xFF505050),
-        Color(0xFFD5D8D2),
-        Color.White,
+        Color(0xFF8A8A8A),
+        Color(0xFFB8B8B8),
     ),
 )
 
-/** Fracción del ancho de rampa donde empieza la diagonal (asset Linea inicial). */
+/** Fracción del ancho de rampa donde empieza la diagonal (asset Linea inicial / Hikvision). */
 private const val RAMP_DIAG_START_FRACTION = 0.88f
 
 /** Altura de la rampa / ancho (265 px de subida útil sobre 1368 de ancho). */
@@ -70,7 +71,12 @@ private const val RAMP_RISE_OVER_WIDTH = 265f / 1368f
 
 /**
  * Título Poppins + rampa verde en código (sin PNG),
- * burbujas centradas sobre la vitrina. Lógica de productos/slots sin cambios.
+ * burbujas centradas sobre la vitrina.
+ *
+ * Misma geometría en todos los perfiles (Hikvision / phone / TV42):
+ * punto → horizontal larga (~88%) → diagonal corta (~12%) →
+ * horizontal por centros de burbujas.
+ * TV42: −8 espacios en X (línea+título); −N espacios de rise (diagonal).
  */
 @Composable
 fun VitrinaBubblesRow(
@@ -95,13 +101,6 @@ fun VitrinaBubblesRow(
         val density = LocalDensity.current
         val rowWidth = maxWidth
 
-        val rampStartX = metrics.bubblesBadgeCenterXInRow - metrics.socialIconSize / 2f
-        val rampWidth = metrics.starLineStartWidth
-        val rampRise = rampWidth * RAMP_RISE_OVER_WIDTH
-        val titleFontSize = metrics.starTitleFontSize
-        val titleHeight = with(density) { titleFontSize.toDp() }
-        var titleWidth by remember(titleFontSize) { mutableStateOf(0.dp) }
-
         val clusterWidth = rowWidth * metrics.bubblesRowWidthFraction
         val totalSpacing = metrics.bubbleSpacing * (slotCount - 1)
         val sizeFromWidth = (clusterWidth - totalSpacing) / slotCount
@@ -111,9 +110,35 @@ fun VitrinaBubblesRow(
         val bubblesStart = clusterStart + (clusterWidth - bubblesContentWidth) / 2f
         val bubblesEnd = bubblesStart + bubblesContentWidth
 
+        // Misma geometría Hikvision; TV42 solo nudges de espacios.
+        val baseRampStartX = metrics.bubblesBadgeCenterXInRow - metrics.socialIconSize / 2f
+        val rampStartX = if (metrics.isTv42) {
+            baseRampStartX - FireTv42Spacing.spaces(8)
+        } else {
+            baseRampStartX
+        }
+        val rampWidth = metrics.starLineStartWidth
+        // TV42: la diagonal debe llegar al borde de la 1.ª burbuja (sin tramo horizontal suelto).
+        val rampEndX = if (metrics.isTv42) {
+            bubblesStart.coerceAtLeast(rampStartX + 80.dp)
+        } else {
+            minOf(rampStartX + rampWidth, bubblesStart - 6.dp)
+                .coerceAtLeast(rampStartX + 80.dp)
+        }
+        val effectiveRampWidth = rampEndX - rampStartX
+        val rampRise = if (metrics.isTv42) {
+            // Menos rise = diagonal más arriba. Ajustar el spaces(N) aquí.
+            (effectiveRampWidth * RAMP_RISE_OVER_WIDTH - FireTv42Spacing.spaces(2))
+                .coerceAtLeast(14.dp)
+        } else {
+            effectiveRampWidth * RAMP_RISE_OVER_WIDTH
+        }
+        val titleFontSize = metrics.starTitleFontSize
+        val titleHeight = with(density) { titleFontSize.toDp() }
+        var titleWidth by remember(titleFontSize) { mutableStateOf(0.dp) }
+
         val upperY = bubbleSize / 2f
         val lowerY = upperY + rampRise
-        // Título chico + aire sobre la rampa (no pegado a la línea).
         val rawTitleY = lowerY - titleHeight - metrics.starTitleLineGap
         val titleLift = if (rawTitleY < 0.dp) -rawTitleY else 0.dp
         val titleY = rawTitleY + titleLift
@@ -126,10 +151,8 @@ fun VitrinaBubblesRow(
             titleY + titleHeight + 4.dp,
         )
 
-        val diagStartX = rampStartX + rampWidth * RAMP_DIAG_START_FRACTION
-        val rampEndX = rampStartX + rampWidth
-        // Centrado sobre el tramo horizontal bajo (antes de la diagonal).
-        val lowerSegWidth = rampWidth * RAMP_DIAG_START_FRACTION
+        val diagStartX = rampStartX + effectiveRampWidth * RAMP_DIAG_START_FRACTION
+        val lowerSegWidth = effectiveRampWidth * RAMP_DIAG_START_FRACTION
         val titleX = if (titleWidth > 0.dp) {
             rampStartX + (lowerSegWidth - titleWidth) / 2f
         } else {
