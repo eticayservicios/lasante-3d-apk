@@ -78,7 +78,7 @@ fun rememberVitrinaInteractionController(
     val lifecycleOwner = LocalLifecycleOwner.current
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current
-    // Arrastre directo: ~40% del ancho de pantalla ≈ 1 unidad (72°).
+    // Arrastre directo: ~25% del ancho de pantalla ≈ 1 unidad (72°).
     val dragDegreesPerPx = remember(configuration.screenWidthDp, density) {
         val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
         val trackWidthPx = (screenWidthPx * VitrinaConstants.DRAG_TRACK_WIDTH_SCREEN_FRACTION)

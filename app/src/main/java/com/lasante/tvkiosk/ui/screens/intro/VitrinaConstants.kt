@@ -13,8 +13,11 @@ object VitrinaConstants {
     const val UNIT_COUNT = 5
     const val SLOTS_PER_UNIT = 4
     const val ROTATION_STEP_DEGREES = 72f
-    /** Fracción del ancho de pantalla ≈ 1 unidad (72°). Menor = más sensible. */
-    const val DRAG_TRACK_WIDTH_SCREEN_FRACTION = 0.40f
+    /**
+     * Fracción del ancho de pantalla ≈ 1 unidad (72°).
+     * Menor = más sensible / sigue mejor el dedo (TV/tablet se sentían lentos a 0.40).
+     */
+    const val DRAG_TRACK_WIDTH_SCREEN_FRACTION = 0.25f
     /** Fracción de un paso (72°) para comprometer snap al soltar. */
     const val DRAG_SNAP_COMMIT_FRACTION = 0.18f
 
