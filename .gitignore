@@ -51,3 +51,8 @@ app/src/main/assets/vitrina/models/mobile2re.blend1
 
 # Fuentes de Blender / GLB pesados (no empaquetar en el APK)
 blender-source/
+# Backups / dumps locales (no van al APK ni al repo)
+_gif_backup_original/
+*.hprof
+java_pid*.hprof
+MP3 Sonidos/

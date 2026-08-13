@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import com.lasante.tvkiosk.ui.utils.SoundManager
 
 /**
  * Capa de interacción unificada sobre el cilindro (todos los perfiles).
@@ -32,6 +34,7 @@ fun VitrinaActiveUnitTapLayer(
     if (!enabled) return
 
     val density = LocalDensity.current
+    val context = LocalContext.current
     val glbIndex = VitrinaGlbMapping.glbIndexFor(activeIndex)
     val mappedUnitId = VitrinaGlbMapping.navigationUnitIdFor(glbIndex)
     // Tap = ID de la cara activeIndex (1:1 con GLB), no el unitId suelto del API.
@@ -65,6 +68,7 @@ fun VitrinaActiveUnitTapLayer(
                             "TAP activeIndex=$activeIndex glbNode=${VitrinaGlbMapping.glbNodeNameFor(activeIndex)} " +
                                 "activeUnitId=$activeUnitId mappedUnitId=$mappedUnitId → navigate=$targetUnitId",
                         )
+                        SoundManager.playUnitSound(context)
                         onUnitClick(targetUnitId)
                     },
                     onDragStart = onDragStart,

@@ -34,6 +34,8 @@ import com.lasante.tvkiosk.BuildConfig
 import com.lasante.tvkiosk.data.Product
 import com.lasante.tvkiosk.data.VitrinaUnit
 import com.lasante.tvkiosk.ui.layout.HikvisionLayoutDebug
+import com.lasante.tvkiosk.ui.utils.clickableWithSound
+import com.lasante.tvkiosk.ui.utils.UiSound
 
 private const val PROFILE_LOG_TAG = "VitrinaProfile"
 
@@ -241,7 +243,7 @@ private fun HistoriaBadgeButton(
         modifier = modifier
             .width(metrics.historiaBadgeWidth)
             .height(metrics.historiaBadgeHeight)
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickableWithSound(enabled = enabled, sound = UiSound.Click, onClick = onClick),
         contentAlignment = Alignment.TopCenter,
     ) {
         AsyncImage(

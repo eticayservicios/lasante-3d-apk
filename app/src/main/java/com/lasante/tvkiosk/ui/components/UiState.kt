@@ -1,6 +1,12 @@
 package com.lasante.tvkiosk.ui.components
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -9,19 +15,22 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import com.lasante.tvkiosk.ui.theme.LaSanteGreen
 import com.lasante.tvkiosk.ui.theme.LaSanteText
 import com.lasante.tvkiosk.ui.theme.LaSanteTextSecondary
+import com.lasante.tvkiosk.ui.utils.SoundManager
+import com.lasante.tvkiosk.ui.utils.clickableWithSound
+import com.lasante.tvkiosk.ui.utils.UiSound
 
 // Estado genérico para cualquier pantalla
 sealed interface UiState<out T> {
@@ -62,6 +71,11 @@ fun ErrorScreen(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
+    LaunchedEffect(message) {
+        SoundManager.playErrorSound(context)
+    }
+
     Box(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -100,7 +114,7 @@ fun ErrorScreen(
                 modifier = Modifier
                     .clip(RoundedCornerShape(50.dp))
                     .background(LaSanteGreen)
-                    .clickable { onRetry() }
+                    .clickableWithSound(sound = UiSound.Click, onClick = onRetry)
                     .padding(horizontal = 32.dp, vertical = 14.dp),
                 contentAlignment = Alignment.Center
             ) {

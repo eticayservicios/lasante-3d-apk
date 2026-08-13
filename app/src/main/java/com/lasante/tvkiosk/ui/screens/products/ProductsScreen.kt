@@ -79,6 +79,7 @@ import com.lasante.tvkiosk.ui.screens.intro.VitrinaUiImages
 import com.lasante.tvkiosk.ui.screens.treatments.TreatmentUiMetrics
 import com.lasante.tvkiosk.ui.theme.*
 import com.lasante.tvkiosk.ui.utils.clickableWithSound
+import com.lasante.tvkiosk.ui.utils.UiSound
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -1287,7 +1288,7 @@ private fun ProductGridItem(
                             colors = listOf(Color(0xFFE7E7E7), Color(0xFFF7F7F7)),
                         ),
                     )
-                    .clickableWithSound { onClick() }
+                    .clickableWithSound(sound = UiSound.Product) { onClick() }
                     .padding(innerPad),
                 contentAlignment = Alignment.Center,
             ) {

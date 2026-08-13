@@ -1,7 +1,6 @@
 package com.lasante.tvkiosk.ui.screens.intro
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -45,6 +44,8 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.lasante.tvkiosk.data.Product
+import com.lasante.tvkiosk.ui.utils.clickableWithSound
+import com.lasante.tvkiosk.ui.utils.UiSound
 
 /** Verde de la línea de Elementos Estrella (#2FAD11). */
 private val StarLineGreen = Color(0xFF2FAD11)
@@ -289,7 +290,7 @@ private fun VitrinaProductBubble(
         modifier = Modifier
             .size(bubbleSize)
             .clip(CircleShape)
-            .clickable(onClick = onClick),
+            .clickableWithSound(sound = UiSound.Product, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         VitrinaBubbleSphere(modifier = Modifier.fillMaxSize())

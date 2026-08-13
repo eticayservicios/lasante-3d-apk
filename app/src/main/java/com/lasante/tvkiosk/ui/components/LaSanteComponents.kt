@@ -86,7 +86,7 @@ fun GreenNavButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     size: Dp = 56.dp,
-    playSound: Boolean = false,
+    playSound: Boolean = true,
 ) {
     val context = LocalContext.current
     val isSvg = assetPath.endsWith(".svg", ignoreCase = true)
