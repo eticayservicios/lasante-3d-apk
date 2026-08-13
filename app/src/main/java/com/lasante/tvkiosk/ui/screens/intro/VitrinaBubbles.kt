@@ -44,7 +44,6 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.lasante.tvkiosk.data.Product
-import com.lasante.tvkiosk.ui.layout.FireTv42Spacing
 import com.lasante.tvkiosk.ui.utils.clickableWithSound
 import com.lasante.tvkiosk.ui.utils.UiSound
 
@@ -110,29 +109,23 @@ fun VitrinaBubblesRow(
         val bubblesStart = clusterStart + (clusterWidth - bubblesContentWidth) / 2f
         val bubblesEnd = bubblesStart + bubblesContentWidth
 
-        // Misma geometría Hikvision; TV42 solo nudges de espacios.
-        val baseRampStartX = metrics.bubblesBadgeCenterXInRow - metrics.socialIconSize / 2f
-        val rampStartX = if (metrics.isTv42) {
-            baseRampStartX - FireTv42Spacing.spaces(8)
-        } else {
-            baseRampStartX
-        }
+        // Misma geometría Hikvision; nudges TV42 viven en IntroLayoutMetrics.
+        val rampStartX =
+            metrics.bubblesBadgeCenterXInRow - metrics.socialIconSize / 2f -
+                metrics.starRampStartNudge
         val rampWidth = metrics.starLineStartWidth
-        // TV42: la diagonal debe llegar al borde de la 1.ª burbuja (sin tramo horizontal suelto).
-        val rampEndX = if (metrics.isTv42) {
+        val rampEndX = if (metrics.starRampAttachToFirstBubble) {
             bubblesStart.coerceAtLeast(rampStartX + 80.dp)
         } else {
-            minOf(rampStartX + rampWidth, bubblesStart - 6.dp)
+            minOf(rampStartX + rampWidth, bubblesStart)
                 .coerceAtLeast(rampStartX + 80.dp)
         }
         val effectiveRampWidth = rampEndX - rampStartX
-        val rampRise = if (metrics.isTv42) {
-            // Menos rise = diagonal más arriba. Ajustar el spaces(N) aquí.
-            (effectiveRampWidth * RAMP_RISE_OVER_WIDTH - FireTv42Spacing.spaces(2))
-                .coerceAtLeast(14.dp)
-        } else {
-            effectiveRampWidth * RAMP_RISE_OVER_WIDTH
-        }
+        val rawRampRise =
+            effectiveRampWidth * RAMP_RISE_OVER_WIDTH - metrics.starRampRiseNudge
+        val rampRise =
+            if (metrics.starRampRiseNudge > 0.dp) rawRampRise.coerceAtLeast(14.dp)
+            else rawRampRise
         val titleFontSize = metrics.starTitleFontSize
         val titleHeight = with(density) { titleFontSize.toDp() }
         var titleWidth by remember(titleFontSize) { mutableStateOf(0.dp) }

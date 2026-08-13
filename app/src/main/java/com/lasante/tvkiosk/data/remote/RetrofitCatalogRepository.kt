@@ -4,16 +4,21 @@ import com.lasante.tvkiosk.data.*
 import java.text.Normalizer
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 class RetrofitCatalogRepository(
     private val api: CatalogApiService = RetrofitClient.catalogApi
 ) : CatalogRepository {
 
+    @Volatile
     private var homeSnapshot: HomeSnapshot? = null
+    @Volatile
     private var homeCacheTime: Long = 0
     /** Snapshot /home en memoria (kiosco). Antes 5 min; ahora 24 h. [invalidateCache] fuerza refresh. */
     private val CACHE_TTL_MS = 24L * 60 * 60 * 1000
+    private val homeMutex = Mutex()
 
     private data class BusinessUnitAlias(
         val fallbackId: String,
@@ -80,18 +85,23 @@ class RetrofitCatalogRepository(
     }
 
     private suspend fun getSnapshot(): HomeSnapshot = withContext(Dispatchers.IO) {
-        val now = System.currentTimeMillis()
-        if (homeSnapshot == null || (now - homeCacheTime) > CACHE_TTL_MS) {
+        homeMutex.withLock {
+            val now = System.currentTimeMillis()
+            val cached = homeSnapshot
+            if (cached != null && (now - homeCacheTime) <= CACHE_TTL_MS) {
+                return@withLock cached
+            }
             val dto = api.getHome()
-            homeSnapshot = dto.toSnapshot()
+            val snap = dto.toSnapshot()
+            homeSnapshot = snap
             homeCacheTime = now
             android.util.Log.d(
                 "RetrofitCatalogRepository",
                 "home loaded: unidades=${dto.unidades.size}, vitrinaUnits=${dto.vitrina?.units?.size ?: -1}, " +
                     "videos=${dto.vitrina?.videos?.screenSaver?.items?.size ?: -1}",
             )
+            snap
         }
-        homeSnapshot!!
     }
 
     private fun String.normalizedKey(): String {
@@ -434,26 +444,6 @@ class RetrofitCatalogRepository(
                 ?.let { (unitId, treatmentId, product) -> product.toProduct(unitId, treatmentId) }
         }.getOrNull()
 
-    override suspend fun getFeaturedProducts(): List<Product> =
-        runCatching {
-            val snapshot = getSnapshot()
-            snapshot.dto.itemsDestacados
-                .flatMap { wrapper -> wrapper.items }
-                .sortedBy { it.orden?.toIntOrNull() ?: 0 }
-                .mapNotNull { item ->
-                    val entry = snapshot.productsByKey[item.id.lowercase()]
-                    if (entry != null) {
-                        entry.product.toProduct(entry.unitId, entry.treatmentId)
-                    } else {
-                        android.util.Log.w(
-                            "RetrofitCatalogRepository",
-                            "featured item skipped (no catalog match): id=${item.id} name=${item.nombre}",
-                        )
-                        null
-                    }
-                }
-        }.getOrElse { emptyList() }
-
     override suspend fun getVitrinaUnits(): List<VitrinaUnit> =
         runCatching { getSnapshot().vitrinaUnits }.getOrElse {
             android.util.Log.e("RetrofitCatalogRepository", "getVitrinaUnits failed: ${it.message}", it)
@@ -470,13 +460,6 @@ class RetrofitCatalogRepository(
 
     override suspend fun getInstitutionalVideoUrl(): String? =
         runCatching { getSnapshot().institutionalVideoUrl }.getOrNull()
-
-    override suspend fun getAllProducts(): List<Product> =
-        runCatching {
-            getSnapshot().catalogEntries.map { (unitId, treatmentId, product) ->
-                product.toProduct(unitId, treatmentId)
-            }
-        }.getOrElse { emptyList() }
 
     override suspend fun search(query: String, type: String?): SearchResult =
         runCatching {

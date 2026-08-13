@@ -250,6 +250,29 @@ data class IntroLayoutMetrics(
             else -> 13.dp
         }
 
+    /**
+     * Nudge X de la rampa Productos Estrellas (resta a [bubblesBadgeCenterXInRow]).
+     * TV42: −8 espacios teclado (~51.dp).
+     */
+    val starRampStartNudge: Dp
+        get() = if (isTv42) FireTv42Spacing.spaces(8) else 0.dp
+
+    /**
+     * Resta a la subida de la diagonal (menos rise = diagonal más arriba).
+     * TV42: −2 espacios teclado.
+     */
+    val starRampRiseNudge: Dp
+        get() = if (isTv42) FireTv42Spacing.spaces(2) else 0.dp
+
+    /**
+     * Sin stub horizontal entre diagonal y 1.ª burbuja
+     * (TV42 / Damasco / tablet landscape).
+     */
+    val starRampAttachToFirstBubble: Boolean
+        get() = isTv42 ||
+            isTv42LargeCanvas ||
+            vitrinaProfileKey == "tablet_landscape"
+
     /** Badge verde inline "PRODUCTOS ESTRELLAS" (pantalla de estrellas, no Intro). */
     val bubblesBadgeHeight: Dp
         get() = when (vitrinaProfileKey) {

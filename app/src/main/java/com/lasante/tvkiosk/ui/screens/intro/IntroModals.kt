@@ -16,7 +16,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -55,17 +60,21 @@ import com.lasante.tvkiosk.ui.layout.TvProfileDetector
 import com.lasante.tvkiosk.ui.theme.LaSanteBlue
 import com.lasante.tvkiosk.ui.theme.LaSanteText
 
-// Generador de QR para interacción con el móvil en tienda
+/** QR para interacción móvil en tienda. Preferir llamar desde [Dispatchers.Default]. */
 fun generateQrBitmap(url: String, size: Int = 512): Bitmap {
     val hints = mapOf(EncodeHintType.MARGIN to 1)
     val bits = QRCodeWriter().encode(url, BarcodeFormat.QR_CODE, size, size, hints)
-    val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.RGB_565)
-    for (x in 0 until size) {
-        for (y in 0 until size) {
-            bmp.setPixel(x, y, if (bits[x, y]) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
+    val pixels = IntArray(size * size)
+    var i = 0
+    for (y in 0 until size) {
+        for (x in 0 until size) {
+            pixels[i++] =
+                if (bits[x, y]) android.graphics.Color.BLACK else android.graphics.Color.WHITE
         }
     }
-    return bmp
+    return Bitmap.createBitmap(size, size, Bitmap.Config.RGB_565).also {
+        it.setPixels(pixels, 0, size, 0, 0, size, size)
+    }
 }
 
 @Composable
@@ -264,12 +273,17 @@ fun IntroSocialQrModal(
                     }
                 }
                 Spacer(modifier = Modifier.height(2.dp * scale))
-                val qrBitmap = remember(url) { generateQrBitmap(url) }
-                Image(
-                    bitmap = qrBitmap.asImageBitmap(),
-                    contentDescription = null,
-                    modifier = Modifier.size(qrSize),
-                )
+                var qrBitmap by remember(url) { mutableStateOf<Bitmap?>(null) }
+                LaunchedEffect(url) {
+                    qrBitmap = withContext(Dispatchers.Default) { generateQrBitmap(url) }
+                }
+                qrBitmap?.let { bmp ->
+                    Image(
+                        bitmap = bmp.asImageBitmap(),
+                        contentDescription = null,
+                        modifier = Modifier.size(qrSize),
+                    )
+                } ?: Box(modifier = Modifier.size(qrSize))
                 Spacer(modifier = Modifier.height(4.dp * scale))
                 Text(
                     text = "Escanea para abrir $label",

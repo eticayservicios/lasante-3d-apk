@@ -33,12 +33,12 @@ object VitrinaUiImages {
 
     /**
      * PNG de filtro (cuadrado 512×512, recortado al círculo).
-     * ORIGINAL + cache key versionada para invalidar assets viejos con padding.
+     * Decode acotado + cache key versionada (invalidar assets viejos con padding).
      */
     fun filterRequest(context: Context): ImageRequest =
         ImageRequest.Builder(context)
             .data(FILTER_BUTTON)
-            .size(coil.size.Size.ORIGINAL)
+            .size(512, 512)
             .crossfade(false)
             .memoryCachePolicy(CachePolicy.ENABLED)
             .diskCachePolicy(CachePolicy.ENABLED)

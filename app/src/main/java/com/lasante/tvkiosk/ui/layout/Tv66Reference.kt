@@ -26,7 +26,4 @@ object Tv66Reference {
         val h = height.value
         return w > h && w >= 1180f && w <= 1380f && h >= 640f && h <= 800f
     }
-
-    fun forceTvLargeTier(width: Dp, height: Dp, preferTv66: Boolean = false): Boolean =
-        preferTv66 || matchesReferenceCanvas(width, height) || width.value > MinWidthForLargeTier.value
 }

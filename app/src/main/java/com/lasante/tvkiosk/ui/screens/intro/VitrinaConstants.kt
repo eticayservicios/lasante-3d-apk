@@ -4,8 +4,6 @@ import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.ui.graphics.Color
-import io.github.sceneview.math.Position
 import io.github.sceneview.math.Rotation
 
 /** Constantes compartidas de la vitrina — doc funcional §4 y §16. */
@@ -21,15 +19,8 @@ object VitrinaConstants {
     /** Fracción de un paso (72°) para comprometer snap al soltar. */
     const val DRAG_SNAP_COMMIT_FRACTION = 0.18f
 
-    /**
-     * GLB vitrina en CloudFront (Draco, ~26 MB). Se cachea en disco al abrir Intro.
-     * Asset local [BASE_GLB_ASSET] como fallback offline.
-     */
-    const val BASE_GLB_REMOTE =
-        "https://d4cvafcfx7yef.cloudfront.net/vitrina/mobile_draco.glb"
+    /** Asset local del GLB de vitrina (Draco). */
     const val BASE_GLB_ASSET = "vitrina/models/mobile_draco.glb"
-    /** @deprecated Usar [BASE_GLB_ASSET]. */
-    const val BASE_GLB_FULL = BASE_GLB_ASSET
 
     /**
      * IBL embebido en SceneView (neutral). Se usa solo como IndirectLight;
@@ -53,8 +44,7 @@ object VitrinaConstants {
     /**
      * Bbox Filament del GLB mobile (incluye “palo” invisible hasta Y≈-72).
      * La vitrina visible ocupa solo ~3.26u (Y: -0.097 a 2.652).
-     * MAX_EXTENT = bbox completo (scaleToUnits + gltfToSceneUnits).
-     * VISIBLE_HEIGHT = altura visible para llenar el viewport.
+     * MAX_EXTENT = bbox completo; VISIBLE_HEIGHT = altura visible para llenar el viewport.
      */
     const val BASE_GLB_MAX_EXTENT = 74.6f
     const val BASE_GLB_VISIBLE_HEIGHT = 3.26f
@@ -90,17 +80,6 @@ object VitrinaConstants {
         "slot_categoria_4", // PHQ
         "slot_categoria_5",
     )
-    /** @deprecated Usar [UNIT_GLB_NODE_NAMES]. */
-    val UNIT_ANCHOR_NAMES = UNIT_GLB_NODE_NAMES
-    val LEGACY_ANCHOR_NAMES = listOf("slot_1", "slot_2", "slot_3", "slot_4")
-
-    val UNIT_ACCENT_COLORS = listOf(
-        Color(0xFF26A641), // genericos
-        Color(0xFF2448D8), // primary
-        Color(0xFF7B2CBF), // Specialty
-        Color(0xFFFF9800), // PHQ
-        Color(0xFFE53935), // hospital
-    )
 
     val fadeAnimationSpec: AnimationSpec<Float> = tween(durationMillis = 280)
     val manualRotationAnimationSpec: AnimationSpec<Float> = tween(
@@ -112,24 +91,8 @@ object VitrinaConstants {
         easing = LinearEasing,
     )
 
-    /** @deprecated Usar [manualRotationAnimationSpec] o [autoRotationAnimationSpec]. */
-    val rotationAnimationSpec: AnimationSpec<Float> = manualRotationAnimationSpec
-
     /** Sube el ancla del slot a la superficie del tablón (coords glTF). */
     const val featuredProductShelfLiftGltf = 0.03f
-
-    /** Desplaza la fila de destacados hacia la derecha (+X glTF). Ajustable sin reexportar el GLB. */
-    const val featuredSlotsOffsetGltfX = 0.18f
-
-    /** Centro del producto en coords glTF del slot (base del mesh sobre el tablón). */
-    fun featuredProductCenterGltf(slotPosition: Position, scaleToUnits: Float, uniformScale: Float): Position {
-        val halfHeightGltf = scaleToUnits / (2f * uniformScale)
-        return Position(
-            x = slotPosition.x,
-            y = slotPosition.y + halfHeightGltf,
-            z = slotPosition.z,
-        )
-    }
 
     /** Escala uniforme glTF→mundo: la franja visible (3.26u) llena el viewport. */
     fun visibleUniformScale(fillFraction: Float, viewportHeight: Float): Float =
@@ -152,12 +115,4 @@ object VitrinaConstants {
      */
     fun gltfCoordScale(uniformScale: Float): Float =
         uniformScale * BASE_GLB_MAX_EXTENT / BASE_GLB_VISIBLE_HEIGHT
-
-    /** Convierte coordenadas glTF a espacio local del nodo (con [visibleUniformScale]). */
-    fun gltfToLocalUnits(gltfValue: Float, uniformScale: Float): Float =
-        gltfValue * uniformScale
-
-    /** @deprecated Usar [gltfToLocalUnits] para posiciones con escala uniforme. */
-    fun gltfToSceneUnits(gltfValue: Float, gltfCoordScale: Float): Float =
-        gltfValue / BASE_GLB_MAX_EXTENT * gltfCoordScale
 }

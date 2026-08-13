@@ -236,7 +236,7 @@ fun VitrinaModelViewer(
         val materialInstances = instance.getMaterialInstances()
         materialInstances.forEachIndexed { idx, mat ->
             val name = try { mat.getName() ?: "" } catch (_: Exception) { "" }
-            android.util.Log.d("VitrinaMaterials", "MaterialInstance[$idx]: name='$name'")
+            VitrinaDebugLog.d("VitrinaMaterials", "MaterialInstance[$idx]: name='$name'")
             when (name) {
                 "MAT_SECCION_ON" -> matOn = mat
                 "MAT_SECCION_OFF" -> matOff = mat
@@ -245,7 +245,7 @@ fun VitrinaModelViewer(
             }
         }
         if (matOn == null || matOff == null || glassOn == null || glassOff == null) {
-            android.util.Log.e(
+            VitrinaDebugLog.e(
                 "VitrinaMaterials",
                 "Materiales incompletos (¿OFF sin mesh en GLB?). " +
                     "matOn=$matOn matOff=$matOff glassOn=$glassOn glassOff=$glassOff " +
@@ -254,7 +254,7 @@ fun VitrinaModelViewer(
             swapMaterials = null
             return@LaunchedEffect
         }
-        android.util.Log.i(
+        VitrinaDebugLog.d(
             "VitrinaMaterials",
             "Materiales listos ON/OFF + GLASS/GLASS.on (count=${materialInstances.size})",
         )
@@ -292,7 +292,7 @@ fun VitrinaModelViewer(
                 } else {
                     "none"
                 }
-                android.util.Log.i(
+                VitrinaDebugLog.d(
                     "VitrinaDiag",
                     "LIGHT close=$close userActive=$isUserActive activeIndex=$activeIndex " +
                         "litIndex=$activeNodeIndex litNode=$litName navId=$navId " +
@@ -309,16 +309,16 @@ fun VitrinaModelViewer(
                                 val desired = if (on) mats.matOn else mats.matOff
                                 renderableManager.setMaterialInstanceAt(ri, 0, desired)
                                 if (index == activeNodeIndex || index == 2 || index == 3) {
-                                    android.util.Log.d(
+                                    VitrinaDebugLog.d(
                                         "VitrinaDiag",
                                         "  set $nodeName entity=$entity → ${if (on) "ON" else "OFF"}",
                                     )
                                 }
                             } else {
-                                android.util.Log.w("VitrinaDiag", "  $nodeName ri=0")
+                                VitrinaDebugLog.w("VitrinaDiag", "  $nodeName ri=0")
                             }
                         } else {
-                            android.util.Log.w(
+                            VitrinaDebugLog.w(
                                 "VitrinaDiag",
                                 "  $nodeName entity=$entity missing renderable",
                             )
@@ -336,7 +336,7 @@ fun VitrinaModelViewer(
                     }
                 } catch (t: Throwable) {
                     // No tumbar Intro en Fire/low-end si Filament rechaza un swap.
-                    android.util.Log.e(
+                    VitrinaDebugLog.e(
                         "VitrinaDiag",
                         "Material swap failed lit=$litName glassLit=$glassLit",
                         t,

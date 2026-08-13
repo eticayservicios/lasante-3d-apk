@@ -80,6 +80,7 @@ import com.lasante.tvkiosk.ui.screens.treatments.TreatmentUiMetrics
 import com.lasante.tvkiosk.ui.theme.*
 import com.lasante.tvkiosk.ui.utils.clickableWithSound
 import com.lasante.tvkiosk.ui.utils.UiSound
+import com.lasante.tvkiosk.ui.utils.splitProductTitleAndStrength
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -109,6 +110,35 @@ private fun ProductFilter.label(): String = when (this) {
     ProductFilter.BUSINESS_UNIT -> "Unidad de negocio"
     ProductFilter.THERAPEUTIC_CLASS -> "Clase terapéutica"
     ProductFilter.STAR_PRODUCTS -> "Productos estrellas"
+}
+
+/**
+ * Catálogo visible según filtro (unidad / CT / estrellas).
+ * Con [emptyWhileLoading], mientras carga y la lista de alcance está vacía → lista vacía
+ * (evita flash del catálogo completo).
+ */
+private fun resolveScopeProducts(
+    productFilter: ProductFilter,
+    products: List<Product>,
+    unitProducts: List<Product>,
+    starProducts: List<Product>,
+    isStarProductsMode: Boolean,
+    scopeLoading: Boolean = false,
+    emptyWhileLoading: Boolean = false,
+): List<Product> = when (productFilter) {
+    ProductFilter.BUSINESS_UNIT ->
+        if (emptyWhileLoading && scopeLoading && unitProducts.isEmpty()) emptyList()
+        else unitProducts.ifEmpty { products }
+    ProductFilter.THERAPEUTIC_CLASS ->
+        if (isStarProductsMode) {
+            if (emptyWhileLoading && scopeLoading && starProducts.isEmpty()) emptyList()
+            else starProducts.ifEmpty { products }
+        } else {
+            products
+        }
+    ProductFilter.STAR_PRODUCTS ->
+        if (emptyWhileLoading && scopeLoading && starProducts.isEmpty()) emptyList()
+        else starProducts
 }
 
 private sealed class ProductGridVisual {
@@ -250,12 +280,13 @@ fun ProductsScreen(
                 isSearching = true
                 kotlinx.coroutines.delay(500)
                 val query = searchQuery
-                val scopeProducts = when (productFilter) {
-                    ProductFilter.BUSINESS_UNIT -> unitProducts.ifEmpty { products }
-                    ProductFilter.THERAPEUTIC_CLASS ->
-                        if (isStarProductsMode) starProducts.ifEmpty { products } else products
-                    ProductFilter.STAR_PRODUCTS -> starProducts
-                }
+                val scopeProducts = resolveScopeProducts(
+                    productFilter = productFilter,
+                    products = products,
+                    unitProducts = unitProducts,
+                    starProducts = starProducts,
+                    isStarProductsMode = isStarProductsMode,
+                )
                 val searchable = if (
                     !isStarProductsMode &&
                     !isViewAllTreatments &&
@@ -319,21 +350,15 @@ fun ProductsScreen(
                 ctCatalogFilter,
                 starProductIds,
             ) {
-                val scopeProducts = when (productFilter) {
-                    ProductFilter.BUSINESS_UNIT ->
-                        if (scopeLoading && unitProducts.isEmpty()) emptyList()
-                        else unitProducts.ifEmpty { products }
-                    ProductFilter.THERAPEUTIC_CLASS ->
-                        if (isStarProductsMode) {
-                            if (scopeLoading && starProducts.isEmpty()) emptyList()
-                            else starProducts.ifEmpty { products }
-                        } else {
-                            products
-                        }
-                    ProductFilter.STAR_PRODUCTS ->
-                        if (scopeLoading && starProducts.isEmpty()) emptyList()
-                        else starProducts
-                }
+                val scopeProducts = resolveScopeProducts(
+                    productFilter = productFilter,
+                    products = products,
+                    unitProducts = unitProducts,
+                    starProducts = starProducts,
+                    isStarProductsMode = isStarProductsMode,
+                    scopeLoading = scopeLoading,
+                    emptyWhileLoading = true,
+                )
                 val ctScopedProducts = if (
                     !isStarProductsMode &&
                     !isViewAllTreatments &&
@@ -1164,10 +1189,13 @@ private fun TreatmentIconBadge(
         (badgeHeight * TreatmentUiMetrics.BADGE_WIDTH_TO_HEIGHT).coerceAtLeast(24.dp)
     val iconSize = metrics.badgeIconSize
     // Badge PNG es pequeño; el icono CT del CDN es ~1080² — no usar ORIGINAL (OOM + Trim).
-    val badgeBgModel = remember(context) {
+    val badgeDecodePx = with(density) {
+        maxOf(badgeWidth, badgeHeight).times(2f).roundToPx().coerceIn(64, 256)
+    }
+    val badgeBgModel = remember(context, badgeDecodePx) {
         ImageRequest.Builder(context)
             .data("file:///android_asset/vitrina/ui/treatment_badge_shadow.png")
-            .size(coil.size.Size.ORIGINAL)
+            .size(badgeDecodePx)
             .crossfade(false)
             .build()
     }
@@ -1377,37 +1405,6 @@ private fun productCardShortDescription(rawDescription: String, productName: Str
     if (text.equals(productName.trim(), ignoreCase = true)) return null
     return text
 }
-
-/**
- * Separa nombre de concentración/presentación.
- * Ej: "Cetirizina 10 mg" → ("Cetirizina", "10 mg");
- *     "Fexofenadina - Suspensión" → ("Fexofenadina", "Suspensión").
- */
-private fun splitProductTitleAndStrength(rawName: String): Pair<String, String?> {
-    val name = rawName.trim()
-    if (name.isEmpty()) return "" to null
-
-    val dosageMatch = PRODUCT_DOSAGE_SUFFIX.find(name)
-    if (dosageMatch != null) {
-        val title = dosageMatch.groupValues[1].trim().trimEnd('-', '–', '—').trim()
-        val strength = dosageMatch.groupValues[2].trim()
-        if (title.isNotEmpty()) return title to strength
-    }
-
-    val dashIndex = name.lastIndexOf(" - ")
-    if (dashIndex > 0) {
-        val title = name.substring(0, dashIndex).trim()
-        val strength = name.substring(dashIndex + 3).trim()
-        if (title.isNotEmpty() && strength.isNotEmpty()) return title to strength
-    }
-
-    return name to null
-}
-
-private val PRODUCT_DOSAGE_SUFFIX = Regex(
-    """^(.+?)\s+(\d+[.,]?\d*\s*(?:mg|g|ml|mcg|µg|ui|%))\s*$""",
-    RegexOption.IGNORE_CASE,
-)
 
 @Composable
 private fun TherapeuticClassFilterSheet(

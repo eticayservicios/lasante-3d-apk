@@ -1,7 +1,9 @@
 package com.lasante.tvkiosk.ui.utils
 
 import android.content.Context
-import android.media.MediaPlayer
+import android.media.AudioAttributes
+import android.media.SoundPool
+import android.util.Log
 import androidx.annotation.RawRes
 import com.lasante.tvkiosk.R
 
@@ -22,16 +24,50 @@ enum class UiSound(@RawRes val resId: Int) {
     Error(R.raw.ui_error),
 }
 
+/**
+ * SFX de UI con [SoundPool] reutilizable (evita crear [android.media.MediaPlayer]
+ * por cada click en el hilo principal).
+ */
 object SoundManager {
+    private const val TAG = "SoundManager"
+    private const val MAX_STREAMS = 4
+
+    @Volatile
+    private var soundPool: SoundPool? = null
+
+    private val loadedIds = mutableMapOf<Int, Int>()
+    private val loadLock = Any()
+
+    private fun pool(context: Context): SoundPool {
+        soundPool?.let { return it }
+        synchronized(loadLock) {
+            soundPool?.let { return it }
+            val attrs = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+            return SoundPool.Builder()
+                .setMaxStreams(MAX_STREAMS)
+                .setAudioAttributes(attrs)
+                .build()
+                .also { created ->
+                    soundPool = created
+                    UiSound.entries.forEach { sound ->
+                        val id = created.load(context.applicationContext, sound.resId, 1)
+                        loadedIds[sound.resId] = id
+                    }
+                }
+        }
+    }
 
     fun play(context: Context, sound: UiSound) {
         try {
-            MediaPlayer.create(context, sound.resId)?.apply {
-                setOnCompletionListener { release() }
-                start()
-            }
-        } catch (_: Exception) {
-            // Silenciar errores de audio en kiosco
+            val sp = pool(context.applicationContext)
+            val sampleId = synchronized(loadLock) { loadedIds[sound.resId] } ?: return
+            if (sampleId == 0) return
+            sp.play(sampleId, 1f, 1f, 1, 0, 1f)
+        } catch (e: Exception) {
+            Log.w(TAG, "play failed for ${sound.name}", e)
         }
     }
 
@@ -43,4 +79,13 @@ object SoundManager {
     fun playProductSound(context: Context) = play(context, UiSound.Product)
 
     fun playErrorSound(context: Context) = play(context, UiSound.Error)
+
+    /** Liberar al destruir el proceso (opcional). */
+    fun release() {
+        synchronized(loadLock) {
+            soundPool?.release()
+            soundPool = null
+            loadedIds.clear()
+        }
+    }
 }

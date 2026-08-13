@@ -16,14 +16,12 @@ interface CatalogRepository {
     /** Todos los productos de una unidad (todas las clases terapéuticas). */
     suspend fun getProductsForUnit(unitId: String): List<Product>
     suspend fun getProduct(productId: String): Product?
-    suspend fun getFeaturedProducts(): List<Product>
     suspend fun getVitrinaUnits(): List<VitrinaUnit>
     /** Snapshot en memoria de /home (sin suspend). Null si aún no se cargó. */
     fun cachedVitrinaUnitsOrNull(): List<VitrinaUnit>? = null
     suspend fun getVitrinaConfig(): VitrinaConfig
     suspend fun getScreenSaverVideos(): List<ScreenSaverVideo>
     suspend fun getInstitutionalVideoUrl(): String?
-    suspend fun getAllProducts(): List<Product>
     suspend fun search(query: String, type: String? = null): SearchResult
 }
 

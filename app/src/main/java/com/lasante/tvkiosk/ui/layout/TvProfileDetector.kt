@@ -49,9 +49,10 @@ object TvProfileDetector {
 
         if (isHikvisionDevice()) return true
 
-        if (isTelevisionUi(context) && (isTrue4k || isDensityCompressed4k)) return true
-
-        if (isTrue4k || isDensityCompressed4k) return true
+        // 4K / “comprimido” solo en UI de TV (leanback). Tablets 2K (p. ej. 2560×1600)
+        // no deben caer en tv_66.
+        val isTvUi = isTelevisionUi(context)
+        if (isTvUi && (isTrue4k || isDensityCompressed4k)) return true
 
         return false
     }

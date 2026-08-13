@@ -47,7 +47,7 @@ data class SharedGridMetrics(
  * “Espacio” = avance del carácter U+0020 (barra espaciadora) en Poppins Regular
  * al tamaño del título principal Fire/TV42 (22.sp + 2 = 24.sp).
  * Medición TTF: 267/1000 em → 6.408.dp @ 24.sp.
- * Solo para offsets de Fire / Television_1080 (no Damasco / TV66 / Infinix).
+ * Unidad de offset en métricas TV42 / headers de catálogo.
  */
 object FireTv42Spacing {
     val KeyboardSpace: Dp = 6.408.dp
@@ -84,11 +84,13 @@ object DeviceProfileResolver {
             Tv66Reference.matchesReferenceCanvas(maxWidth, maxHeight) ||
             preferTv66
         ) {
-            android.util.Log.i(
-                "Tv66Profile",
-                "FORCE TV_LARGE canvas=${maxWidth.value.toInt()}×${maxHeight.value.toInt()} " +
-                    "prefer=$preferTv66 hikForce=${HikvisionLayoutDebug.isForced()}",
-            )
+            if (com.lasante.tvkiosk.BuildConfig.DEBUG) {
+                android.util.Log.i(
+                    "Tv66Profile",
+                    "FORCE TV_LARGE canvas=${maxWidth.value.toInt()}×${maxHeight.value.toInt()} " +
+                        "prefer=$preferTv66 hikForce=${HikvisionLayoutDebug.isForced()}",
+                )
+            }
             return DeviceProfile(
                 tier = DeviceProfileTier.TV_LARGE,
                 maxWidth = maxWidth,
