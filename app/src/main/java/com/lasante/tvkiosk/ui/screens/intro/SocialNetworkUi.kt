@@ -23,13 +23,13 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.lasante.tvkiosk.ui.utils.clickableWithSound
 
-/** Rutas de PNG por red social dentro de `assets/vitrina/ui/`. */
+/** Rutas de GIF por red social dentro de `assets/vitrina/ui/`. */
 object SocialNetworkAssets {
     private const val BASE = "vitrina/ui"
 
-    const val INSTAGRAM = "$BASE/social_instagram.png"
-    const val FACEBOOK = "$BASE/social_facebook.png"
-    const val LINKEDIN = "$BASE/social_linkedin.png"
+    const val INSTAGRAM = "$BASE/social_instagram.gif"
+    const val FACEBOOK = "$BASE/social_facebook.gif"
+    const val LINKEDIN = "$BASE/social_linkedin.gif"
 
     fun assetUri(relativePath: String): String =
         "file:///android_asset/$relativePath"
@@ -86,6 +86,9 @@ fun SocialNetworkIconButton(
             true
         }.getOrDefault(false)
     }
+    val iconModel = remember(social.iconAssetPath, context) {
+        VitrinaUiImages.request(context, SocialNetworkAssets.assetUri(social.iconAssetPath))
+    }
 
     Box(
         modifier = modifier
@@ -107,7 +110,7 @@ fun SocialNetworkIconButton(
     ) {
         if (hasCustomIcon) {
             AsyncImage(
-                model = SocialNetworkAssets.assetUri(social.iconAssetPath),
+                model = iconModel,
                 contentDescription = social.label,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.size(size),

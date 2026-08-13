@@ -194,7 +194,56 @@ data class IntroLayoutMetrics(
             else -> 0.72f
         }
 
-    /** Badge verde inline "PRODUCTOS ESTRELLAS". */
+    /**
+     * Ancho de la rampa verde (punto + horizontal + diagonal).
+     * TV66 = 282.dp (calibrado al mock Elementos Estrella).
+     */
+    val starLineStartWidth: Dp
+        get() = when (vitrinaProfileKey) {
+            "phone_landscape" -> 188.dp
+            "phone_portrait" -> 197.dp
+            "tv_42", "tablet_landscape" -> when {
+                isTv42LargeCanvas -> 269.dp
+                isTv42 -> 235.dp
+                else -> 246.dp
+            }
+            "tv_66" -> 282.dp
+            "tv_32" -> 224.dp
+            "short_height" -> 202.dp
+            "expanded" -> 246.dp
+            else -> 224.dp
+        }
+
+    /**
+     * Tamaño Poppins de "PRODUCTOS ESTRELLAS" (Intro).
+     * TV66 calibrado ~20.sp (mock Elementos Estrella).
+     */
+    val starTitleFontSize: TextUnit
+        get() = when (vitrinaProfileKey) {
+            "phone_landscape" -> 14.sp
+            "phone_portrait" -> 14.sp
+            "tv_42", "tablet_landscape" -> when {
+                isTv42LargeCanvas -> 18.sp
+                isTv42 -> 16.sp
+                else -> 16.sp
+            }
+            "tv_66" -> 19.sp
+            "tv_32" -> 15.sp
+            "short_height" -> 14.sp
+            "expanded" -> 16.sp
+            else -> 15.sp
+        }
+
+    /** Aire entre la base del título y el tramo horizontal bajo de la rampa. */
+    val starTitleLineGap: Dp
+        get() = when (vitrinaProfileKey) {
+            "phone_landscape" -> 12.dp
+            "tv_42", "tablet_landscape" -> 14.dp
+            "tv_66" -> 18.dp
+            else -> 13.dp
+        }
+
+    /** Badge verde inline "PRODUCTOS ESTRELLAS" (pantalla de estrellas, no Intro). */
     val bubblesBadgeHeight: Dp
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 26.dp
@@ -253,13 +302,13 @@ data class IntroLayoutMetrics(
     val bubblesBadgeStartOffset: Dp
         get() = bubblesBadgeCenterXInRow
 
-    /** Grosor de la línea verde que une badge → burbujas. */
+    /** Grosor de la línea verde que atraviesa las burbujas (fino, como el asset). */
     val bubblesConnectorStroke: Dp
         get() = when (vitrinaProfileKey) {
-            "phone_landscape" -> 2.dp
-            "tv_42", "tablet_landscape" -> 3.dp
-            "tv_66" -> 3.5.dp
-            else -> 2.5.dp
+            "phone_landscape" -> 1.dp
+            "tv_42", "tablet_landscape" -> 1.15.dp
+            "tv_66" -> 1.25.dp
+            else -> 1.1.dp
         }
 
     /** Puntitos decorativos entre burbujas. */

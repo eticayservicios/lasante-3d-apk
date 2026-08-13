@@ -12,7 +12,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,31 +31,45 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.lasante.tvkiosk.data.Product
-import com.lasante.tvkiosk.ui.components.ProductosEstrellasBadge
-import com.lasante.tvkiosk.ui.theme.LaSanteOrange
 
-/** Verde del conector / badge (mockup). */
-private val BubblesConnectorGreen = Color(0xFF88B72E)
-/** Azul claro del puntito decorativo (mockup; no el azul de marca oscuro). */
-private val BubblesDotBlue = Color(0xFF6295B9)
-
-private val BubbleDotColors = listOf(
-    BubblesConnectorGreen,
-    LaSanteOrange,
-    BubblesDotBlue,
-)
+/** Verde de la línea de Elementos Estrella (#2FAD11). */
+private val StarLineGreen = Color(0xFF2FAD11)
 
 /**
- * Badge a la izquierda (margen redes) + burbujas centradas en la vitrina como antes.
- * Línea solo hasta la última burbuja. Lógica de productos/slots sin cambios.
+ * Degradado vertical del título (mock Elementos Estrella / subrayados):
+ * gris oscuro arriba → blanco abajo.
+ */
+private val StarTitleBrush = Brush.verticalGradient(
+    colors = listOf(
+        Color(0xFF505050),
+        Color(0xFFD5D8D2),
+        Color.White,
+    ),
+)
+
+/** Fracción del ancho de rampa donde empieza la diagonal (asset Linea inicial). */
+private const val RAMP_DIAG_START_FRACTION = 0.88f
+
+/** Altura de la rampa / ancho (265 px de subida útil sobre 1368 de ancho). */
+private const val RAMP_RISE_OVER_WIDTH = 265f / 1368f
+
+/**
+ * Título Poppins + rampa verde en código (sin PNG),
+ * burbujas centradas sobre la vitrina. Lógica de productos/slots sin cambios.
  */
 @Composable
 fun VitrinaBubblesRow(
@@ -66,11 +84,7 @@ fun VitrinaBubblesRow(
     if (alpha <= 0.01f) return
 
     val slotCount = VitrinaConstants.SLOTS_PER_UNIT
-    val badgeHeight = metrics.bubblesBadgeHeight
-    val connectorStroke = metrics.bubblesConnectorStroke
-    val dotSize = metrics.bubblesDotSize
-    // Centro del badge = centro de la columna de redes (mitad de los iconos).
-    val badgeCenterTargetX = metrics.bubblesBadgeCenterXInRow
+    val poppins = MaterialTheme.typography.bodyLarge.fontFamily
 
     BoxWithConstraints(
         modifier = modifier
@@ -79,10 +93,14 @@ fun VitrinaBubblesRow(
     ) {
         val density = LocalDensity.current
         val rowWidth = maxWidth
-        var measuredBadgeWidth by remember { mutableStateOf(badgeHeight * 4.2f) }
-        val badgeOffsetX = badgeCenterTargetX - measuredBadgeWidth / 2f
 
-        // Burbujas: misma geometría que antes (fracción original, centradas en la vitrina).
+        val rampStartX = metrics.bubblesBadgeCenterXInRow - metrics.socialIconSize / 2f
+        val rampWidth = metrics.starLineStartWidth
+        val rampRise = rampWidth * RAMP_RISE_OVER_WIDTH
+        val titleFontSize = metrics.starTitleFontSize
+        val titleHeight = with(density) { titleFontSize.toDp() }
+        var titleWidth by remember(titleFontSize) { mutableStateOf(0.dp) }
+
         val clusterWidth = rowWidth * metrics.bubblesRowWidthFraction
         val totalSpacing = metrics.bubbleSpacing * (slotCount - 1)
         val sizeFromWidth = (clusterWidth - totalSpacing) / slotCount
@@ -92,56 +110,80 @@ fun VitrinaBubblesRow(
         val bubblesStart = clusterStart + (clusterWidth - bubblesContentWidth) / 2f
         val bubblesEnd = bubblesStart + bubblesContentWidth
 
-        // Badge puede ir a la izquierda del contenedor (offset negativo) para centrar en redes.
-        val badgeEnd = badgeOffsetX + measuredBadgeWidth
-        val lineStart = badgeEnd.coerceAtMost(bubblesStart)
-        val lineEnd = bubblesEnd
-        val barHeight = maxOf(bubbleSize, badgeHeight)
+        val upperY = bubbleSize / 2f
+        val lowerY = upperY + rampRise
+        // Título chico + aire sobre la rampa (no pegado a la línea).
+        val rawTitleY = lowerY - titleHeight - metrics.starTitleLineGap
+        val titleLift = if (rawTitleY < 0.dp) -rawTitleY else 0.dp
+        val titleY = rawTitleY + titleLift
+        val placedUpperY = upperY + titleLift
+        val placedLowerY = lowerY + titleLift
+        val bubbleTop = titleLift
+        val barHeight = maxOf(
+            bubbleTop + bubbleSize,
+            placedLowerY + metrics.bubblesConnectorStroke * 4f + 4.dp,
+            titleY + titleHeight + 4.dp,
+        )
+
+        val diagStartX = rampStartX + rampWidth * RAMP_DIAG_START_FRACTION
+        val rampEndX = rampStartX + rampWidth
+        // Centrado sobre el tramo horizontal bajo (antes de la diagonal).
+        val lowerSegWidth = rampWidth * RAMP_DIAG_START_FRACTION
+        val titleX = if (titleWidth > 0.dp) {
+            rampStartX + (lowerSegWidth - titleWidth) / 2f
+        } else {
+            rampStartX
+        }
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(barHeight),
         ) {
-            // Línea: desde el badge hasta el borde derecho de la última burbuja (sin sobra).
             Canvas(modifier = Modifier.fillMaxSize()) {
-                val stroke = with(density) { connectorStroke.toPx() }
-                val y = size.height / 2f
-                val startX = with(density) { lineStart.toPx() }
-                val endX = with(density) { lineEnd.toPx() }
-                if (endX > startX) {
+                val stroke = with(density) { metrics.bubblesConnectorStroke.toPx() }
+                val dotRadius = stroke * 2.8f
+                val startX = with(density) { rampStartX.toPx() }
+                val diagX = with(density) { diagStartX.toPx() }
+                val endRampX = with(density) { rampEndX.toPx() }
+                val endX = with(density) { bubblesEnd.toPx() }
+                val lowY = with(density) { placedLowerY.toPx() }
+                val highY = with(density) { placedUpperY.toPx() }
+
+                drawCircle(
+                    color = StarLineGreen,
+                    radius = dotRadius,
+                    center = Offset(startX, lowY),
+                )
+                drawLine(
+                    color = StarLineGreen,
+                    start = Offset(startX, lowY),
+                    end = Offset(diagX, lowY),
+                    strokeWidth = stroke,
+                    cap = StrokeCap.Round,
+                )
+                drawLine(
+                    color = StarLineGreen,
+                    start = Offset(diagX, lowY),
+                    end = Offset(endRampX, highY),
+                    strokeWidth = stroke,
+                    cap = StrokeCap.Round,
+                )
+                if (endX > endRampX) {
                     drawLine(
-                        color = BubblesConnectorGreen,
-                        start = Offset(startX, y),
-                        end = Offset(endX, y),
+                        color = StarLineGreen,
+                        start = Offset(endRampX, highY),
+                        end = Offset(endX, highY),
                         strokeWidth = stroke,
                         cap = StrokeCap.Round,
                     )
                 }
             }
 
-            // Puntitos solo en los gaps del cluster de burbujas.
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val bubblePx = with(density) { bubbleSize.toPx() }
-                val spacingPx = with(density) { metrics.bubbleSpacing.toPx() }
-                val dotPx = with(density) { dotSize.toPx() }
-                val startX = with(density) { bubblesStart.toPx() }
-                val y = size.height / 2f
-                for (i in 0 until slotCount - 1) {
-                    val leftCenter = startX + bubblePx * i + spacingPx * i + bubblePx / 2f
-                    val rightCenter = leftCenter + bubblePx + spacingPx
-                    drawCircle(
-                        color = BubbleDotColors[i % BubbleDotColors.size],
-                        radius = dotPx / 2f,
-                        center = Offset((leftCenter + rightCenter) / 2f, y),
-                    )
-                }
-            }
-
-            // Burbujas centradas (posición histórica sobre la vitrina).
             Row(
                 modifier = Modifier
-                    .align(Alignment.Center)
+                    .align(Alignment.TopCenter)
+                    .offset(y = bubbleTop)
                     .fillMaxWidth(metrics.bubblesRowWidthFraction)
                     .height(bubbleSize),
                 horizontalArrangement = Arrangement.spacedBy(
@@ -164,14 +206,34 @@ fun VitrinaBubblesRow(
                 }
             }
 
-            // Badge centrado en la columna de redes (mitad de los iconos).
-            ProductosEstrellasBadge(
-                height = badgeHeight,
-                onClick = onStarProductsClick,
+            Text(
+                text = "PRODUCTOS ESTRELLAS",
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Visible,
+                textAlign = TextAlign.Center,
+                style = TextStyle(
+                    brush = StarTitleBrush,
+                    fontFamily = poppins,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = titleFontSize,
+                    lineHeight = titleFontSize,
+                    letterSpacing = 0.4.sp,
+                    platformStyle = PlatformTextStyle(includeFontPadding = false),
+                    lineHeightStyle = LineHeightStyle(
+                        alignment = LineHeightStyle.Alignment.Center,
+                        trim = LineHeightStyle.Trim.Both,
+                    ),
+                ),
+                color = Color.Unspecified,
+                onTextLayout = { layout ->
+                    titleWidth = with(density) { layout.size.width.toDp() }
+                },
                 modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .offset(x = badgeOffsetX)
-                    .onSizeChanged { measuredBadgeWidth = with(density) { it.width.toDp() } },
+                    .offset(x = titleX, y = titleY)
+                    .wrapContentWidth()
+                    .height(titleHeight)
+                    .wrapContentHeight(align = Alignment.Bottom),
             )
         }
     }
