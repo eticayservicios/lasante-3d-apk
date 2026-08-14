@@ -20,7 +20,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.unit.dp
 import kotlin.math.abs
-import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
 private const val DEFAULT_AUTO_ROTATE_TIMEOUT_MS = 2 * 60 * 1000L
@@ -75,6 +74,7 @@ fun rememberVitrinaInteractionController(
     var isUserActive by remember { mutableStateOf(false) }
     var lastUserInteraction by remember { mutableLongStateOf(System.currentTimeMillis() - autoRotateAfterMs) }
     var dragAccumulatedX by remember { mutableFloatStateOf(0f) }
+    var dragStartTimeMs by remember { mutableLongStateOf(0L) }
     val lifecycleOwner = LocalLifecycleOwner.current
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current
@@ -132,16 +132,28 @@ fun rememberVitrinaInteractionController(
     }
 
     /**
-     * Pasos de [activeIndex]: opuesto al offset de rotación porque
-     * subir de índice baja el ángulo Y del modelo.
+     * Pasos de [activeIndex] al soltar.
+     * Antes usaba [roundToInt] sobre el offset → hacía falta ~36° (~½ unidad) para avanzar;
+     * un swipe medio quedaba pegado en la unidad actual.
      */
-    fun dragStepsFromOffset(offsetDegrees: Float): Int {
+    fun dragStepsFromOffset(offsetDegrees: Float, velocityPxPerMs: Float = 0f): Int {
         val step = VitrinaConstants.ROTATION_STEP_DEGREES
         val indexSpaceDegrees = -offsetDegrees
-        if (abs(indexSpaceDegrees) < step * VitrinaConstants.DRAG_SNAP_COMMIT_FRACTION) return 0
-        val raw = indexSpaceDegrees.div(step).roundToInt()
+        val threshold = step * VitrinaConstants.DRAG_SNAP_COMMIT_FRACTION
         val maxSteps = (itemCount - 1).coerceAtLeast(1)
-        return raw.coerceIn(-maxSteps, maxSteps)
+
+        val flick =
+            abs(velocityPxPerMs) >= VitrinaConstants.DRAG_FLICK_VELOCITY_PX_PER_MS &&
+                abs(indexSpaceDegrees) >= threshold * 0.5f
+        if (flick) {
+            return (if (indexSpaceDegrees > 0) 1 else -1).coerceIn(-maxSteps, maxSteps)
+        }
+
+        if (abs(indexSpaceDegrees) < threshold) return 0
+
+        val direction = if (indexSpaceDegrees > 0) 1 else -1
+        val magnitude = (abs(indexSpaceDegrees) / step).toInt().coerceAtLeast(1)
+        return (direction * magnitude).coerceIn(-maxSteps, maxSteps)
     }
 
     /** Cancela drag y restaura el cilindro a la unidad activa (p. ej. modal a mitad de gesto). */
@@ -215,7 +227,10 @@ fun rememberVitrinaInteractionController(
                 mode = VitrinaMode.AutoRotating
             }
             else -> {
-                rotationAnimationSpec = VitrinaConstants.manualRotationAnimationSpec
+                rotationAnimationSpec = when (source) {
+                    "drag" -> VitrinaConstants.dragSnapAnimationSpec
+                    else -> VitrinaConstants.manualRotationAnimationSpec
+                }
                 lastUserInteraction = System.currentTimeMillis()
                 mode = VitrinaMode.AutoRotating
             }
@@ -238,6 +253,7 @@ fun rememberVitrinaInteractionController(
     fun handleDragStart() {
         if (itemCount <= 0 || hasModalOpen || mode == VitrinaMode.Dragging) return
         lastUserInteraction = System.currentTimeMillis()
+        dragStartTimeMs = System.currentTimeMillis()
         dragAccumulatedX = 0f
         baseRotationHandle?.clearDragOffset()
         mode = VitrinaMode.Dragging
@@ -259,17 +275,23 @@ fun rememberVitrinaInteractionController(
             abortDragToCurrentUnit()
             return
         }
+        val totalDragPx = dragAccumulatedX
         val offsetDegrees = dragVisualOffsetDegrees()
-        val steps = dragStepsFromOffset(offsetDegrees)
+        val elapsedMs = (System.currentTimeMillis() - dragStartTimeMs).coerceAtLeast(1L)
+        val velocityPxPerMs = totalDragPx / elapsedMs
+        val steps = dragStepsFromOffset(offsetDegrees, velocityPxPerMs)
         dragAccumulatedX = 0f
-        baseRotationHandle?.commitDragIntoBase()
         android.util.Log.d(
             "VitrinaGesture",
-            "drag end offsetDeg=$offsetDegrees steps=$steps activeIndex=$activeIndex",
+            "drag end offsetDeg=$offsetDegrees velocity=${"%.2f".format(velocityPxPerMs)} " +
+                "steps=$steps activeIndex=$activeIndex",
         )
         if (steps == 0) {
+            baseRotationHandle?.clearDragOffset()
+            baseRotationHandle?.setBaseDegrees(displayRotationDegrees)
             settleInteractive()
         } else {
+            baseRotationHandle?.commitDragIntoBase()
             rotateBySteps(steps, source = "drag")
         }
     }

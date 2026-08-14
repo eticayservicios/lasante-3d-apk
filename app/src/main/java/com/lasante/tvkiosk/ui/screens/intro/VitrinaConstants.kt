@@ -12,12 +12,17 @@ object VitrinaConstants {
     const val SLOTS_PER_UNIT = 4
     const val ROTATION_STEP_DEGREES = 72f
     /**
-     * Fracción del ancho de pantalla ≈ 1 unidad (72°).
-     * Menor = más sensible / sigue mejor el dedo (TV/tablet se sentían lentos a 0.40).
+     * Fracción del ancho de pantalla ≈ 1 unidad (72°) mientras arrastras.
+     * Menor = más sensible (sigue mejor el dedo). TV66 ref.: 1280×720.
      */
-    const val DRAG_TRACK_WIDTH_SCREEN_FRACTION = 0.25f
-    /** Fracción de un paso (72°) para comprometer snap al soltar. */
-    const val DRAG_SNAP_COMMIT_FRACTION = 0.18f
+    const val DRAG_TRACK_WIDTH_SCREEN_FRACTION = 0.20f
+    /**
+     * Fracción de un paso (72°) para comprometer snap al soltar.
+     * Por debajo vuelve a la unidad actual; al superarla avanza al menos ±1 unidad.
+     */
+    const val DRAG_SNAP_COMMIT_FRACTION = 0.10f
+    /** Flick rápido (px/ms) que compromete ±1 aunque el arrastre sea corto. */
+    const val DRAG_FLICK_VELOCITY_PX_PER_MS = 1.2f
 
     /** Asset local del GLB de vitrina (Draco). */
     const val BASE_GLB_ASSET = "vitrina/models/mobile_draco.glb"
@@ -84,6 +89,11 @@ object VitrinaConstants {
     val fadeAnimationSpec: AnimationSpec<Float> = tween(durationMillis = 280)
     val manualRotationAnimationSpec: AnimationSpec<Float> = tween(
         durationMillis = 180,
+        easing = snappyRotationEasing,
+    )
+    /** Snap al soltar drag (más corto que rotación manual genérica). */
+    val dragSnapAnimationSpec: AnimationSpec<Float> = tween(
+        durationMillis = 120,
         easing = snappyRotationEasing,
     )
     val autoRotationAnimationSpec: AnimationSpec<Float> = tween(

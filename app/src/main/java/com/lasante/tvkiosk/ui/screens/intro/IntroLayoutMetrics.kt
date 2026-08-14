@@ -780,12 +780,16 @@ data class IntroLayoutMetrics(
             else -> 70.dp
         }
 
-    /** Gira/touch (manitos): Fire/Ariana −15%; TV66 −14.5% y luego −20% (Hikvision físico). */
+    /**
+     * Gira/touch (manitos). Historia usa [rotateButtonSizeBase], no este.
+     * TV66: −14.5% y −20% (Hikvision físico), luego −10% pedido.
+     * TV42/tablet: −15% y el mismo −10%.
+     */
     val rotateButtonSize: Dp
         get() = when (vitrinaProfileKey) {
-            "tv_42", "tablet_landscape" -> rotateButtonSizeBase * 0.85f
-            "tv_66" -> rotateButtonSizeBase * 0.95f * 0.90f * 0.80f
-            else -> rotateButtonSizeBase
+            "tv_42", "tablet_landscape" -> rotateButtonSizeBase * 0.85f * 0.90f
+            "tv_66" -> rotateButtonSizeBase * 0.95f * 0.90f * 0.80f * 0.90f
+            else -> rotateButtonSizeBase * 0.90f
         }
 
     /** Touch y gira (manitos) comparten tamaño. */

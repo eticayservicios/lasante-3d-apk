@@ -8,17 +8,15 @@ import androidx.annotation.RawRes
 import com.lasante.tvkiosk.R
 
 /**
- * Sonidos de UI desde [R.raw].
+ * Sonidos de UI desde [R.raw], mapeados a `MP3 Sonidos/`.
  *
- * Mapa (carpeta `MP3 Sonidos/`):
- * - [UiSound.Click] — historia, estrellas, redes, retroceso
- *   (`virtual_vibes` / [R.raw.click_sound_new]; el denielcz del pack dura ~50 ms y no se oye)
- * - [UiSound.Unit] — tap unidad de negocio en vitrina
- * - [UiSound.Product] — seleccionar producto (grid / burbujas)
- * - [UiSound.Error] — pantallas de error
+ * - [UiSound.Click] — historia, estrellas, redes, retroceso (`denielcz…` → [R.raw.ui_click])
+ * - [UiSound.Unit] — tap unidad de negocio (`universfield-interface…` → [R.raw.unit_tap])
+ * - [UiSound.Product] — grid / burbujas (`freesound…marker-lid` → [R.raw.ui_tap])
+ * - [UiSound.Error] — pantallas de error (`universfield-ui-interface-03` → [R.raw.ui_error])
  */
 enum class UiSound(@RawRes val resId: Int) {
-    Click(R.raw.click_sound_new),
+    Click(R.raw.ui_click),
     Unit(R.raw.unit_tap),
     Product(R.raw.ui_tap),
     Error(R.raw.ui_error),
