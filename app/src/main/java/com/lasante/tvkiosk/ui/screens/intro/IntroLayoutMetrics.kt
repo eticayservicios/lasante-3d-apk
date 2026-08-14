@@ -281,17 +281,20 @@ data class IntroLayoutMetrics(
 
     /**
      * Resta a la subida de la diagonal (menos rise = línea baja más arriba).
+     * TV66: −2 espacios (un pelín más inclinada).
      */
     val starRampRiseNudge: Dp
         get() = when {
             isTv1080Canvas -> Tv42Spacing.spaces(1)
             isLargeTv42Canvas -> Tv42Spacing.spaces(2) + bubblesDotSize * 2f
             isTv42 -> Tv42Spacing.spaces(2)
+            isTv66 -> -Tv42Spacing.spaces(2)
             else -> 0.dp
         }
 
     val starRampLowerExtra: Dp
-        get() = 0.dp
+        // TV66: +3 espacios — tramo bajo más largo; diagonal más corta/acortada.
+        get() = if (isTv66) Tv42Spacing.spaces(3) else 0.dp
 
     /** Fracción Hikvision: diagonal al ~12% final de la rampa. */
     val starRampDiagStartFraction: Float
@@ -309,16 +312,20 @@ data class IntroLayoutMetrics(
 
     /**
      * Sin stub entre diagonal y 1.ª burbuja (TV42 / large / tablet).
-     * TV66: false — geometría Hikvision original (diagonal → horizontal por centros).
+     * TV66: false — geometría Hikvision (diagonal → horizontal por centros).
      */
     val starRampAttachToFirstBubble: Boolean
         get() = isTv42 ||
             isTv42LargeCanvas ||
             vitrinaProfileKey == "tablet_landscape"
 
-    /** Solape en 1.ª burbuja (solo perfiles attach). TV66: 0. */
+    /**
+     * Acerca el final de la diagonal a la 1.ª burbuja.
+     * TV66: +1 espacio (pegar sin cambiar el resto de la rampa).
+     */
     val starRampBubbleOverlap: Dp
         get() = when {
+            isTv66 -> Tv42Spacing.spaces(1)
             isTv1080Canvas || isLargeTv42Canvas || isTv42 -> 6.dp
             else -> 0.dp
         }
@@ -990,9 +997,9 @@ data class IntroLayoutMetrics(
                     else -> base
                 }
             }
-            // TV66 / Hikvision: −1 espacio (subir).
+            // TV66 / Hikvision: −3 espacios (subir 1 más vs previo).
             "tv_66" -> maxHeight * sceneHeightFraction * 0.035f - 5.dp -
-                Tv42Spacing.spaces(1)
+                Tv42Spacing.spaces(3)
             "expanded" -> maxHeight * sceneHeightFraction * 0.04f
             else -> maxHeight * sceneHeightFraction * 0.04f
         }
