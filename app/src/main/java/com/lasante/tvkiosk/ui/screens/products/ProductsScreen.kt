@@ -1456,7 +1456,8 @@ private fun TherapeuticClassFilterSheet(
                     onClick = onDismiss,
                 ),
         )
-        Column(
+        // Card del modal: el X va anclado TopEnd (fuera del padding de contenido).
+        Box(
             modifier = Modifier
                 .fillMaxWidth(m.widthFraction)
                 .widthIn(max = m.maxWidth)
@@ -1468,10 +1469,14 @@ private fun TherapeuticClassFilterSheet(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
                     onClick = {},
-                )
-                .padding(horizontal = m.paddingH)
-                .padding(top = m.paddingTop, bottom = m.paddingBottom),
+                ),
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = m.paddingH)
+                    .padding(top = m.paddingTop, bottom = m.paddingBottom),
+            ) {
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
@@ -1483,32 +1488,20 @@ private fun TherapeuticClassFilterSheet(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                LaSanteScreenTitle(
-                    text = "Filtros",
-                    fontSize = m.titleSp,
-                    textBrush = FilterTitleBrush,
-                    underlineBrush = Brush.horizontalGradient(
-                        listOf(Color(0xFF8FA88A), Color(0xFFD5D8D2), Color.White),
-                    ),
-                    underlineMatchTextWidth = true,
-                    underlineWidth = m.titleUnderlineWidth,
-                    fontFamily = poppins,
-                    fontWeight = FontWeight.SemiBold,
-                    allCaps = false,
-                    textAlign = TextAlign.Start,
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                GreenNavButton(
-                    assetPath = CLOSE_NAV_ASSET,
-                    contentDescription = "Cerrar",
-                    size = m.closeSize,
-                    onClick = onDismiss,
-                )
-            }
+            LaSanteScreenTitle(
+                text = "Filtros",
+                fontSize = m.titleSp,
+                textBrush = FilterTitleBrush,
+                underlineBrush = Brush.horizontalGradient(
+                    listOf(Color(0xFF8FA88A), Color(0xFFD5D8D2), Color.White),
+                ),
+                underlineMatchTextWidth = true,
+                underlineWidth = m.titleUnderlineWidth,
+                fontFamily = poppins,
+                fontWeight = FontWeight.SemiBold,
+                allCaps = false,
+                textAlign = TextAlign.Start,
+            )
 
             Spacer(modifier = Modifier.height(18.dp))
 
@@ -1737,6 +1730,17 @@ private fun TherapeuticClassFilterSheet(
                     }
                 }
             }
+            }
+
+            GreenNavButton(
+                assetPath = CLOSE_NAV_ASSET,
+                contentDescription = "Cerrar",
+                size = m.closeSize,
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 12.dp, end = 12.dp),
+            )
         }
     }
 }

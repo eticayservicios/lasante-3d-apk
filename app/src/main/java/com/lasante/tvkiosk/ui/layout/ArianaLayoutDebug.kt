@@ -16,6 +16,16 @@ import com.lasante.tvkiosk.BuildConfig
 object ArianaTabletReference {
     val Width: Dp = 1137.dp
     val Height: Dp = 711.dp
+
+    /**
+     * Tablet Ariana / Television_1080 forzado: ~1137×711.
+     * Usa `.value` (Float) para evitar sorpresas en comparaciones Dp.
+     */
+    fun matchesReferenceCanvas(width: Dp, height: Dp): Boolean {
+        val w = width.value
+        val h = height.value
+        return w > h && w >= 1050f && w <= 1220f && h >= 650f && h <= 780f
+    }
 }
 
 /**

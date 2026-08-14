@@ -169,9 +169,10 @@ fun TreatmentsScreen(
                                 .fillMaxWidth()
                                 .padding(
                                     start = catalog.contentPadding,
-                                    // TV66: alinear con back; +3 espacios a la izquierda (end↑).
-                                    end = catalog.contentPadding + if (header.isTv66) {
-                                        header.navButtonSize + FireTv42Spacing.spaces(3)
+                                    // Shared TV: borde derecho del subtítulo = borde derecho del Back
+                                    // (el header reserva un hueco Home a la derecha del Back).
+                                    end = catalog.contentPadding + if (header.usesSharedTvCatalogLayout) {
+                                        header.navButtonSize + header.navPairSpacing
                                     } else {
                                         0.dp
                                     },

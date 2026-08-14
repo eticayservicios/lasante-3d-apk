@@ -429,7 +429,8 @@ object DeviceProfileResolver {
 
             DeviceProfileTier.TV_REGULAR -> FilterSheetMetrics(
                 widthFraction = 0.56f,
-                heightFraction = 0.62f,
+                // TV42 / Ariana: −1 cm físico ≈ −0.08 del alto de pantalla (misma regla que Damasco −0,5 cm ≈ −0.04).
+                heightFraction = 0.54f,
                 maxWidth = 720.dp,
                 paddingH = 56.dp,
                 paddingTop = 36.dp,

@@ -11,6 +11,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.lasante.tvkiosk.ui.layout.ArianaLayoutDebug
+import com.lasante.tvkiosk.ui.layout.ArianaTabletReference
 import com.lasante.tvkiosk.ui.layout.CatalogHeaderMetrics
 import com.lasante.tvkiosk.ui.layout.DeviceProfile
 import com.lasante.tvkiosk.ui.layout.DeviceProfileResolver
@@ -74,6 +76,16 @@ data class IntroLayoutMetrics(
      */
     val isTv42LargeCanvas: Boolean
         get() = CatalogHeaderMetrics.isLargeCatalogCanvas(profile, maxHeight)
+
+    /**
+     * Tablet Ariana / Television_1080 (~1137×711) o force DEBUG.
+     * No incluye Fire TV1080 genérico ni TV66.
+     */
+    val isArianaTv42: Boolean
+        get() = !isTv66 && (
+            ArianaLayoutDebug.isForced() ||
+                ArianaTabletReference.matchesReferenceCanvas(maxWidth, maxHeight)
+            )
 
     /** TV Hikvision — TV_LARGE, canvas ref. 1280×720, o force DEBUG. */
     val isTv66: Boolean
@@ -252,18 +264,40 @@ data class IntroLayoutMetrics(
 
     /**
      * Nudge X de la rampa Productos Estrellas (resta a [bubblesBadgeCenterXInRow]).
-     * TV42: −8 espacios teclado (~51.dp).
+     * Menos nudge = título+línea más a la derecha (menos separación vs burbujas).
+     * TV42: −8. Ariana: −1 (bloque más cerca de las burbujas).
      */
     val starRampStartNudge: Dp
-        get() = if (isTv42) FireTv42Spacing.spaces(8) else 0.dp
+        get() = when {
+            isArianaTv42 -> FireTv42Spacing.spaces(1)
+            isTv42 -> FireTv42Spacing.spaces(8)
+            else -> 0.dp
+        }
 
     /**
-     * Resta a la subida de la diagonal (menos rise = diagonal más arriba).
-     * TV42: −2 espacios teclado.
+     * Resta a la subida de la diagonal (menos rise = línea baja más arriba).
+     * TV42: −2. Ariana: −1 (más rise → diagonal corta más empinada).
      */
     val starRampRiseNudge: Dp
-        get() = if (isTv42) FireTv42Spacing.spaces(2) else 0.dp
+        get() = when {
+            isArianaTv42 -> FireTv42Spacing.spaces(1)
+            isTv42 -> FireTv42Spacing.spaces(2)
+            else -> 0.dp
+        }
 
+    /**
+     * Fracción del ancho de rampa donde empieza la diagonal (perfiles no-Ariana).
+     * Ariana usa [starRampShortDiagRun] (diagonal corta fija cerca de la 1.ª burbuja).
+     */
+    val starRampDiagStartFraction: Float
+        get() = 0.88f
+
+    /**
+     * Ariana: largo horizontal de la diagonal corta (más corto = más empinada).
+     * ~6 espacios ≈ subida visible sin tramo largo y suave.
+     */
+    val starRampShortDiagRun: Dp
+        get() = if (isArianaTv42) FireTv42Spacing.spaces(6) else 0.dp
     /**
      * Sin stub horizontal entre diagonal y 1.ª burbuja
      * (TV42 / Damasco / tablet landscape).
@@ -376,8 +410,15 @@ data class IntroLayoutMetrics(
             // Infinix: −15.dp subir bloque PRODUCTOS ESTRELLAS + burbujas.
             "phone_landscape" -> (2.dp + maxHeight * 0.05f) - 15.dp
             "phone_portrait" -> 8.dp
-            // −10.dp: subir un chilín el bloque PRODUCTOS ESTRELLAS + burbujas.
-            "tv_42", "tablet_landscape" -> 20.dp + maxHeight * 0.06f
+            // TV42/Ariana: +2 espacios (bajar bloque estrellas + burbujas). Otros tablet: base.
+            "tv_42", "tablet_landscape" -> {
+                val base = 20.dp + maxHeight * 0.06f
+                if (isTv42 || isTv42LargeCanvas) {
+                    base + FireTv42Spacing.spaces(2)
+                } else {
+                    base
+                }
+            }
             // TV66: aire flotante vs cilindro (−3%H vs 0.11 previo); −10.dp igual que TV42.
             "tv_66" -> 20.dp + maxHeight * 0.08f
             "tv_32" -> 10.dp
@@ -392,10 +433,10 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 54.dp
             "phone_portrait" -> 81.dp
-            // Damasco/Ariana LARGE: 109 −5%. Fire/TV1080: 70 −5%. Otros tablet: 80.
+            // Damasco/Ariana LARGE: 109 −5% −20%. Fire/TV1080: 70 −5% −20%. Otros tablet: 80.
             "tv_42", "tablet_landscape" -> when {
-                isTv42LargeCanvas -> 109.dp * 0.95f
-                isTv42 -> 70.dp * 0.95f
+                isTv42LargeCanvas -> 109.dp * 0.95f * 0.80f
+                isTv42 -> 70.dp * 0.95f * 0.80f
                 else -> 80.dp
             }
             // TV66: 89×1.25 × −15%.
@@ -783,11 +824,15 @@ data class IntroLayoutMetrics(
     /**
      * Gira/touch (manitos). Historia usa [rotateButtonSizeBase], no este.
      * TV66: −14.5% y −20% (Hikvision físico), luego −10% pedido.
-     * TV42/tablet: −15% y el mismo −10%.
+     * TV42/Ariana: −15%, −10% previo, y −10% adicional (Intro).
+     * Otros tablet_landscape: −15% y −10%.
      */
     val rotateButtonSize: Dp
         get() = when (vitrinaProfileKey) {
-            "tv_42", "tablet_landscape" -> rotateButtonSizeBase * 0.85f * 0.90f
+            "tv_42", "tablet_landscape" -> {
+                val shared = rotateButtonSizeBase * 0.85f * 0.90f
+                if (isTv42 || isTv42LargeCanvas) shared * 0.90f else shared
+            }
             "tv_66" -> rotateButtonSizeBase * 0.95f * 0.90f * 0.80f * 0.90f
             else -> rotateButtonSizeBase * 0.90f
         }
@@ -799,9 +844,11 @@ data class IntroLayoutMetrics(
     /** Padding inferior del hint touch.gif (sobre el cintillo frontal). */
     val touchHintBottomPadding: Dp
         get() {
-            // Infinix / tablet / Fire+Ariana: bajar 2 espacios. TV66: −1 (subir 1 vs previo).
+            // Infinix / tablet: bajar 2 espacios. TV42/Ariana: sin ese nudge (subir 2 vs previo).
+            // TV66: −1 (subir 1 vs previo).
             val lowerNudge = when (vitrinaProfileKey) {
-                "phone_landscape", "tablet_landscape", "tv_42" -> FireTv42Spacing.spaces(2)
+                "phone_landscape", "tablet_landscape" -> FireTv42Spacing.spaces(2)
+                "tv_42" -> 0.dp
                 "tv_66" -> FireTv42Spacing.spaces(1)
                 else -> 0.dp
             }

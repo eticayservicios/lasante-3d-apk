@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.lasante.tvkiosk.data.Product
+import com.lasante.tvkiosk.ui.layout.FireTv42Spacing
 import com.lasante.tvkiosk.ui.utils.clickableWithSound
 import com.lasante.tvkiosk.ui.utils.UiSound
 
@@ -63,7 +64,7 @@ private val StarTitleBrush = Brush.verticalGradient(
 )
 
 /** Fracción del ancho de rampa donde empieza la diagonal (asset Linea inicial / Hikvision). */
-private const val RAMP_DIAG_START_FRACTION = 0.88f
+private const val RAMP_DIAG_START_FRACTION_DEFAULT = 0.88f
 
 /** Altura de la rampa / ancho (265 px de subida útil sobre 1368 de ancho). */
 private const val RAMP_RISE_OVER_WIDTH = 265f / 1368f
@@ -121,14 +122,25 @@ fun VitrinaBubblesRow(
                 .coerceAtLeast(rampStartX + 80.dp)
         }
         val effectiveRampWidth = rampEndX - rampStartX
-        val rawRampRise =
-            effectiveRampWidth * RAMP_RISE_OVER_WIDTH - metrics.starRampRiseNudge
-        val rampRise =
-            if (metrics.starRampRiseNudge > 0.dp) rawRampRise.coerceAtLeast(14.dp)
-            else rawRampRise
         val titleFontSize = metrics.starTitleFontSize
         val titleHeight = with(density) { titleFontSize.toDp() }
         var titleWidth by remember(titleFontSize) { mutableStateOf(0.dp) }
+
+        // Ariana: diagonal corta fija junto a la 1.ª burbuja (= más empinada, menos “rampa larga”).
+        // Otros: fracción Hikvision del ancho total.
+        val shortDiagRun = metrics.starRampShortDiagRun
+        val rawRampRise = if (shortDiagRun > 0.dp) {
+            // Rise ≈ run → ~45°; un poco más de rise = aún más inclinada.
+            shortDiagRun * 1.15f - metrics.starRampRiseNudge
+        } else {
+            effectiveRampWidth * RAMP_RISE_OVER_WIDTH - metrics.starRampRiseNudge
+        }
+        val rampRise =
+            if (metrics.starRampRiseNudge > 0.dp || shortDiagRun > 0.dp) {
+                rawRampRise.coerceAtLeast(if (shortDiagRun > 0.dp) shortDiagRun else 14.dp)
+            } else {
+                rawRampRise
+            }
 
         val upperY = bubbleSize / 2f
         val lowerY = upperY + rampRise
@@ -144,8 +156,21 @@ fun VitrinaBubblesRow(
             titleY + titleHeight + 4.dp,
         )
 
-        val diagStartX = rampStartX + effectiveRampWidth * RAMP_DIAG_START_FRACTION
-        val lowerSegWidth = effectiveRampWidth * RAMP_DIAG_START_FRACTION
+        val minLowerForTitle = if (titleWidth > 0.dp) {
+            // Ariana: +2 puntitos tras el título para que no quede justo contra la diagonal.
+            titleWidth + FireTv42Spacing.spaces(1) + metrics.bubblesDotSize * 2f
+        } else {
+            80.dp
+        }
+        val diagStartX = if (shortDiagRun > 0.dp) {
+            (rampEndX - shortDiagRun).coerceAtLeast(rampStartX + minLowerForTitle)
+        } else {
+            val diagStartFraction = metrics.starRampDiagStartFraction
+                .coerceIn(0.50f, RAMP_DIAG_START_FRACTION_DEFAULT)
+            rampStartX + effectiveRampWidth * diagStartFraction
+        }
+        val lowerSegWidth = diagStartX - rampStartX
+        // Título centrado en el tramo horizontal bajo de la rampa.
         val titleX = if (titleWidth > 0.dp) {
             rampStartX + (lowerSegWidth - titleWidth) / 2f
         } else {
