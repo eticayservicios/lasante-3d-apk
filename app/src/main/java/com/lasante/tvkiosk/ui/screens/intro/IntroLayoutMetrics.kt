@@ -293,8 +293,8 @@ data class IntroLayoutMetrics(
         }
 
     val starRampLowerExtra: Dp
-        // TV66: +3 espacios — tramo bajo más largo; diagonal más corta/acortada.
-        get() = if (isTv66) Tv42Spacing.spaces(3) else 0.dp
+        // TV66: más = tramo bajo más largo → diagonal más corta = más inclinada.
+        get() = if (isTv66) Tv42Spacing.spaces(6) else 0.dp
 
     /** Fracción Hikvision: diagonal al ~12% final de la rampa. */
     val starRampDiagStartFraction: Float
