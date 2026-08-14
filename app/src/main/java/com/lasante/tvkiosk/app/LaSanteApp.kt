@@ -9,6 +9,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
 import com.lasante.tvkiosk.navigation.LaSanteNavHost
+import com.lasante.tvkiosk.ui.layout.ArianaLayoutDebug
+import com.lasante.tvkiosk.ui.layout.ArianaPreviewFrame
+import com.lasante.tvkiosk.ui.layout.HikvisionLayoutDebug
 import com.lasante.tvkiosk.ui.layout.HikvisionPreviewFrame
 import com.lasante.tvkiosk.ui.screens.treatments.TreatmentsViewModel
 import com.lasante.tvkiosk.ui.screens.treatments.TreatmentsViewModelFactory
@@ -32,8 +35,25 @@ fun LaSanteApp() {
 
     LaSanteTheme {
         Surface {
-            HikvisionPreviewFrame {
-                LaSanteNavHost(
+            // Solo uno activo: hikForce gana si ambos flags están ON.
+            when {
+                HikvisionLayoutDebug.isForced() -> HikvisionPreviewFrame {
+                    LaSanteNavHost(
+                        navController = navController,
+                        catalogRepository = app.catalogRepository,
+                        audioPlayer = app.audioPlayer,
+                        windowSizeClass = windowSizeClass,
+                    )
+                }
+                ArianaLayoutDebug.isForced() -> ArianaPreviewFrame {
+                    LaSanteNavHost(
+                        navController = navController,
+                        catalogRepository = app.catalogRepository,
+                        audioPlayer = app.audioPlayer,
+                        windowSizeClass = windowSizeClass,
+                    )
+                }
+                else -> LaSanteNavHost(
                     navController = navController,
                     catalogRepository = app.catalogRepository,
                     audioPlayer = app.audioPlayer,

@@ -54,9 +54,9 @@ import com.lasante.tvkiosk.ui.layout.CatalogHeaderMetrics
 import com.lasante.tvkiosk.ui.layout.CatalogScreenTitle
 import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
 import com.lasante.tvkiosk.ui.layout.FireTv42Spacing
-import com.lasante.tvkiosk.ui.layout.HikvisionLayoutDebug
 import com.lasante.tvkiosk.ui.layout.LogCatalogHeaderProfile
 import com.lasante.tvkiosk.ui.layout.SharedNavMetrics
+import com.lasante.tvkiosk.ui.layout.layoutForceOverlayLabel
 import com.lasante.tvkiosk.ui.layout.rememberCatalogLayout
 import com.lasante.tvkiosk.ui.theme.LaSanteGreen
 import com.lasante.tvkiosk.ui.theme.LaSanteText
@@ -121,7 +121,7 @@ fun TreatmentsScreen(
                         text = "${canvasW.value.toInt()}×${canvasH.value.toInt()} · ${profile.tier} · " +
                             "large=${header.isLargeCanvas} · btn=${header.navButtonSize.value}dp · " +
                             "tv66=${header.isTv66} · fill=${"%.2f".format(ui.cardIconFill)} · " +
-                            HikvisionLayoutDebug.overlayLabel(),
+                            layoutForceOverlayLabel(),
                         color = Color.White,
                         fontSize = 11.sp,
                         modifier = Modifier

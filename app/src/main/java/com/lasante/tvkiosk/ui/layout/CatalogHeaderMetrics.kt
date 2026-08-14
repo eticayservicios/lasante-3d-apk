@@ -412,7 +412,7 @@ fun LogCatalogHeaderProfile(header: CatalogHeaderMetrics, screen: String) {
             "$screen titleStartGap=${header.titleStartGap} " +
                 "navBtn=${header.navButtonSize} " +
                 "large=${header.isLargeCanvas} tv42=${header.isTv42} tv66=${header.isTv66} " +
-                HikvisionLayoutDebug.overlayLabel(),
+                layoutForceOverlayLabel(),
         )
     }
 }

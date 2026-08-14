@@ -29,6 +29,9 @@ gradle.zip
 # Google Services
 google-services.json
 
+# Layout force local (true/false solo en tu máquina; no CI/release/deploy)
+app/src/main/java/com/lasante/tvkiosk/ui/layout/LayoutForceLocal.kt
+
 # Chat logs
 q-dev-chat*.md
 

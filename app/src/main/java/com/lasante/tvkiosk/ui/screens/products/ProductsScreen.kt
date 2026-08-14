@@ -72,8 +72,8 @@ import com.lasante.tvkiosk.ui.layout.DeviceProfile
 import com.lasante.tvkiosk.ui.layout.DeviceProfileResolver
 import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
 import com.lasante.tvkiosk.ui.layout.FireTv42Spacing
-import com.lasante.tvkiosk.ui.layout.HikvisionLayoutDebug
 import com.lasante.tvkiosk.ui.layout.LogCatalogHeaderProfile
+import com.lasante.tvkiosk.ui.layout.layoutForceOverlayLabel
 import com.lasante.tvkiosk.ui.layout.rememberCatalogLayout
 import com.lasante.tvkiosk.ui.screens.intro.VitrinaUiImages
 import com.lasante.tvkiosk.ui.screens.treatments.TreatmentUiMetrics
@@ -905,9 +905,11 @@ fun ProductsScreen(
                         text = "${canvasWidth.value.toInt()}×${canvasHeight.value.toInt()} · ${profile.tier} · " +
                             "large=${header.isLargeCanvas} · btn=${buttonSize.value}dp · " +
                             "filter=${header.filterIconSize.value}dp · " +
-                            HikvisionLayoutDebug.overlayLabel() +
+                            layoutForceOverlayLabel() +
                             if (header.isTv66 || profile.tier.name.contains("LARGE")) {
                                 " · TV66-ref=1280×720"
+                            } else if (header.isTv42) {
+                                " · Ariana-ref=1137×711"
                             } else {
                                 ""
                             },

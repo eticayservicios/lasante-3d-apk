@@ -14,13 +14,11 @@ import com.lasante.tvkiosk.BuildConfig
  *
  * OFF o release: perfil y canvas reales del dispositivo.
  *
- * Cambiar [FORCE_HIKVISION_LAYOUT] a `false` para desactivar.
+ * Activar/desactivar solo en [LayoutForceLocal] (archivo local, gitignored).
  */
 object HikvisionLayoutDebug {
-    /** ON = ver toda la app como Hikvision TV66 (viewport 1280×720). */
-    const val FORCE_HIKVISION_LAYOUT: Boolean = false
-
-    fun isForced(): Boolean = BuildConfig.DEBUG && FORCE_HIKVISION_LAYOUT
+    fun isForced(): Boolean =
+        BuildConfig.DEBUG && LayoutForceLocal.FORCE_HIKVISION_LAYOUT
 
     /** Escala aplicada (host / 1280×720). En Damasco ≈ 1.04. */
     var previewScale: Float by mutableFloatStateOf(1f)

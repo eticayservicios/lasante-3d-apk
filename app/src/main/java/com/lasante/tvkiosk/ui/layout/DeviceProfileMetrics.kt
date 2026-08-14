@@ -79,6 +79,7 @@ object DeviceProfileResolver {
         val isLandscape = maxWidth > maxHeight
 
         // TV66 Hikvision: canvas ref., preferTv66, o force DEBUG (Damasco).
+        // Ariana force no entra aquí: el viewport 1137×711 ya resuelve TV_REGULAR.
         if (
             HikvisionLayoutDebug.isForced() ||
             Tv66Reference.matchesReferenceCanvas(maxWidth, maxHeight) ||

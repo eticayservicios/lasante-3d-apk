@@ -1,0 +1,20 @@
+package com.lasante.tvkiosk.ui.layout
+
+/**
+ * Flags locales de layout force (DEBUG).
+ *
+ * Este archivo es la plantilla del repo (siempre en `false`).
+ * Copia a `LayoutForceLocal.kt` y cambia los valores solo en tu máquina:
+ *
+ *   cp LayoutForceLocal.kt.example LayoutForceLocal.kt
+ *
+ * `LayoutForceLocal.kt` está en `.gitignore` → no viaja en push / CI / release.
+ * Si falta, Gradle lo genera desde este example (todo en `false`).
+ */
+object LayoutForceLocal {
+    /** Viewport lógico 1280×720 (Hikvision TV66). */
+    const val FORCE_HIKVISION_LAYOUT: Boolean = false
+
+    /** Viewport lógico 1137×711 (tablet Ariana). Ignorado si Hikvision está ON. */
+    const val FORCE_ARIANA_LAYOUT: Boolean = false
+}

@@ -33,7 +33,7 @@ import coil.compose.AsyncImage
 import com.lasante.tvkiosk.BuildConfig
 import com.lasante.tvkiosk.data.Product
 import com.lasante.tvkiosk.data.VitrinaUnit
-import com.lasante.tvkiosk.ui.layout.HikvisionLayoutDebug
+import com.lasante.tvkiosk.ui.layout.layoutForceOverlayLabel
 import com.lasante.tvkiosk.ui.utils.clickableWithSound
 import com.lasante.tvkiosk.ui.utils.UiSound
 
@@ -107,7 +107,7 @@ fun IntroResponsiveLayout(
             Text(
                 text = "${metrics.vitrinaProfileKey} · " +
                     "${metrics.maxWidth.value.toInt()}×${metrics.maxHeight.value.toInt()} · " +
-                    "${HikvisionLayoutDebug.overlayLabel()} · " +
+                    "${layoutForceOverlayLabel()} · " +
                     "manito=${"%.1f".format(metrics.rotateButtonSize.value)} · " +
                     "burbuja=${"%.1f".format(metrics.bubbleSize.value)} · " +
                     "red=${"%.1f".format(metrics.socialIconSize.value)}",

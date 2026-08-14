@@ -16,17 +16,21 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.Dp
 
 /**
- * Cuando [HikvisionLayoutDebug] está ON, monta la UI en canvas lógico **1280×720 dp**
- * (mismas constraints que el panel Hikvision) y la **escala** para llenar el host.
- *
- * En la TV física 1280×720 ocupa toda la pantalla; en Damasco (≈1333×800) sin escala
- * se veía un rectángulo más chico con bandas. Con scale≈1.04 llena el ancho como Hikvision.
+ * Viewport lógico fijo + scale-to-fit del host.
+ * Usado por [HikvisionLayoutDebug] (1280×720) y [ArianaLayoutDebug] (1137×711).
  */
 @Composable
-fun HikvisionPreviewFrame(content: @Composable () -> Unit) {
-    if (!HikvisionLayoutDebug.isForced()) {
+fun DebugLayoutPreviewFrame(
+    forced: Boolean,
+    refWidth: Dp,
+    refHeight: Dp,
+    onHostUpdated: (hostW: Float, hostH: Float, scale: Float) -> Unit,
+    content: @Composable () -> Unit,
+) {
+    if (!forced) {
         content()
         return
     }
@@ -37,29 +41,23 @@ fun HikvisionPreviewFrame(content: @Composable () -> Unit) {
         contentAlignment = Alignment.Center,
     ) {
         val scale = minOf(
-            maxWidth / Tv66Reference.Width,
-            maxHeight / Tv66Reference.Height,
+            maxWidth / refWidth,
+            maxHeight / refHeight,
         )
         LaunchedEffect(maxWidth, maxHeight, scale) {
-            HikvisionLayoutDebug.updatePreviewHost(
-                hostWidthDp = maxWidth.value,
-                hostHeightDp = maxHeight.value,
-                appliedScale = scale,
-            )
+            onHostUpdated(maxWidth.value, maxHeight.value, scale)
         }
 
-        // Slot visual = ref × scale (llena el host en el eje limitante).
         Box(
             modifier = Modifier
-                .width(Tv66Reference.Width * scale)
-                .height(Tv66Reference.Height * scale)
+                .width(refWidth * scale)
+                .height(refHeight * scale)
                 .clipToBounds(),
         ) {
-            // Canvas lógico siempre 1280×720; el scale es solo visual.
             Box(
                 modifier = Modifier
-                    .requiredWidth(Tv66Reference.Width)
-                    .requiredHeight(Tv66Reference.Height)
+                    .requiredWidth(refWidth)
+                    .requiredHeight(refHeight)
                     .graphicsLayer {
                         scaleX = scale
                         scaleY = scale
@@ -71,4 +69,38 @@ fun HikvisionPreviewFrame(content: @Composable () -> Unit) {
             }
         }
     }
+}
+
+/**
+ * Cuando [HikvisionLayoutDebug] está ON, monta la UI en canvas lógico **1280×720 dp**
+ * y la escala para llenar el host.
+ */
+@Composable
+fun HikvisionPreviewFrame(content: @Composable () -> Unit) {
+    DebugLayoutPreviewFrame(
+        forced = HikvisionLayoutDebug.isForced(),
+        refWidth = Tv66Reference.Width,
+        refHeight = Tv66Reference.Height,
+        onHostUpdated = { w, h, scale ->
+            HikvisionLayoutDebug.updatePreviewHost(w, h, scale)
+        },
+        content = content,
+    )
+}
+
+/**
+ * Cuando [ArianaLayoutDebug] está ON, monta la UI en canvas lógico **1137×711 dp**
+ * (tablet Ariana / Television_1080) y la escala para llenar el host.
+ */
+@Composable
+fun ArianaPreviewFrame(content: @Composable () -> Unit) {
+    DebugLayoutPreviewFrame(
+        forced = ArianaLayoutDebug.isForced(),
+        refWidth = ArianaTabletReference.Width,
+        refHeight = ArianaTabletReference.Height,
+        onHostUpdated = { w, h, scale ->
+            ArianaLayoutDebug.updatePreviewHost(w, h, scale)
+        },
+        content = content,
+    )
 }

@@ -107,3 +107,26 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling:$composeUiVersion")
     debugImplementation("androidx.compose.ui:ui-test-manifest:$composeUiVersion")
 }
+
+// LayoutForceLocal.kt es gitignored; si falta (CI/clone fresco), se copia del example (todo false).
+val layoutForceLocalFile =
+    file("src/main/java/com/lasante/tvkiosk/ui/layout/LayoutForceLocal.kt")
+val layoutForceLocalExample =
+    file("src/main/java/com/lasante/tvkiosk/ui/layout/LayoutForceLocal.kt.example")
+
+tasks.register("ensureLayoutForceLocal") {
+    description = "Crea LayoutForceLocal.kt desde el example si no existe (flags en false)."
+    doLast {
+        if (!layoutForceLocalFile.exists()) {
+            check(layoutForceLocalExample.exists()) {
+                "Falta ${layoutForceLocalExample.path}"
+            }
+            layoutForceLocalExample.copyTo(layoutForceLocalFile)
+            logger.lifecycle("Created ${layoutForceLocalFile.name} from example (forces OFF).")
+        }
+    }
+}
+
+tasks.named("preBuild").configure {
+    dependsOn("ensureLayoutForceLocal")
+}
