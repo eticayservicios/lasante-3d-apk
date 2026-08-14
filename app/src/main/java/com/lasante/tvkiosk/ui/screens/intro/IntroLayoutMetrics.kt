@@ -997,9 +997,9 @@ data class IntroLayoutMetrics(
                     else -> base
                 }
             }
-            // TV66 / Hikvision: −3 espacios (subir 1 más vs previo).
+            // TV66 / Hikvision: −2 espacios (bajar 1 vs previo −3).
             "tv_66" -> maxHeight * sceneHeightFraction * 0.035f - 5.dp -
-                Tv42Spacing.spaces(3)
+                Tv42Spacing.spaces(2)
             "expanded" -> maxHeight * sceneHeightFraction * 0.04f
             else -> maxHeight * sceneHeightFraction * 0.04f
         }

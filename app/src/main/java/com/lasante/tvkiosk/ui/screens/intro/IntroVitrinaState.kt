@@ -67,14 +67,13 @@ fun rememberVitrinaInteractionController(
 ): VitrinaInteractionController {
     var activeIndex by rememberSaveable { mutableIntStateOf(0) }
     var displayRotationDegrees by rememberSaveable { mutableFloatStateOf(0f) }
-    var mode by remember { mutableStateOf(VitrinaMode.AutoRotating) }
+    // Arranque quieto (luces ok) hasta que Filament cargue; luego idle gira sola.
+    var mode by remember { mutableStateOf(VitrinaMode.Interactive) }
     var rotationAnimationSpec by remember {
         mutableStateOf<AnimationSpec<Float>>(VitrinaConstants.manualRotationAnimationSpec)
     }
-    var isUserActive by remember { mutableStateOf(false) }
-    var lastUserInteraction by remember {
-        mutableLongStateOf(System.currentTimeMillis() - autoRotateAfterMs - 1_000L)
-    }
+    var isUserActive by remember { mutableStateOf(true) }
+    var lastUserInteraction by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var dragAccumulatedX by remember { mutableFloatStateOf(0f) }
     var dragStartTimeMs by remember { mutableLongStateOf(0L) }
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -91,27 +90,15 @@ fun rememberVitrinaInteractionController(
         mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
     }
     val isActive = isForeground && contentActive
-    var resumedFromBackground by remember { mutableStateOf(false) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_START -> {
                     isForeground = true
-                    if (resumedFromBackground) {
-                        // Volver a primer plano: girar sola con luces apagadas (no Interactive).
-                        if (mode != VitrinaMode.Dragging && mode != VitrinaMode.ModalOpen) {
-                            lastUserInteraction =
-                                System.currentTimeMillis() - autoRotateAfterMs - 1_000L
-                            mode = VitrinaMode.AutoRotating
-                            isUserActive = false
-                        }
-                        resumedFromBackground = false
-                    }
                 }
                 Lifecycle.Event.ON_STOP -> {
                     isForeground = false
-                    resumedFromBackground = true
                     if (mode == VitrinaMode.ScreenSaver) {
                         mode = VitrinaMode.Interactive
                     }
@@ -237,6 +224,7 @@ fun rememberVitrinaInteractionController(
                     else -> VitrinaConstants.manualRotationAnimationSpec
                 }
                 lastUserInteraction = System.currentTimeMillis()
+                isUserActive = true // corta idle continuo antes del snap
                 mode = VitrinaMode.AutoRotating
             }
         }
@@ -321,20 +309,22 @@ fun rememberVitrinaInteractionController(
 
     LaunchedEffect(isActive) {
         if (isActive) {
-            // Al abrir Intro (o volver de CT): girar sola con luces apagadas.
-            // idleFor = autoRotateAfterMs → auto-rotate ya; screensaver aún no.
-            if (mode != VitrinaMode.Dragging && mode != VitrinaMode.ModalOpen) {
-                lastUserInteraction =
-                    System.currentTimeMillis() - autoRotateAfterMs - 1_000L
-                mode = VitrinaMode.AutoRotating
-                isUserActive = false
-            }
+            // Esperar a que cargue la escena: girar de entrada crasheaba Filament.
+            delay(1_200L)
+            if (!isActive) return@LaunchedEffect
+            if (mode == VitrinaMode.Dragging || mode == VitrinaMode.ModalOpen) return@LaunchedEffect
+            // Si el usuario tocó en esos 1.2s, no forzar idle.
+            if (System.currentTimeMillis() - lastUserInteraction < 1_000L) return@LaunchedEffect
+            lastUserInteraction = System.currentTimeMillis() - autoRotateAfterMs - 1_000L
+            mode = VitrinaMode.AutoRotating
+            isUserActive = false
         } else {
-            // Fuera de Intro: no acumular idle ni dejar screensaver/auto “invisible”.
+            // Fuera de Intro: parar idle/screensaver “invisible”.
             lastUserInteraction = System.currentTimeMillis()
             if (mode == VitrinaMode.ScreenSaver || mode == VitrinaMode.AutoRotating) {
                 mode = VitrinaMode.Interactive
             }
+            isUserActive = true
         }
     }
 

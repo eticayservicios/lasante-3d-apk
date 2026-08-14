@@ -201,6 +201,7 @@ fun VitrinaModelViewer(
         isDragging,
         isUserActive,
         layoutMetrics.idleFullRotationMs,
+        baseInstance,
     ) {
         if (isDragging) return@LaunchedEffect
         if (!sceneActive) {
@@ -209,8 +210,8 @@ fun VitrinaModelViewer(
             return@LaunchedEffect
         }
         if (!isUserActive) {
-            // Rotación continua idle. Duración por perfil: pantallas grandes
-            // usan más ms/360° porque el mismo °/s se percibe más rápido (más px en el borde).
+            // No girar idle hasta que el GLB esté listo (evita crash nativo al abrir).
+            if (baseInstance == null) return@LaunchedEffect
             val startAngle = rotationAnim.value
             rotationAnim.animateTo(
                 targetValue = startAngle - 360f,
