@@ -29,8 +29,10 @@ import io.github.sceneview.SurfaceType
 import io.github.sceneview.environment.Environment
 import io.github.sceneview.math.Position
 import io.github.sceneview.math.Scale
+import io.github.sceneview.model.ModelInstance
 import io.github.sceneview.model.model
 import io.github.sceneview.node.ModelNode
+import com.google.android.filament.RenderableManager
 import io.github.sceneview.rememberCameraNode
 import io.github.sceneview.rememberEnvironment
 import io.github.sceneview.rememberEnvironmentLoader
@@ -43,7 +45,80 @@ private data class VitrinaSwapMaterials(
     val matOff: MaterialInstance,
     val glassOn: MaterialInstance,
     val glassOff: MaterialInstance,
-)@Composable
+    /**
+     * LED / Luz Interior ON+OFF.
+     * El GLB comparte una sola instancia entre las 10 lámparas; hay que clonar OFF
+     * para poder apagar laterales y dejar solo la cara frontal encendida.
+     */
+    val lampLedOn: MaterialInstance?,
+    val lampLedOff: MaterialInstance?,
+    val lampInteriorOn: MaterialInstance?,
+    val lampInteriorOff: MaterialInstance?,
+)
+
+private fun duplicateLampOff(
+    source: MaterialInstance?,
+    offName: String,
+): MaterialInstance? {
+    source ?: return null
+    return try {
+        MaterialInstance.duplicate(source, offName).also { off ->
+            // Filament puede no exponer estos params; nunca tumbar Intro.
+            runCatching { off.setParameter("emissiveFactor", 0f, 0f, 0f) }
+            runCatching { off.setParameter("emissiveStrength", 0f) }
+        }
+    } catch (t: Throwable) {
+        VitrinaDebugLog.w("VitrinaDiag", "duplicateLampOff($offName) failed: ${t.message}")
+        null
+    }
+}
+
+private fun applyFaceLamps(
+    instance: ModelInstance,
+    renderableManager: RenderableManager,
+    mats: VitrinaSwapMaterials,
+    litFaceIndex: Int,
+) {
+    val ledOn = mats.lampLedOn ?: return
+    val ledOff = mats.lampLedOff ?: return
+    val intOn = mats.lampInteriorOn
+    val intOff = mats.lampInteriorOff
+
+    VitrinaConstants.LAMP_NODES_BY_FACE.forEachIndexed { faceIndex, nodeNames ->
+        val on = faceIndex == litFaceIndex
+        val led = if (on) ledOn else ledOff
+        val interior = when {
+            intOn == null || intOff == null -> null
+            on -> intOn
+            else -> intOff
+        }
+        nodeNames.forEach { nodeName ->
+            try {
+                val entity = instance.model.getFirstEntityByName(nodeName)
+                if (entity == 0 || !renderableManager.hasComponent(entity)) return@forEach
+                val ri = renderableManager.getInstance(entity)
+                if (ri == 0) return@forEach
+                val primCount = renderableManager.getPrimitiveCount(ri)
+                val ledSlot = VitrinaConstants.LAMP_PRIMITIVE_LED
+                val intSlot = VitrinaConstants.LAMP_PRIMITIVE_INTERIOR
+                // Evitar abort nativo Filament si el mesh no tiene 3 primitives.
+                if (ledSlot < primCount) {
+                    renderableManager.setMaterialInstanceAt(ri, ledSlot, led)
+                }
+                if (interior != null && intSlot < primCount) {
+                    renderableManager.setMaterialInstanceAt(ri, intSlot, interior)
+                }
+            } catch (t: Throwable) {
+                VitrinaDebugLog.w(
+                    "VitrinaDiag",
+                    "lamp swap $nodeName failed: ${t.message}",
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun VitrinaModelViewer(
     activeUnitId: String,
     activeIndex: Int,
@@ -233,6 +308,8 @@ fun VitrinaModelViewer(
         var matOff: MaterialInstance? = null
         var glassOn: MaterialInstance? = null
         var glassOff: MaterialInstance? = null
+        var lampLed: MaterialInstance? = null
+        var lampInterior: MaterialInstance? = null
         val materialInstances = instance.getMaterialInstances()
         materialInstances.forEachIndexed { idx, mat ->
             val name = try { mat.getName() ?: "" } catch (_: Exception) { "" }
@@ -242,6 +319,8 @@ fun VitrinaModelViewer(
                 "MAT_SECCION_OFF" -> matOff = mat
                 "GLASS.on" -> glassOn = mat
                 "GLASS" -> glassOff = mat
+                VitrinaConstants.LAMP_LED_MATERIAL -> lampLed = mat
+                VitrinaConstants.LAMP_INTERIOR_MATERIAL -> lampInterior = mat
             }
         }
         if (matOn == null || matOff == null || glassOn == null || glassOff == null) {
@@ -256,9 +335,27 @@ fun VitrinaModelViewer(
         }
         VitrinaDebugLog.d(
             "VitrinaMaterials",
-            "Materiales listos ON/OFF + GLASS/GLASS.on (count=${materialInstances.size})",
+            "Materiales listos ON/OFF + GLASS + lamps " +
+                "(led=${lampLed != null} interior=${lampInterior != null} count=${materialInstances.size})",
         )
-        swapMaterials = VitrinaSwapMaterials(matOn!!, matOff!!, glassOn!!, glassOff!!)
+        // No mutar los materiales ON del GLB (setParameter puede abortar Filament).
+        // OFF = clon con emisión en 0; si falla el clon, Intro sigue sin lámparas dinámicas.
+        val lampLedOff = runCatching {
+            duplicateLampOff(lampLed, "${VitrinaConstants.LAMP_LED_MATERIAL}_OFF")
+        }.getOrNull()
+        val lampInteriorOff = runCatching {
+            duplicateLampOff(lampInterior, "${VitrinaConstants.LAMP_INTERIOR_MATERIAL}_OFF")
+        }.getOrNull()
+        swapMaterials = VitrinaSwapMaterials(
+            matOn = matOn!!,
+            matOff = matOff!!,
+            glassOn = glassOn!!,
+            glassOff = glassOff!!,
+            lampLedOn = if (lampLedOff != null) lampLed else null,
+            lampLedOff = lampLedOff,
+            lampInteriorOn = if (lampInteriorOff != null) lampInterior else null,
+            lampInteriorOff = lampInteriorOff,
+        )
     }
 
     LaunchedEffect(baseInstance, swapMaterials, activeIndex, isUserActive, targetRotationDegrees) {
@@ -339,6 +436,21 @@ fun VitrinaModelViewer(
                     VitrinaDebugLog.e(
                         "VitrinaDiag",
                         "Material swap failed lit=$litName glassLit=$glassLit",
+                        t,
+                    )
+                }
+                // Lámparas aisladas: un fallo aquí no debe romper cintillo/acrílico.
+                try {
+                    applyFaceLamps(
+                        instance = instance,
+                        renderableManager = renderableManager,
+                        mats = mats,
+                        litFaceIndex = activeNodeIndex,
+                    )
+                } catch (t: Throwable) {
+                    VitrinaDebugLog.e(
+                        "VitrinaDiag",
+                        "Lamp swap failed litIndex=$activeNodeIndex",
                         t,
                     )
                 }

@@ -3,30 +3,34 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>La Santé — Calibrador vitrina mobile GLB</title>
+  <title>La Santé — Calibrador vitrina (TV66 / Hikvision)</title>
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; font-family: system-ui, sans-serif; background: #f0f0f0; color: #111; }
-    #app { display: grid; grid-template-columns: 1fr 360px; height: 100vh; }
+    #app { display: grid; grid-template-columns: 1fr 380px; height: 100vh; }
     #canvas-wrap {
       display: flex; align-items: center; justify-content: center; flex-direction: column;
-      background: linear-gradient(135deg, #ececec 50%, #e4e4e4 50%);
+      background: #111;
       gap: 10px;
     }
     #frame-label {
-      font-size: 0.85rem; font-weight: 700; color: #2448d8;
-      background: #fff; padding: 6px 14px; border-radius: 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,.1);
+      font-size: 0.85rem; font-weight: 700; color: #9cdcfe;
+      background: #1e1e1e; padding: 6px 14px; border-radius: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.4);
     }
     #viewport-frame {
-      position: relative; box-shadow: 0 4px 24px rgba(0,0,0,.2);
-      border: 3px solid #2448d8; background: #fafafa;
+      position: relative; box-shadow: 0 4px 24px rgba(0,0,0,.5);
+      border: 3px solid #3d7eff; background: #000;
     }
     canvas { display: block; }
     #panel { padding: 16px; overflow-y: auto; background: #fff; border-left: 1px solid #ddd; }
     h1 { font-size: 1rem; margin: 0 0 6px; }
     .warn {
       background: #fff3cd; border: 1px solid #ffc107; padding: 8px; border-radius: 6px;
+      font-size: 0.72rem; margin-bottom: 10px; line-height: 1.45;
+    }
+    .tip {
+      background: #e8f5e9; border: 1px solid #81c784; padding: 8px; border-radius: 6px;
       font-size: 0.72rem; margin-bottom: 10px; line-height: 1.45;
     }
     p.hint { font-size: 0.78rem; color: #555; margin: 0 0 8px; line-height: 1.4; }
@@ -50,6 +54,11 @@
       border: 1px solid #ccc; border-radius: 6px; background: #fafafa;
     }
     .aspect button.active { background: #2448d8; color: #fff; border-color: #2448d8; }
+    .row-btns { display: flex; gap: 6px; margin: 8px 0; flex-wrap: wrap; }
+    .row-btns button {
+      flex: 1; padding: 8px 6px; font-size: 0.72rem; cursor: pointer;
+      border: 1px solid #ccc; border-radius: 6px; background: #f5f5f5;
+    }
     #status { font-size: 0.75rem; color: #444; margin-top: 6px; }
     #bbox-info { font-size: 0.68rem; color: #666; line-height: 1.4; margin-top: 4px; }
   </style>
@@ -57,47 +66,56 @@
 <body>
 <div id="app">
   <div id="canvas-wrap">
-    <div id="frame-label">Infinix — 800×360 dp</div>
+    <div id="frame-label">TV66 Hikvision — 1280×720</div>
     <div id="viewport-frame"><canvas id="c"></canvas></div>
   </div>
   <div id="panel">
-    <h1>Calibrador → Kotlin (GLB mobile)</h1>
+    <h1>Calibrador → VitrinaSlotConfig.kt</h1>
     <div class="warn">
-      <b>Servidor local:</b> <code>cd ~/proyectos/lasante/mobile/app && python3 -m http.server 8765</code><br>
-      Abre <code>http://localhost:8765/tools/vitrina-tuner.html</code><br>
-      Carga <code>mobile_draco.glb</code> (Draco). Escala sobre franja visible 3.26u, no el bbox 74.6u.
+      <b>Servidor:</b> <code>cd ~/proyectos/lasante/mobile/app && python3 -m http.server 8765</code><br>
+      Abrí <code>http://localhost:8765/tools/vitrina-tuner.html</code><br>
+      GLB: <code>app/src/main/assets/vitrina/models/mobile_draco.glb</code> (vitrina_1408 Draco).
+    </div>
+    <div class="tip">
+      <b>Base “muy imponente”:</b> bajá un poco <code>verticalFill</code> (0.90–0.94),
+      o subí <code>cameraY</code> hacia 0 (menos contrapicado), o alejálá con <code>cameraZ</code>.
+      Copiá el bloque Kotlin de abajo a <code>VitrinaSlotConfig</code> cuando te guste.
     </div>
 
-    <div id="drop">Arrastra mobile_draco.glb aquí</div>
+    <div id="drop">Arrastrá mobile_draco.glb aquí · o clic para elegir</div>
     <input type="file" id="file" accept=".glb,.gltf" />
+    <div class="row-btns">
+      <button type="button" id="btn-load-asset">Cargar assets/mobile_draco.glb</button>
+      <button type="button" id="btn-reset-tv66">Reset TV66 actual</button>
+    </div>
     <div id="status">Sin modelo</div>
     <div id="bbox-info"></div>
 
-    <p class="hint"><b>Pantalla</b></p>
+    <p class="hint"><b>Pantalla</b> (empezá en TV66)</p>
     <div class="aspect" id="aspect-btns"></div>
 
     <label>Tamaño <span class="desc">(verticalFill)</span><span class="val" id="v-verticalFill"></span></label>
     <input type="range" id="verticalFill" min="0.55" max="1.10" step="0.01" />
 
     <label>Subir / bajar 3D <span class="desc">(posYOffset)</span><span class="val" id="v-posYOffset"></span></label>
-    <input type="range" id="posYOffset" min="-0.3" max="0.3" step="0.01" />
+    <input type="range" id="posYOffset" min="-0.3" max="0.45" step="0.01" />
 
     <label>Subir / bajar layout <span class="desc">(vitrinaVerticalBias)</span><span class="val" id="v-vBias"></span></label>
     <input type="range" id="vBias" min="0.02" max="0.20" step="0.01" />
 
-    <label>lookAtY <span class="val" id="v-lookAtY"></span></label>
-    <input type="range" id="lookAtY" min="-0.3" max="0.3" step="0.01" />
+    <label>lookAtY <span class="desc">(punto de mira)</span><span class="val" id="v-lookAtY"></span></label>
+    <input type="range" id="lookAtY" min="-0.40" max="0.40" step="0.01" />
 
-    <label>cameraZ <span class="val" id="v-cameraZ"></span></label>
+    <label>cameraZ <span class="desc">(alejar / acercar)</span><span class="val" id="v-cameraZ"></span></label>
     <input type="range" id="cameraZ" min="1.5" max="3.5" step="0.05" />
 
-    <label>cameraY <span class="val" id="v-cameraY"></span></label>
-    <input type="range" id="cameraY" min="-0.2" max="0.3" step="0.01" />
+    <label>cameraY <span class="desc">(− = abajo / contrapicado)</span><span class="val" id="v-cameraY"></span></label>
+    <input type="range" id="cameraY" min="-0.50" max="0.50" step="0.01" />
 
     <label>Rotar unidad <span class="val" id="v-rot"></span></label>
     <input type="range" id="rot" min="0" max="360" step="72" value="0" />
 
-    <pre id="out">Carga el GLB mobile y elige pantalla.</pre>
+    <pre id="out">Cargá el GLB y afiná TV66.</pre>
   </div>
 </div>
 
@@ -112,26 +130,34 @@
   const VISIBLE_HEIGHT = 3.26;
   const VISIBLE_CENTER_Y = 1.28;
 
+  /**
+   * Presets = VitrinaSlotConfig.kt (2026-08-14).
+   * TV66 Hikvision ref = 1280×720 dp.
+   */
   const PROFILES = {
-    tv_32: {
-      kotlin: 'isTv32', label: 'TV 32"', w: 853, h: 480, inches: 32,
-      verticalFill: 0.96, cameraZ: 2.40, cameraY: 0, lookAtY: 0, posYOffset: 0.28, vBias: 0.08,
-    },
-    tv_42: {
-      kotlin: 'isTv42', label: 'TV 42"', w: 960, h: 540, inches: 42,
-      verticalFill: 0.96, cameraZ: 2.38, cameraY: 0, lookAtY: 0, posYOffset: 0.26, vBias: 0.05,
-    },
     tv_66: {
-      kotlin: 'isTv66', label: 'TV 66"', w: 1920, h: 1080, inches: 66,
+      kotlin: 'tv_66', label: 'TV66 Hikvision', w: 1280, h: 720, inches: 66,
       verticalFill: 0.96, cameraZ: 2.40, cameraY: 0, lookAtY: 0, posYOffset: 0.28, vBias: 0.05,
     },
+    tv_42: {
+      kotlin: 'tv_42', label: 'TV 42 / Fire', w: 960, h: 540, inches: 42,
+      verticalFill: 0.96, cameraZ: 2.38, cameraY: 0, lookAtY: 0, posYOffset: 0.26, vBias: 0.05,
+    },
+    tv_32: {
+      kotlin: 'tv_32', label: 'TV 32"', w: 853, h: 480, inches: 32,
+      verticalFill: 0.96, cameraZ: 2.40, cameraY: 0, lookAtY: 0, posYOffset: 0.28, vBias: 0.08,
+    },
+    tablet_landscape: {
+      kotlin: 'tablet_landscape', label: 'Tablet / Damasco', w: 1137, h: 711, inches: 10,
+      verticalFill: 0.96, cameraZ: 2.38, cameraY: 0, lookAtY: 0, posYOffset: 0.26, vBias: 0.05,
+    },
     phone_landscape: {
-      kotlin: 'isPhoneLandscape', label: 'Infinix', w: 800, h: 360, inches: 6.5,
-      verticalFill: 0.94, cameraZ: 2.10, cameraY: 0, lookAtY: 0, posYOffset: 0.26, vBias: 0.06,
+      kotlin: 'phone_landscape', label: 'Infinix', w: 800, h: 360, inches: 6.5,
+      verticalFill: 0.93, cameraZ: 2.15, cameraY: 0, lookAtY: 0, posYOffset: 0.26, vBias: 0.06,
     },
     phone_portrait: {
-      kotlin: 'isPhonePortrait', label: 'Móvil vert.', w: 360, h: 800, inches: 6.5,
-      verticalFill: 0.55, cameraZ: 2.80, cameraY: 0.10, lookAtY: 0, posYOffset: 0, vBias: 0.06,
+      kotlin: 'phone_portrait', label: 'Móvil vert.', w: 360, h: 800, inches: 6.5,
+      verticalFill: 0.60, cameraZ: 2.80, cameraY: 0, lookAtY: 0, posYOffset: 0, vBias: 0.06,
     },
   };
 
@@ -139,7 +165,7 @@
   const frame = document.getElementById('viewport-frame');
   const frameLabel = document.getElementById('frame-label');
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-  renderer.setClearColor(0xfafafa, 1);
+  renderer.setClearColor(0x000000, 1);
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(FOV, 16 / 9, 0.05, 200);
@@ -150,7 +176,7 @@
 
   let pivot = null;
   let modelRoot = null;
-  let viewProfile = 'phone_landscape';
+  let viewProfile = 'tv_66';
   let fullBboxY = 0;
 
   function viewportHeightAtZ(z) {
@@ -166,8 +192,8 @@
   function applyPreset(key) {
     const p = PROFILES[key];
     ['verticalFill', 'posYOffset', 'vBias', 'lookAtY', 'cameraZ', 'cameraY'].forEach(function (id) {
-      const el = document.getElementById(id === 'vBias' ? 'vBias' : id);
-      if (el) el.value = p[id === 'vBias' ? 'vBias' : id];
+      const el = document.getElementById(id);
+      if (el) el.value = p[id];
     });
   }
 
@@ -200,15 +226,13 @@
     camera.lookAt(0, s.lookAtY, 0);
 
     ['verticalFill', 'posYOffset', 'vBias', 'lookAtY', 'cameraY', 'cameraZ', 'rot'].forEach(function (id) {
-      const vid = id === 'vBias' ? 'v-vBias' : 'v-' + id;
-      const src = id === 'vBias' ? 'vBias' : id;
-      document.getElementById(vid).textContent = document.getElementById(src).value;
+      document.getElementById('v-' + id).textContent = document.getElementById(id).value;
     });
 
     document.getElementById('out').textContent =
-'// Perfil: ' + viewProfile + ' (' + p.w + 'x' + p.h + ' dp)\n' +
+'// Perfil: ' + viewProfile + ' (' + p.w + '×' + p.h + ' dp)\n' +
 '// uScale≈' + uScale.toFixed(3) + ' posY≈' + posY.toFixed(3) + '\n\n' +
-'demoTier(\n' +
+'"' + viewProfile + '" -> demoTier(\n' +
 '    verticalFill = ' + s.verticalFill.toFixed(2) + 'f,\n' +
 '    cameraZ = ' + s.cameraZ.toFixed(2) + 'f,\n' +
 '    cameraY = ' + s.cameraY.toFixed(2) + 'f,\n' +
@@ -227,7 +251,10 @@
     const aspect = p.w / p.h;
     let w = maxW * Math.min(inchScale, 1.15);
     let h = w / aspect;
-    if (h > maxH * Math.min(inchScale, 1.15)) { h = maxH * Math.min(inchScale, 1.15); w = h * aspect; }
+    if (h > maxH * Math.min(inchScale, 1.15)) {
+      h = maxH * Math.min(inchScale, 1.15);
+      w = h * aspect;
+    }
     w = Math.round(w); h = Math.round(h);
     frame.style.width = w + 'px';
     frame.style.height = h + 'px';
@@ -247,9 +274,8 @@
     applyView();
   }
 
-  function loadGlb(file) {
-    document.getElementById('status').textContent = 'Cargando ' + file.name + '…';
-    const url = URL.createObjectURL(file);
+  function loadGlbFromUrl(url, label) {
+    document.getElementById('status').textContent = 'Cargando ' + (label || url) + '…';
     const loader = new THREE.GLTFLoader();
     const draco = new THREE.DRACOLoader();
     draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/');
@@ -266,14 +292,18 @@
       modelRoot.position.z -= center.z;
       pivot.add(modelRoot);
       scene.add(pivot);
-      document.getElementById('status').textContent = 'OK: ' + file.name;
+      document.getElementById('status').textContent = 'OK: ' + (label || url);
       document.getElementById('bbox-info').textContent =
         'BBox Y≈' + fullBboxY + 'u · visible≈' + VISIBLE_HEIGHT + 'u · centro visible Y=' + VISIBLE_CENTER_Y;
-      URL.revokeObjectURL(url);
       applyView();
     }, undefined, function (err) {
-      document.getElementById('status').textContent = 'Error: ' + err.message;
+      document.getElementById('status').textContent = 'Error: ' + (err && err.message ? err.message : err);
     });
+  }
+
+  function loadGlb(file) {
+    const url = URL.createObjectURL(file);
+    loadGlbFromUrl(url, file.name);
   }
 
   const aspectBtns = document.getElementById('aspect-btns');
@@ -301,9 +331,24 @@
     if (e.dataTransfer.files[0]) loadGlb(e.dataTransfer.files[0]);
   });
 
+  document.getElementById('btn-load-asset').addEventListener('click', function () {
+    loadGlbFromUrl(
+      '../app/src/main/assets/vitrina/models/mobile_draco.glb',
+      'assets/mobile_draco.glb',
+    );
+  });
+  document.getElementById('btn-reset-tv66').addEventListener('click', function () {
+    selectProfile('tv_66');
+  });
+
   window.addEventListener('resize', function () { resize(); applyView(); });
 
-  selectProfile('phone_landscape');
+  selectProfile('tv_66');
+  // Intento auto-cargar el GLB de assets si el servidor lo sirve.
+  loadGlbFromUrl(
+    '../app/src/main/assets/vitrina/models/mobile_draco.glb',
+    'assets/mobile_draco.glb',
+  );
   (function loop() { requestAnimationFrame(loop); renderer.render(scene, camera); })();
 })();
 </script>

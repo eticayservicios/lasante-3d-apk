@@ -86,6 +86,31 @@ object VitrinaConstants {
         "slot_categoria_5",
     )
 
+    /**
+     * Lámparas del GLB vitrina_1408 (`shade.*`).
+     * 2 por cara (estante alto + medio), alineadas a [slot_categoria_1…5] / [UNIT_GLB_NODE_NAMES].
+     *
+     * Índice = cara GLB: 0 Genéricos … 4 Hospital.
+     */
+    val LAMP_NODES_BY_FACE: List<List<String>> = listOf(
+        listOf("shade.003", "shade.008"), // genericos (~91°)
+        listOf("shade.002", "shade.006"), // primary (~163°)
+        listOf("shade.001", "shade.007"), // specialty (~235°)
+        listOf("shade.005", "shade.010"), // phq (~307°)
+        listOf("shade.004", "shade.009"), // hospital (~19°)
+    )
+    val LAMP_NODE_NAMES: List<String> = LAMP_NODES_BY_FACE.flatten()
+    /** Slots de material en cada mesh shade: bake / LED / Luz Interior. */
+    const val LAMP_PRIMITIVE_LED = 1
+    const val LAMP_PRIMITIVE_INTERIOR = 2
+    const val LAMP_LED_MATERIAL = "mtl_busselamp_led"
+    const val LAMP_INTERIOR_MATERIAL = "Luz Interior"
+    /** Valores ON del export Blender (apagado = 0). */
+    const val LAMP_LED_EMISSIVE_STRENGTH = 10f
+    const val LAMP_INTERIOR_EMISSIVE_STRENGTH = 5f
+    val LAMP_LED_EMISSIVE_FACTOR = floatArrayOf(1f, 0.87941f, 0.52251f)
+    val LAMP_INTERIOR_EMISSIVE_FACTOR = floatArrayOf(1f, 1f, 1f)
+
     val fadeAnimationSpec: AnimationSpec<Float> = tween(durationMillis = 280)
     val manualRotationAnimationSpec: AnimationSpec<Float> = tween(
         durationMillis = 180,
