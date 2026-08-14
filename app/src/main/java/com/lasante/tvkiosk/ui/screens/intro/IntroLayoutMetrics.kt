@@ -270,8 +270,7 @@ data class IntroLayoutMetrics(
 
     /**
      * Nudge X de la rampa Productos Estrellas (resta a [bubblesBadgeCenterXInRow]).
-     * Menos nudge = título+línea más a la derecha (menos separación vs burbujas).
-     * TV42: −8. TV1080: −1 (bloque más cerca de las burbujas).
+     * TV42: −8. TV1080: −1.
      */
     val starRampStartNudge: Dp
         get() = when {
@@ -282,53 +281,44 @@ data class IntroLayoutMetrics(
 
     /**
      * Resta a la subida de la diagonal (menos rise = línea baja más arriba).
-     * TV42 / large: −2 (+ puntitos en large). TV1080: −1. TV66: −2.
      */
     val starRampRiseNudge: Dp
         get() = when {
             isTv1080Canvas -> Tv42Spacing.spaces(1)
             isLargeTv42Canvas -> Tv42Spacing.spaces(2) + bubblesDotSize * 2f
             isTv42 -> Tv42Spacing.spaces(2)
-            isTv66 -> Tv42Spacing.spaces(2)
             else -> 0.dp
         }
 
-    /**
-     * Extra horizontal del tramo bajo (antes de la diagonal).
-     * TV66: +2 espacios (título centrado en el tramo).
-     */
     val starRampLowerExtra: Dp
-        get() = if (isTv66) Tv42Spacing.spaces(2) else 0.dp
+        get() = 0.dp
 
-    /**
-     * Fracción del ancho de rampa donde empieza la diagonal.
-     * TV66: 0.78 → diagonal más larga (rampa suave, no tramo corto).
-     */
+    /** Fracción Hikvision: diagonal al ~12% final de la rampa. */
     val starRampDiagStartFraction: Float
-        get() = if (isTv66) 0.78f else 0.88f
+        get() = 0.88f
 
     /**
-     * Diagonal corta fija cerca de la 1.ª burbuja (solo TV1080 ~1137×711).
+     * Diagonal corta fija (solo TV1080). TV66 usa la rampa Hikvision por fracción.
      */
     val starRampShortDiagRun: Dp
         get() = if (isTv1080Canvas) Tv42Spacing.spaces(6) else 0.dp
+
+    /** Factor de rise en diagonal corta (TV1080). */
+    val starRampRiseFactor: Float
+        get() = 1.15f
+
     /**
-     * Sin stub horizontal entre diagonal y 1.ª burbuja
-     * (TV42 / tablet large / tablet / Hikvision TV66).
+     * Sin stub entre diagonal y 1.ª burbuja (TV42 / large / tablet).
+     * TV66: false — geometría Hikvision original (diagonal → horizontal por centros).
      */
     val starRampAttachToFirstBubble: Boolean
         get() = isTv42 ||
             isTv42LargeCanvas ||
-            isTv66 ||
             vitrinaProfileKey == "tablet_landscape"
 
-    /**
-     * Solape de la diagonal dentro de la 1.ª burbuja (cierra gap anti-alias / borde).
-     * TV66: un poco más adentro para que no se vea separación.
-     */
+    /** Solape en 1.ª burbuja (solo perfiles attach). TV66: 0. */
     val starRampBubbleOverlap: Dp
         get() = when {
-            isTv66 -> 10.dp
             isTv1080Canvas || isLargeTv42Canvas || isTv42 -> 6.dp
             else -> 0.dp
         }

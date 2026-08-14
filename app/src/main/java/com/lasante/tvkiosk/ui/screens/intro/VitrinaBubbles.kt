@@ -116,10 +116,10 @@ fun VitrinaBubblesRow(
                 metrics.starRampStartNudge
         val rampWidth = metrics.starLineStartWidth
         val rampEndX = if (metrics.starRampAttachToFirstBubble) {
-            // Entra un poco en la 1.ª burbuja para no dejar gap visual en el borde.
             (bubblesStart + metrics.starRampBubbleOverlap)
                 .coerceAtLeast(rampStartX + 80.dp)
         } else {
+            // TV66 / Hikvision: rampa por ancho; la horizontal sigue por el centro de burbujas.
             minOf(rampStartX + rampWidth, bubblesStart)
                 .coerceAtLeast(rampStartX + 80.dp)
         }
@@ -128,16 +128,19 @@ fun VitrinaBubblesRow(
         val titleHeight = with(density) { titleFontSize.toDp() }
         var titleWidth by remember(titleFontSize) { mutableStateOf(0.dp) }
 
-        // Diagonal corta (TV1080) junto a la 1.ª burbuja. Otros: fracción del ancho.
+        // TV1080: diagonal corta. TV66 y resto: fracción Hikvision (0.88).
         val shortDiagRun = metrics.starRampShortDiagRun
+        val riseFactor = metrics.starRampRiseFactor
         val rawRampRise = if (shortDiagRun > 0.dp) {
-            shortDiagRun * 1.15f - metrics.starRampRiseNudge
+            shortDiagRun * riseFactor - metrics.starRampRiseNudge
         } else {
             effectiveRampWidth * RAMP_RISE_OVER_WIDTH - metrics.starRampRiseNudge
         }
         val rampRise =
             if (metrics.starRampRiseNudge > 0.dp || shortDiagRun > 0.dp) {
-                rawRampRise.coerceAtLeast(if (shortDiagRun > 0.dp) shortDiagRun else 14.dp)
+                rawRampRise.coerceAtLeast(
+                    if (shortDiagRun > 0.dp) shortDiagRun * riseFactor else 14.dp,
+                )
             } else {
                 rawRampRise
             }
@@ -157,7 +160,6 @@ fun VitrinaBubblesRow(
         )
 
         val minLowerForTitle = if (titleWidth > 0.dp) {
-            // TV1080: +2 puntitos tras el título para que no quede justo contra la diagonal.
             titleWidth + Tv42Spacing.spaces(1) + metrics.bubblesDotSize * 2f
         } else {
             80.dp
@@ -167,14 +169,9 @@ fun VitrinaBubblesRow(
         } else {
             val diagStartFraction = metrics.starRampDiagStartFraction
                 .coerceIn(0.50f, RAMP_DIAG_START_FRACTION_DEFAULT)
-            val baseDiag = rampStartX + effectiveRampWidth * diagStartFraction
-            // TV66: +2 espacios al tramo bajo (diagonal un poco más tarde).
-            (baseDiag + metrics.starRampLowerExtra).coerceAtMost(
-                (rampEndX - 14.dp).coerceAtLeast(rampStartX + 80.dp),
-            )
+            rampStartX + effectiveRampWidth * diagStartFraction
         }
         val lowerSegWidth = diagStartX - rampStartX
-        // Título centrado en el tramo horizontal bajo de la rampa.
         val titleX = if (titleWidth > 0.dp) {
             rampStartX + (lowerSegWidth - titleWidth) / 2f
         } else {
