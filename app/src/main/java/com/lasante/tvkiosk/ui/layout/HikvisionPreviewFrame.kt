@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.Dp
 
 /**
  * Viewport lógico fijo + scale-to-fit del host.
- * Usado por [HikvisionLayoutDebug] (1280×720) y [ArianaLayoutDebug] (1137×711).
+ * Usado por [HikvisionLayoutDebug] (1280×720) y [Tv1080LayoutDebug] (1137×711).
  */
 @Composable
 fun DebugLayoutPreviewFrame(
@@ -89,17 +89,17 @@ fun HikvisionPreviewFrame(content: @Composable () -> Unit) {
 }
 
 /**
- * Cuando [ArianaLayoutDebug] está ON, monta la UI en canvas lógico **1137×711 dp**
- * (tablet Ariana / Television_1080) y la escala para llenar el host.
+ * Cuando [Tv1080LayoutDebug] está ON, monta la UI en canvas lógico **1137×711 dp**
+ * (TV1080 / Television_1080) y la escala para llenar el host.
  */
 @Composable
-fun ArianaPreviewFrame(content: @Composable () -> Unit) {
+fun Tv1080PreviewFrame(content: @Composable () -> Unit) {
     DebugLayoutPreviewFrame(
-        forced = ArianaLayoutDebug.isForced(),
-        refWidth = ArianaTabletReference.Width,
-        refHeight = ArianaTabletReference.Height,
+        forced = Tv1080LayoutDebug.isForced(),
+        refWidth = Tv1080Reference.Width,
+        refHeight = Tv1080Reference.Height,
         onHostUpdated = { w, h, scale ->
-            ArianaLayoutDebug.updatePreviewHost(w, h, scale)
+            Tv1080LayoutDebug.updatePreviewHost(w, h, scale)
         },
         content = content,
     )

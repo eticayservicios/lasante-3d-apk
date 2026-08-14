@@ -44,7 +44,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.lasante.tvkiosk.data.Product
-import com.lasante.tvkiosk.ui.layout.FireTv42Spacing
+import com.lasante.tvkiosk.ui.layout.Tv42Spacing
 import com.lasante.tvkiosk.ui.utils.clickableWithSound
 import com.lasante.tvkiosk.ui.utils.UiSound
 
@@ -116,7 +116,9 @@ fun VitrinaBubblesRow(
                 metrics.starRampStartNudge
         val rampWidth = metrics.starLineStartWidth
         val rampEndX = if (metrics.starRampAttachToFirstBubble) {
-            bubblesStart.coerceAtLeast(rampStartX + 80.dp)
+            // Entra un poco en la 1.ª burbuja para no dejar gap visual en el borde.
+            (bubblesStart + metrics.starRampBubbleOverlap)
+                .coerceAtLeast(rampStartX + 80.dp)
         } else {
             minOf(rampStartX + rampWidth, bubblesStart)
                 .coerceAtLeast(rampStartX + 80.dp)
@@ -126,11 +128,9 @@ fun VitrinaBubblesRow(
         val titleHeight = with(density) { titleFontSize.toDp() }
         var titleWidth by remember(titleFontSize) { mutableStateOf(0.dp) }
 
-        // Ariana: diagonal corta fija junto a la 1.ª burbuja (= más empinada, menos “rampa larga”).
-        // Otros: fracción Hikvision del ancho total.
+        // Diagonal corta (TV1080) junto a la 1.ª burbuja. Otros: fracción del ancho.
         val shortDiagRun = metrics.starRampShortDiagRun
         val rawRampRise = if (shortDiagRun > 0.dp) {
-            // Rise ≈ run → ~45°; un poco más de rise = aún más inclinada.
             shortDiagRun * 1.15f - metrics.starRampRiseNudge
         } else {
             effectiveRampWidth * RAMP_RISE_OVER_WIDTH - metrics.starRampRiseNudge
@@ -157,8 +157,8 @@ fun VitrinaBubblesRow(
         )
 
         val minLowerForTitle = if (titleWidth > 0.dp) {
-            // Ariana: +2 puntitos tras el título para que no quede justo contra la diagonal.
-            titleWidth + FireTv42Spacing.spaces(1) + metrics.bubblesDotSize * 2f
+            // TV1080: +2 puntitos tras el título para que no quede justo contra la diagonal.
+            titleWidth + Tv42Spacing.spaces(1) + metrics.bubblesDotSize * 2f
         } else {
             80.dp
         }
@@ -167,7 +167,11 @@ fun VitrinaBubblesRow(
         } else {
             val diagStartFraction = metrics.starRampDiagStartFraction
                 .coerceIn(0.50f, RAMP_DIAG_START_FRACTION_DEFAULT)
-            rampStartX + effectiveRampWidth * diagStartFraction
+            val baseDiag = rampStartX + effectiveRampWidth * diagStartFraction
+            // TV66: +2 espacios al tramo bajo (diagonal un poco más tarde).
+            (baseDiag + metrics.starRampLowerExtra).coerceAtMost(
+                (rampEndX - 14.dp).coerceAtLeast(rampStartX + 80.dp),
+            )
         }
         val lowerSegWidth = diagStartX - rampStartX
         // Título centrado en el tramo horizontal bajo de la rampa.

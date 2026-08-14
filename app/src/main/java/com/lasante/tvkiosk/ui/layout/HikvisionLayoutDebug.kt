@@ -20,7 +20,7 @@ object HikvisionLayoutDebug {
     fun isForced(): Boolean =
         BuildConfig.DEBUG && LayoutForceLocal.FORCE_HIKVISION_LAYOUT
 
-    /** Escala aplicada (host / 1280×720). En Damasco ≈ 1.04. */
+    /** Escala aplicada (host / 1280×720). En tablet large ≈ 1.04. */
     var previewScale: Float by mutableFloatStateOf(1f)
         private set
     var previewHostW: Float by mutableFloatStateOf(0f)

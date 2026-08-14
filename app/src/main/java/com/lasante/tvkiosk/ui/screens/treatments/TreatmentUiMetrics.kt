@@ -7,11 +7,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lasante.tvkiosk.ui.layout.DeviceProfile
 import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
-import com.lasante.tvkiosk.ui.layout.FireTv42Spacing
+import com.lasante.tvkiosk.ui.layout.Tv42Spacing
 
 /**
  * Badge + cards de clases terapéuticas.
- * [tv42Large] = catálogo LARGE (TV_REGULAR / Damasco / Ariana).
+ * [tv42Large] = catálogo LARGE (TV_REGULAR / tablet large / TV1080).
  */
 object TreatmentUiMetrics {
     const val BADGE_WIDTH_TO_HEIGHT = 509f / 706f
@@ -37,8 +37,8 @@ object TreatmentUiMetrics {
 
     val tv42 = ProfileMetrics(
         // Fondo +2 esp; icono −1 esp (patrón Hikvision escalado).
-        badgeHeight = 64.dp + FireTv42Spacing.spaces(2),
-        badgeIconSize = 28.dp - FireTv42Spacing.spaces(1),
+        badgeHeight = 64.dp + Tv42Spacing.spaces(2),
+        badgeIconSize = 28.dp - Tv42Spacing.spaces(1),
         cardIconSize = 320.dp,
         navButtonSize = 38.dp,
         cardLabelFontSize = scaledSp(12.sp),
@@ -49,8 +49,8 @@ object TreatmentUiMetrics {
     )
 
     val phoneLandscape = ProfileMetrics(
-        badgeHeight = 46.dp + FireTv42Spacing.spaces(1),
-        badgeIconSize = (22.dp - FireTv42Spacing.spaces(1)).coerceAtLeast(16.dp),
+        badgeHeight = 46.dp + Tv42Spacing.spaces(1),
+        badgeIconSize = (22.dp - Tv42Spacing.spaces(1)).coerceAtLeast(16.dp),
         cardIconSize = 240.dp,
         navButtonSize = 32.dp,
         cardLabelFontSize = scaledSp(12.sp),
@@ -58,8 +58,8 @@ object TreatmentUiMetrics {
     )
 
     val phonePortrait = ProfileMetrics(
-        badgeHeight = 62.dp + FireTv42Spacing.spaces(1),
-        badgeIconSize = (26.dp - FireTv42Spacing.spaces(1)).coerceAtLeast(18.dp),
+        badgeHeight = 62.dp + Tv42Spacing.spaces(1),
+        badgeIconSize = (26.dp - Tv42Spacing.spaces(1)).coerceAtLeast(18.dp),
         cardIconSize = 240.dp,
         navButtonSize = 35.dp,
         cardLabelFontSize = scaledSp(13.sp),
@@ -67,22 +67,22 @@ object TreatmentUiMetrics {
     )
 
     val tv42Large = ProfileMetrics(
-        // Ariana/large: fondo +3 esp; icono −2 esp.
-        badgeHeight = 78.dp + FireTv42Spacing.spaces(3),
-        badgeIconSize = 38.dp - FireTv42Spacing.spaces(2),
+        // TV1080/large: fondo +3 esp; icono −2 esp.
+        badgeHeight = 78.dp + Tv42Spacing.spaces(3),
+        badgeIconSize = 38.dp - Tv42Spacing.spaces(2),
         cardIconSize = 560.dp,
         navButtonSize = 52.dp,
         cardLabelFontSize = scaledSp(20.sp),
         cardLabelLineHeight = scaledSp(23.sp),
-        // Television_1080 / Ariana: iconos −30% (fill 0.86 → 0.60).
+        // Television_1080 / TV1080: iconos −30% (fill 0.86 → 0.60).
         cardIconFill = CARD_ICON_FILL_LARGE * 0.70f,
         cardAspectRatio = 1.12f,
     )
 
     val tv66 = ProfileMetrics(
         // Fondo +4 espacios; icono 38 − 2 espacios.
-        badgeHeight = 104.dp + FireTv42Spacing.spaces(4),
-        badgeIconSize = 38.dp - FireTv42Spacing.spaces(2),
+        badgeHeight = 104.dp + Tv42Spacing.spaces(4),
+        badgeIconSize = 38.dp - Tv42Spacing.spaces(2),
         cardIconSize = 420.dp,
         navButtonSize = 52.dp,
         cardLabelFontSize = scaledSp(18.sp),

@@ -53,7 +53,7 @@ import com.lasante.tvkiosk.ui.components.TrimTransparentTransformation
 import com.lasante.tvkiosk.ui.layout.CatalogHeaderMetrics
 import com.lasante.tvkiosk.ui.layout.CatalogScreenTitle
 import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
-import com.lasante.tvkiosk.ui.layout.FireTv42Spacing
+import com.lasante.tvkiosk.ui.layout.Tv42Spacing
 import com.lasante.tvkiosk.ui.layout.LogCatalogHeaderProfile
 import com.lasante.tvkiosk.ui.layout.SharedNavMetrics
 import com.lasante.tvkiosk.ui.layout.layoutForceOverlayLabel
@@ -94,11 +94,11 @@ fun TreatmentsScreen(
                 profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE -> 14.dp
                 else -> 18.dp
             }
-            // Shared TV: subir subtítulo (TV66 −2 esp; Fire/Ariana −1 esp).
+            // Shared TV: subir subtítulo (TV66 −2 esp; TV42/TV1080 −1 esp).
             val subtitleTopGap = when {
-                header.isTv66 -> (26.dp - FireTv42Spacing.spaces(2)).coerceAtLeast(8.dp)
+                header.isTv66 -> (26.dp - Tv42Spacing.spaces(2)).coerceAtLeast(8.dp)
                 header.usesSharedTvCatalogLayout ->
-                    (26.dp - FireTv42Spacing.spaces(1)).coerceAtLeast(10.dp)
+                    (26.dp - Tv42Spacing.spaces(1)).coerceAtLeast(10.dp)
                 profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE -> 14.dp
                 else -> if (profile.isWide) 18.dp else 14.dp
             }
@@ -358,7 +358,7 @@ private fun TherapeuticClassCard(
     }
 }
 
-/** Altura del rótulo (~2 líneas) — evita truncate en TV42/Fire. */
+/** Altura del rótulo (~2 líneas) — evita truncate en TV42/TV42. */
 @Composable
 private fun therapeuticClassLabelHeight(lineHeight: TextUnit): Dp {
     return with(LocalDensity.current) { (lineHeight.toPx() * 2.1f).toDp() }

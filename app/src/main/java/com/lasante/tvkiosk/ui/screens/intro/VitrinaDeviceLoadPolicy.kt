@@ -17,7 +17,7 @@ internal data class VitrinaDeviceProfile(
     val isEmulator: Boolean,
 )
 
-/** Retrasos de prefetch y calidad Filament según perfil — reduce OOM en Fire HD y emulador TV. */
+/** Retrasos de prefetch y calidad Filament según perfil — reduce OOM en tablet táctil y emulador TV. */
 internal object VitrinaDeviceLoadPolicy {
     fun resolve(context: Context, configuration: Configuration): VitrinaDeviceProfile {
         val isEmulator = isLikelyEmulator()
@@ -34,7 +34,7 @@ internal object VitrinaDeviceLoadPolicy {
 
     /**
      * TV real: [Configuration.UI_MODE_TYPE_TELEVISION].
-     * Tablets grandes (p. ej. Fire HD 961×600 dp) comparten ancho con TV 42" — se excluyen por touch.
+     * Tablets grandes (p. ej. tablet táctil 961×600 dp) comparten ancho con TV 42" — se excluyen por touch.
      */
     fun isAndroidTv(context: Context, configuration: Configuration): Boolean {
         val isTabletLandscape = isTabletLandscape(configuration)
@@ -107,9 +107,9 @@ internal object VitrinaDeviceLoadPolicy {
     /**
      * Calidad Filament:
      * - Emulador TV66/4K: [RenderQuality.Performance] (DRS) para evitar ANR en x86.
-     * - Emulador Ariana / Television_1080 (TV_REGULAR): [RenderQuality.Default] —
+     * - Emulador TV1080 / Television_1080 (TV_REGULAR): [RenderQuality.Default] —
      *   Performance+DRS se ve muy pixelado en 1137×711.
-     * - Dispositivos reales (Fire HD incluido): Default sin DRS; la RAM se mitiga
+     * - Dispositivos reales (tablet táctil incluido): Default sin DRS; la RAM se mitiga
      *   con prefetch retrasado, no bajando resolución del GLB.
      */
     fun filamentRenderQuality(context: Context, layoutMetrics: IntroLayoutMetrics): RenderQuality =

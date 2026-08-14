@@ -73,7 +73,7 @@ fun ModalFrostScrim(
     )
 }
 
-/** API 30 (p. ej. Fire HD): sin blur nativo ni BlurEffect — usar frost más marcado. */
+/** API 30 (p. ej. tablet táctil): sin blur nativo ni BlurEffect — usar frost más marcado. */
 fun needsLegacyModalBlurFallback(): Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.S
 
 @Composable

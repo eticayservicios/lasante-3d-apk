@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
  * Canvas de referencia (Hikvision definitivo): [Tv66Reference] → **1280×720 dp**.
  *
  * Perfiles:
- * - **tv_42 / Fire / 1080p**: canvas ~960×540 dp (o tablet similar ~1137×711). NO usar tv_66.
+ * - **tv_42 / TV42 / 1080p**: canvas ~960×540 dp (o tablet similar ~1137×711). NO usar tv_66.
  * - **tv_66**: canvas ref. Hikvision 1280×720, ancho >1400 dp, Hikvision HW,
  *   TV leanback 4K, o 4K “comprimido” por densidad alta.
  *
@@ -28,7 +28,7 @@ object TvProfileDetector {
         density: Density,
         context: Context,
     ): Boolean {
-        // Debug: forzar TV66 en toda la app (Damasco → layout Hikvision).
+        // Debug: forzar TV66 en toda la app (tablet large → layout Hikvision).
         if (HikvisionLayoutDebug.isForced()) return true
 
         // Hikvision definitivo (emulador skin 1280×720 o panel real).

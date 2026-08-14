@@ -9,8 +9,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
 import com.lasante.tvkiosk.navigation.LaSanteNavHost
-import com.lasante.tvkiosk.ui.layout.ArianaLayoutDebug
-import com.lasante.tvkiosk.ui.layout.ArianaPreviewFrame
+import com.lasante.tvkiosk.ui.layout.Tv1080LayoutDebug
+import com.lasante.tvkiosk.ui.layout.Tv1080PreviewFrame
 import com.lasante.tvkiosk.ui.layout.HikvisionLayoutDebug
 import com.lasante.tvkiosk.ui.layout.HikvisionPreviewFrame
 import com.lasante.tvkiosk.ui.screens.treatments.TreatmentsViewModel
@@ -45,7 +45,7 @@ fun LaSanteApp() {
                         windowSizeClass = windowSizeClass,
                     )
                 }
-                ArianaLayoutDebug.isForced() -> ArianaPreviewFrame {
+                Tv1080LayoutDebug.isForced() -> Tv1080PreviewFrame {
                     LaSanteNavHost(
                         navController = navController,
                         catalogRepository = app.catalogRepository,

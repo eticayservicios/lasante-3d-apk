@@ -71,7 +71,7 @@ import com.lasante.tvkiosk.ui.layout.CatalogScreenTitle
 import com.lasante.tvkiosk.ui.layout.DeviceProfile
 import com.lasante.tvkiosk.ui.layout.DeviceProfileResolver
 import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
-import com.lasante.tvkiosk.ui.layout.FireTv42Spacing
+import com.lasante.tvkiosk.ui.layout.Tv42Spacing
 import com.lasante.tvkiosk.ui.layout.LogCatalogHeaderProfile
 import com.lasante.tvkiosk.ui.layout.layoutForceOverlayLabel
 import com.lasante.tvkiosk.ui.layout.rememberCatalogLayout
@@ -434,7 +434,7 @@ fun ProductsScreen(
                                 onClose = onBack,
                             )
                         } else if (header.usesSharedTvCatalogLayout) {
-                            // Familia Fire/Ariana/TV66: título | filtro | search | nav; Ordenar aparte.
+                            // Familia TV42/TV1080/TV66: título | filtro | search | nav; Ordenar aparte.
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 Row(
                                     modifier = Modifier
@@ -869,14 +869,14 @@ fun ProductsScreen(
                     .align(Alignment.TopStart)
                     .offset {
                         val (dx, lift) = when {
-                            isTv66 -> 0.dp to FireTv42Spacing.spaces(7)
+                            isTv66 -> 0.dp to Tv42Spacing.spaces(7)
                             isTv42 || catalog.largeCanvas ->
-                                (-FireTv42Spacing.spaces(9)) to FireTv42Spacing.spaces(4)
+                                (-Tv42Spacing.spaces(9)) to Tv42Spacing.spaces(4)
                             else -> 0.dp to 0.dp
                         }
                         // Estrellas: bajar 5 espacios respecto al ancla CT.
                         val y = if (isStarProductsMode) {
-                            -lift + FireTv42Spacing.spaces(5)
+                            -lift + Tv42Spacing.spaces(5)
                         } else {
                             -lift
                         }
@@ -909,7 +909,7 @@ fun ProductsScreen(
                             if (header.isTv66 || profile.tier.name.contains("LARGE")) {
                                 " · TV66-ref=1280×720"
                             } else if (header.isTv42) {
-                                " · Ariana-ref=1137×711"
+                                " · TV1080-ref=1137×711"
                             } else {
                                 ""
                             },

@@ -11,13 +11,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lasante.tvkiosk.ui.layout.ArianaLayoutDebug
-import com.lasante.tvkiosk.ui.layout.ArianaTabletReference
+import com.lasante.tvkiosk.ui.layout.Tv1080LayoutDebug
+import com.lasante.tvkiosk.ui.layout.Tv1080Reference
 import com.lasante.tvkiosk.ui.layout.CatalogHeaderMetrics
 import com.lasante.tvkiosk.ui.layout.DeviceProfile
 import com.lasante.tvkiosk.ui.layout.DeviceProfileResolver
 import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
-import com.lasante.tvkiosk.ui.layout.FireTv42Spacing
+import com.lasante.tvkiosk.ui.layout.Tv42Spacing
 import com.lasante.tvkiosk.ui.layout.HikvisionLayoutDebug
 import com.lasante.tvkiosk.ui.layout.Tv66Reference
 import com.lasante.tvkiosk.ui.layout.TvProfileDetector
@@ -66,26 +66,32 @@ data class IntroLayoutMetrics(
     val isTv32: Boolean
         get() = isTv && maxWidth < 900.dp && profile.tier != DeviceProfileTier.TV_LARGE
 
-    /** TV 42" / Fire / Television_1080 — [DeviceProfileTier.TV_REGULAR]. */
+    /** TV 42" / TV1080 — [DeviceProfileTier.TV_REGULAR]. */
     val isTv42: Boolean
         get() = profile.tier == DeviceProfileTier.TV_REGULAR && !isTv66
 
     /**
-     * Canvas LARGE del catálogo (Ariana / Damasco / todo TV_REGULAR).
+     * Canvas LARGE del catálogo (TV1080 / tablet large / todo TV_REGULAR).
      * Misma regla que CT/Productos vía [CatalogHeaderMetrics.isLargeCatalogCanvas].
      */
     val isTv42LargeCanvas: Boolean
         get() = CatalogHeaderMetrics.isLargeCatalogCanvas(profile, maxHeight)
 
     /**
-     * Tablet Ariana / Television_1080 (~1137×711) o force DEBUG.
-     * No incluye Fire TV1080 genérico ni TV66.
+     * TV1080 / Television_1080 (~1137×711) o force DEBUG.
+     * No incluye TV42 genérico ni TV66.
      */
-    val isArianaTv42: Boolean
+    val isTv1080Canvas: Boolean
         get() = !isTv66 && (
-            ArianaLayoutDebug.isForced() ||
-                ArianaTabletReference.matchesReferenceCanvas(maxWidth, maxHeight)
+            Tv1080LayoutDebug.isForced() ||
+                Tv1080Reference.matchesReferenceCanvas(maxWidth, maxHeight)
             )
+
+    /**
+     * Canvas LARGE nativo (~1333×800), sin force TV1080 ni TV66.
+     */
+    val isLargeTv42Canvas: Boolean
+        get() = isTv42LargeCanvas && !isTv1080Canvas && !isTv66
 
     /** TV Hikvision — TV_LARGE, canvas ref. 1280×720, o force DEBUG. */
     val isTv66: Boolean
@@ -265,54 +271,74 @@ data class IntroLayoutMetrics(
     /**
      * Nudge X de la rampa Productos Estrellas (resta a [bubblesBadgeCenterXInRow]).
      * Menos nudge = título+línea más a la derecha (menos separación vs burbujas).
-     * TV42: −8. Ariana: −1 (bloque más cerca de las burbujas).
+     * TV42: −8. TV1080: −1 (bloque más cerca de las burbujas).
      */
     val starRampStartNudge: Dp
         get() = when {
-            isArianaTv42 -> FireTv42Spacing.spaces(1)
-            isTv42 -> FireTv42Spacing.spaces(8)
+            isTv1080Canvas -> Tv42Spacing.spaces(1)
+            isTv42 -> Tv42Spacing.spaces(8)
             else -> 0.dp
         }
 
     /**
      * Resta a la subida de la diagonal (menos rise = línea baja más arriba).
-     * TV42: −2. Ariana: −1 (más rise → diagonal corta más empinada).
+     * TV42 / large: −2 (+ puntitos en large). TV1080: −1. TV66: −2.
      */
     val starRampRiseNudge: Dp
         get() = when {
-            isArianaTv42 -> FireTv42Spacing.spaces(1)
-            isTv42 -> FireTv42Spacing.spaces(2)
+            isTv1080Canvas -> Tv42Spacing.spaces(1)
+            isLargeTv42Canvas -> Tv42Spacing.spaces(2) + bubblesDotSize * 2f
+            isTv42 -> Tv42Spacing.spaces(2)
+            isTv66 -> Tv42Spacing.spaces(2)
             else -> 0.dp
         }
 
     /**
-     * Fracción del ancho de rampa donde empieza la diagonal (perfiles no-Ariana).
-     * Ariana usa [starRampShortDiagRun] (diagonal corta fija cerca de la 1.ª burbuja).
+     * Extra horizontal del tramo bajo (antes de la diagonal).
+     * TV66: +2 espacios (título centrado en el tramo).
      */
-    val starRampDiagStartFraction: Float
-        get() = 0.88f
+    val starRampLowerExtra: Dp
+        get() = if (isTv66) Tv42Spacing.spaces(2) else 0.dp
 
     /**
-     * Ariana: largo horizontal de la diagonal corta (más corto = más empinada).
-     * ~6 espacios ≈ subida visible sin tramo largo y suave.
+     * Fracción del ancho de rampa donde empieza la diagonal.
+     * TV66: 0.78 → diagonal más larga (rampa suave, no tramo corto).
+     */
+    val starRampDiagStartFraction: Float
+        get() = if (isTv66) 0.78f else 0.88f
+
+    /**
+     * Diagonal corta fija cerca de la 1.ª burbuja (solo TV1080 ~1137×711).
      */
     val starRampShortDiagRun: Dp
-        get() = if (isArianaTv42) FireTv42Spacing.spaces(6) else 0.dp
+        get() = if (isTv1080Canvas) Tv42Spacing.spaces(6) else 0.dp
     /**
      * Sin stub horizontal entre diagonal y 1.ª burbuja
-     * (TV42 / Damasco / tablet landscape).
+     * (TV42 / tablet large / tablet / Hikvision TV66).
      */
     val starRampAttachToFirstBubble: Boolean
         get() = isTv42 ||
             isTv42LargeCanvas ||
+            isTv66 ||
             vitrinaProfileKey == "tablet_landscape"
+
+    /**
+     * Solape de la diagonal dentro de la 1.ª burbuja (cierra gap anti-alias / borde).
+     * TV66: un poco más adentro para que no se vea separación.
+     */
+    val starRampBubbleOverlap: Dp
+        get() = when {
+            isTv66 -> 10.dp
+            isTv1080Canvas || isLargeTv42Canvas || isTv42 -> 6.dp
+            else -> 0.dp
+        }
 
     /** Badge verde inline "PRODUCTOS ESTRELLAS" (pantalla de estrellas, no Intro). */
     val bubblesBadgeHeight: Dp
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 26.dp
             "phone_portrait" -> 28.dp
-            // Damasco: 43. Fire/TV1080: +10% vs 26 → 29. Otros tablet: 30.
+            // tablet large: 43. TV1080: +10% vs 26 → 29. Otros tablet: 30.
             "tv_42", "tablet_landscape" -> when {
                 isTv42LargeCanvas -> 43.dp
                 isTv42 -> 29.dp
@@ -410,11 +436,11 @@ data class IntroLayoutMetrics(
             // Infinix: −15.dp subir bloque PRODUCTOS ESTRELLAS + burbujas.
             "phone_landscape" -> (2.dp + maxHeight * 0.05f) - 15.dp
             "phone_portrait" -> 8.dp
-            // TV42/Ariana: +2 espacios (bajar bloque estrellas + burbujas). Otros tablet: base.
+            // TV42/TV1080: +2 espacios (bajar bloque estrellas + burbujas). Otros tablet: base.
             "tv_42", "tablet_landscape" -> {
                 val base = 20.dp + maxHeight * 0.06f
                 if (isTv42 || isTv42LargeCanvas) {
-                    base + FireTv42Spacing.spaces(2)
+                    base + Tv42Spacing.spaces(2)
                 } else {
                     base
                 }
@@ -433,7 +459,7 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 54.dp
             "phone_portrait" -> 81.dp
-            // Damasco/Ariana LARGE: 109 −5% −20%. Fire/TV1080: 70 −5% −20%. Otros tablet: 80.
+            // tablet large/TV1080 LARGE: 109 −5% −20%. TV1080: 70 −5% −20%. Otros tablet: 80.
             "tv_42", "tablet_landscape" -> when {
                 isTv42LargeCanvas -> 109.dp * 0.95f * 0.80f
                 isTv42 -> 70.dp * 0.95f * 0.80f
@@ -521,8 +547,8 @@ data class IntroLayoutMetrics(
     val logoEndPadding: Dp
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> maxWidth * 0.055f
-            "tv_66" -> maxWidth * 0.048f + FireTv42Spacing.spaces(1)
-            // Fire/TV1080: 0.07. Damasco/otros tablet: 0.052.
+            "tv_66" -> maxWidth * 0.048f + Tv42Spacing.spaces(1)
+            // TV1080: 0.07. tablet large/otros tablet: 0.052.
             "tv_42", "tablet_landscape" -> when {
                 isTv42 && !isTv42LargeCanvas -> maxWidth * 0.07f
                 else -> maxWidth * 0.052f
@@ -539,12 +565,12 @@ data class IntroLayoutMetrics(
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 52.dp
             "short_height" -> 58.dp
-            // TV42/tablet: +28% baseline; Damasco canvas alto +40%.
-            // Fire/Television_1080: −5% adicional sobre el badge (feedback pergamino).
+            // TV42/tablet: +28% baseline; tablet large canvas alto +40%.
+            // TV1080: −5% adicional sobre el badge (feedback pergamino).
             "tv_32" -> 72.dp * 1.20f
             "tv_42", "tablet_landscape" -> when {
                 isTv42LargeCanvas -> 72.dp * 1.40f
-                isTv42 -> 72.dp * 1.28f * 0.95f // Fire/TV1080 −5%
+                isTv42 -> 72.dp * 1.28f * 0.95f // TV1080 −5%
                 else -> 72.dp * 1.28f
             }
             // TV66: −5% × −10% × −15% (bloque + icono escalan juntos).
@@ -579,7 +605,7 @@ data class IntroLayoutMetrics(
 
     /**
      * Inset superior del gif (pergamino) dentro del badge.
-     * Solo Fire/TV1080: más bajo para centrarlo. Damasco/TV66/Infinix: sin cambio.
+     * Solo TV1080: más bajo para centrarlo. tablet large/TV66/Infinix: sin cambio.
      */
     val historiaBadgeIconTop: Dp
         get() = when {
@@ -587,7 +613,7 @@ data class IntroLayoutMetrics(
             else -> historiaBadgeHeight * 0.10f
         }
 
-    /** Redes Intro — TV42/Fire/Damasco unificados (LARGE). */
+    /** Redes Intro — TV42/TV42/tablet large unificados (LARGE). */
     val socialIconSize: Dp
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 24.dp * 1.30f
@@ -602,7 +628,7 @@ data class IntroLayoutMetrics(
     val socialIconSpacing: Dp
         get() = when (vitrinaProfileKey) {
             "tv_66" -> 42.dp
-            // TV42 unificado (Fire/Damasco LARGE): mismo spacing.
+            // TV42 unificado (TV42/tablet large LARGE): mismo spacing.
             "tv_42", "tablet_landscape" -> 34.dp
             else -> 30.dp
         }
@@ -621,7 +647,7 @@ data class IntroLayoutMetrics(
             }
             // TV66: bajar 2 espacios (menos pull-up = más abajo).
             "tv_66" -> {
-                val lowered = bubblesBadgeTopPullUp - FireTv42Spacing.spaces(2)
+                val lowered = bubblesBadgeTopPullUp - Tv42Spacing.spaces(2)
                 if (lowered < 0.dp) 0.dp else lowered
             }
             else -> bubblesBadgeTopPullUp
@@ -629,7 +655,7 @@ data class IntroLayoutMetrics(
 
     /**
      * Inset izquierdo de redes.
-     * Fire/TV1080: un poco más a la derecha para alinear centro con PRODUCTOS ESTRELLAS
+     * TV1080: un poco más a la derecha para alinear centro con PRODUCTOS ESTRELLAS
      * (el badge sigue el mismo eje vía [bubblesBadgeCenterXInRow]).
      */
     val socialStartPadding: Dp
@@ -678,7 +704,7 @@ data class IntroLayoutMetrics(
     /** Ajuste fino en dp del bloque layout (negativo = subir, positivo = bajar). No mueve la cámara. */
     val vitrinaVerticalOffsetAdjustment: Dp
         get() = when (vitrinaProfileKey) {
-            // Fire: subir un poco más (−54). Damasco canvas alto: −62.
+            // TV42: subir un poco más (−54). tablet large canvas alto: −62.
             "tv_42", "tablet_landscape" -> if (isTv42LargeCanvas) (-62).dp else (-54).dp
             // TV66: baseline -42 + subir 75px @ dens 320 (= 37.5 dp).
             "tv_66" -> (-42).dp - 37.5.dp
@@ -694,7 +720,7 @@ data class IntroLayoutMetrics(
     val vitrinaCylinderNudgeDown: Dp
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 10.dp
-            // Fire: menos nudge = cilindro más arriba. Damasco ya en 0.07.
+            // TV42: menos nudge = cilindro más arriba. tablet large ya en 0.07.
             "tv_42", "tablet_landscape" ->
                 if (isTv42LargeCanvas) maxHeight * 0.07f else maxHeight * 0.08f
             // TV66: baseline 0.07H + 20.dp abajo (10 + 10).
@@ -711,7 +737,7 @@ data class IntroLayoutMetrics(
             val sceneH = maxHeight * sceneHeightFraction
             val fill = when (vitrinaProfileKey) {
                 "phone_landscape" -> 0.82f
-                // Fire: más corto. Damasco: un poco menos para que la é no se salga del tope.
+                // TV42: más corto. tablet large: un poco menos para que la é no se salga del tope.
                 "tv_42", "tablet_landscape" -> if (isTv42LargeCanvas) 0.74f else 0.72f
                 "tv_66" -> 0.76f
                 else -> 0.78f
@@ -735,7 +761,7 @@ data class IntroLayoutMetrics(
 
     /**
      * Resta altura al logo vertical dentro del rail (dp).
-     * Phone: 10. Damasco: 45 (badge más grande + logo un poco más corto).
+     * Phone: 10. tablet large: 45 (badge más grande + logo un poco más corto).
      */
     val verticalLogoHeightReduction: Dp
         get() = when {
@@ -797,7 +823,7 @@ data class IntroLayoutMetrics(
             else -> 0.04f
         }
 
-    /** Mismo tamaño base que gira/touch (sin el −20% Fire/Ariana de las manitos). */
+    /** Mismo tamaño base que gira/touch (sin el −20% TV42/TV1080 de las manitos). */
     val historyButtonSize: Dp
         get() = rotateButtonSizeBase
 
@@ -807,7 +833,7 @@ data class IntroLayoutMetrics(
             // Infinix: gira = touch (mismo tamaño; antes gira se veía mucho más grande).
             "phone_landscape" -> 42.dp
             "short_height" -> 64.dp
-            // Fire/TV1080: −5%. Damasco: 78. Otros tablet: 78.
+            // TV1080: −5%. tablet large: 78. Otros tablet: 78.
             "tv_42", "tablet_landscape" -> when {
                 isTv42LargeCanvas -> 78.dp
                 isTv42 -> 78.dp * 0.95f
@@ -824,7 +850,7 @@ data class IntroLayoutMetrics(
     /**
      * Gira/touch (manitos). Historia usa [rotateButtonSizeBase], no este.
      * TV66: −14.5% y −20% (Hikvision físico), luego −10% pedido.
-     * TV42/Ariana: −15%, −10% previo, y −10% adicional (Intro).
+     * TV42/TV1080: −15%, −10% previo, y −10% adicional (Intro).
      * Otros tablet_landscape: −15% y −10%.
      */
     val rotateButtonSize: Dp
@@ -844,23 +870,29 @@ data class IntroLayoutMetrics(
     /** Padding inferior del hint touch.gif (sobre el cintillo frontal). */
     val touchHintBottomPadding: Dp
         get() {
-            // Infinix / tablet: bajar 2 espacios. TV42/Ariana: sin ese nudge (subir 2 vs previo).
+            // Infinix / tablet: bajar 2 espacios. TV42/TV1080: sin ese nudge (subir 2 vs previo).
             // TV66: −1 (subir 1 vs previo).
             val lowerNudge = when (vitrinaProfileKey) {
-                "phone_landscape", "tablet_landscape" -> FireTv42Spacing.spaces(2)
+                "phone_landscape", "tablet_landscape" -> Tv42Spacing.spaces(2)
                 "tv_42" -> 0.dp
-                "tv_66" -> FireTv42Spacing.spaces(1)
+                "tv_66" -> Tv42Spacing.spaces(1)
                 else -> 0.dp
             }
             val base = when (vitrinaProfileKey) {
                 // Infinix: −2.dp más abajo dentro del cintillo.
                 "phone_landscape" -> maxHeight * 0.100f - 2.dp
-                // Fire y Tablet Ariana comparten la misma base (tv_42).
+                // TV42 y TV1080 comparten la misma base (tv_42).
                 "tv_42", "tablet_landscape" -> maxHeight * 0.055f
                 "tv_32", "tv_66" -> maxHeight * 0.055f
                 else -> maxHeight * 0.04f
             }
-            return (base - lowerNudge).coerceAtLeast(0.dp)
+            // tablet large: +4 espacios (2 previos + 2). TV66: +2 espacios.
+            val touchLift = when {
+                isLargeTv42Canvas -> Tv42Spacing.spaces(4)
+                isTv66 -> Tv42Spacing.spaces(2)
+                else -> 0.dp
+            }
+            return (base - lowerNudge + touchLift).coerceAtLeast(0.dp)
         }
 
     /**
@@ -876,10 +908,10 @@ data class IntroLayoutMetrics(
                 else -> maxWidth * 0.09f
             }
             return when (vitrinaProfileKey) {
-                // Fire / Tablet Ariana: +7 espacios a la derecha.
-                "tv_42" -> base + FireTv42Spacing.spaces(7)
+                // TV42 / TV1080: +7 espacios a la derecha.
+                "tv_42" -> base + Tv42Spacing.spaces(7)
                 // TV66: manito blanca del cintillo (gira.gif visual) +9 espacios a la derecha.
-                "tv_66" -> base + FireTv42Spacing.spaces(9)
+                "tv_66" -> base + Tv42Spacing.spaces(9)
                 else -> base
             }
         }
@@ -927,14 +959,14 @@ data class IntroLayoutMetrics(
                 val pull = if (pullTowardCylinder > 72.dp) pullTowardCylinder else 72.dp
                 -(pull + dragHandleWidth) - 8.dp
             }
-            // Damasco/Ariana large: −18 + 5 esp. Fire: −6 + 4 esp (escala hacia TV66).
+            // tablet large/TV1080 large: −18 + 5 esp. TV42: −6 + 4 esp (escala hacia TV66).
             "tv_42", "tablet_landscape" -> when {
-                isTv42LargeCanvas -> (-18).dp + FireTv42Spacing.spaces(5)
-                isTv42 -> (-6).dp + FireTv42Spacing.spaces(4)
+                isTv42LargeCanvas -> (-18).dp + Tv42Spacing.spaces(5)
+                isTv42 -> (-6).dp + Tv42Spacing.spaces(4)
                 else -> 12.dp
             }
             // TV66: +10 espacios a la derecha (había quedado corrido a la izquierda).
-            "tv_66" -> (-36).dp + FireTv42Spacing.spaces(10)
+            "tv_66" -> (-36).dp + Tv42Spacing.spaces(10)
             "tv_32" -> (-14).dp
             else -> (-8).dp
         }
@@ -959,12 +991,18 @@ data class IntroLayoutMetrics(
             // Infinix: +3.dp previo + 2.dp más.
             "phone_landscape" -> maxHeight * sceneHeightFraction * 0.01f + 5.dp
             "tv_32" -> maxHeight * sceneHeightFraction * 0.02f
-            // Damasco: base. Fire/TV1080: +3.dp (+1 vs +2) para alinear con la línea del estante.
+            // tablet large: −3 espacios (1 previo + 2). TV1080: +3.dp.
             "tv_42", "tablet_landscape" -> {
                 val base = maxHeight * sceneHeightFraction * 0.035f - 5.dp
-                if (isTv42 && !isTv42LargeCanvas) base + 3.dp else base
+                when {
+                    isLargeTv42Canvas -> base - Tv42Spacing.spaces(3)
+                    isTv42 && !isTv42LargeCanvas -> base + 3.dp
+                    else -> base
+                }
             }
-            "tv_66" -> maxHeight * sceneHeightFraction * 0.035f - 5.dp
+            // TV66 / Hikvision: −1 espacio (subir).
+            "tv_66" -> maxHeight * sceneHeightFraction * 0.035f - 5.dp -
+                Tv42Spacing.spaces(1)
             "expanded" -> maxHeight * sceneHeightFraction * 0.04f
             else -> maxHeight * sceneHeightFraction * 0.04f
         }

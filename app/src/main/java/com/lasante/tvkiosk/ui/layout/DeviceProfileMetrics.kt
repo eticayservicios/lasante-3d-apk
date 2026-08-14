@@ -45,11 +45,11 @@ data class SharedGridMetrics(
 
 /**
  * “Espacio” = avance del carácter U+0020 (barra espaciadora) en Poppins Regular
- * al tamaño del título principal Fire/TV42 (22.sp + 2 = 24.sp).
+ * al tamaño del título principal TV42 (22.sp + 2 = 24.sp).
  * Medición TTF: 267/1000 em → 6.408.dp @ 24.sp.
  * Unidad de offset en métricas TV42 / headers de catálogo.
  */
-object FireTv42Spacing {
+object Tv42Spacing {
     val KeyboardSpace: Dp = 6.408.dp
     fun spaces(count: Int): Dp = KeyboardSpace * count
 }
@@ -78,8 +78,8 @@ object DeviceProfileResolver {
     ): DeviceProfile {
         val isLandscape = maxWidth > maxHeight
 
-        // TV66 Hikvision: canvas ref., preferTv66, o force DEBUG (Damasco).
-        // Ariana force no entra aquí: el viewport 1137×711 ya resuelve TV_REGULAR.
+        // TV66 Hikvision: canvas ref., preferTv66, o force DEBUG (tablet large).
+        // TV1080 force no entra aquí: el viewport 1137×711 ya resuelve TV_REGULAR.
         if (
             HikvisionLayoutDebug.isForced() ||
             Tv66Reference.matchesReferenceCanvas(maxWidth, maxHeight) ||
@@ -172,13 +172,13 @@ object DeviceProfileResolver {
                 topPadding = if (profile.maxHeight <= Tv66Reference.Height + 40.dp) 28.dp else 58.dp,
             )
             DeviceProfileTier.TV_REGULAR -> SharedGridMetrics(
-                // Fire / Ariana (~1137) y Damasco (~1333): 4 cols.
+                // TV42 / TV1080 (~1137) y tablet large (~1333): 4 cols.
                 columns = 4,
                 horizontalPadding = sideMargin,
                 maxContentWidth = maxContentWidth,
                 contentPadding = 8.dp,
                 cardSpacing = if (w >= 1200.dp) 12.dp else 14.dp,
-                // Fire ~540H: 54.dp comía la 2.ª fila. Damasco canvas alto mantiene aire.
+                // TV42 ~540H: 54.dp comía la 2.ª fila. tablet large canvas alto mantiene aire.
                 topPadding = if (w >= 1200.dp) 54.dp else 28.dp,
             )
             DeviceProfileTier.TABLET_LANDSCAPE -> SharedGridMetrics(
@@ -216,7 +216,7 @@ object DeviceProfileResolver {
             titleUnderlineWidth = 150.dp,
         )
         DeviceProfileTier.TV_LARGE -> SharedNavMetrics(
-            // Hikvision 720: 28.sp. Damasco/canvas altos: 36×0.80 (−20%).
+            // Hikvision 720: 28.sp. tablet large/canvas altos: 36×0.80 (−20%).
             buttonSize = 53.dp,
             buttonSpacing = 12.dp,
             titleFontSize = if (profile.maxHeight <= Tv66Reference.Height + 40.dp) {
@@ -266,13 +266,13 @@ object DeviceProfileResolver {
                 descriptionWeight = 1.40f,
                 descriptionHeightFraction = 0.92f,
                 cardHeightFraction = 0.80f,
-                columnSpacing = FireTv42Spacing.spaces(10),
-                cardWidthTrim = FireTv42Spacing.spaces(8),
-                closeSideGap = FireTv42Spacing.spaces(2),
+                columnSpacing = Tv42Spacing.spaces(10),
+                cardWidthTrim = Tv42Spacing.spaces(8),
+                closeSideGap = Tv42Spacing.spaces(2),
                 rowOffsetX = (-8).dp,
                 rowOffsetY = (-8).dp,
                 descriptionOffsetX = 0.dp,
-                descriptionOffsetY = FireTv42Spacing.spaces(1),
+                descriptionOffsetY = Tv42Spacing.spaces(1),
                 descriptionHorizontalPadding = 30.dp,
                 // Base TV66 × +3% zoom GLB.
                 modelScaleToUnits = 1.72f * 1.03f,
@@ -281,9 +281,9 @@ object DeviceProfileResolver {
             )
 
             /**
-             * Fire / Television_1080 (TV_REGULAR).
+             * TV1080 (TV_REGULAR).
              * Misma intención de diseño; % un poco más alto (canvas distinto) y
-             * gaps en [FireTv42Spacing] (unidad nativa de este perfil).
+             * gaps en [Tv42Spacing] (unidad nativa de este perfil).
              */
             DeviceProfileTier.TV_REGULAR -> SharedModalMetrics(
                 // +5% ancho / +0.10 peso GLB (misma proporción que TV66).
@@ -293,13 +293,13 @@ object DeviceProfileResolver {
                 descriptionWeight = 1.30f,
                 descriptionHeightFraction = 0.90f,
                 cardHeightFraction = 0.82f,
-                columnSpacing = FireTv42Spacing.spaces(10),
-                cardWidthTrim = FireTv42Spacing.spaces(8),
-                closeSideGap = FireTv42Spacing.spaces(2),
+                columnSpacing = Tv42Spacing.spaces(10),
+                cardWidthTrim = Tv42Spacing.spaces(8),
+                closeSideGap = Tv42Spacing.spaces(2),
                 rowOffsetX = (-8).dp,
                 rowOffsetY = (-8).dp,
                 descriptionOffsetX = 0.dp,
-                descriptionOffsetY = FireTv42Spacing.spaces(1),
+                descriptionOffsetY = Tv42Spacing.spaces(1),
                 descriptionHorizontalPadding = 28.dp,
                 modelScaleToUnits = 1.656f * 1.03f,
                 descriptionAlignTop = true,
@@ -307,8 +307,8 @@ object DeviceProfileResolver {
             )
 
             /**
-             * Tablets (Damasco / Infinix / landscape): gaps relativos al ancho,
-             * no [FireTv42Spacing] (comentario histórico: no Damasco/Infinix).
+             * Tablets (tablet large / Infinix / landscape): gaps relativos al ancho,
+             * no [Tv42Spacing] (comentario histórico: no tablet large/Infinix).
              * Más % de modal porque el canvas físico es más chico.
              */
             DeviceProfileTier.TABLET_LANDSCAPE -> SharedModalMetrics(
@@ -429,7 +429,7 @@ object DeviceProfileResolver {
 
             DeviceProfileTier.TV_REGULAR -> FilterSheetMetrics(
                 widthFraction = 0.56f,
-                // TV42 / Ariana: −1 cm físico ≈ −0.08 del alto de pantalla (misma regla que Damasco −0,5 cm ≈ −0.04).
+                // TV42 / TV1080: −1 cm físico ≈ −0.08 del alto de pantalla (misma regla que tablet large −0,5 cm ≈ −0.04).
                 heightFraction = 0.54f,
                 maxWidth = 720.dp,
                 paddingH = 56.dp,
@@ -458,8 +458,8 @@ object DeviceProfileResolver {
             DeviceProfileTier.DEFAULT,
             -> FilterSheetMetrics(
                 widthFraction = 0.62f,
-                // Damasco: −0,5 cm ≈ −0.04 de alto de pantalla
-                heightFraction = 0.62f,
+                // tablet large: −1 cm físico ≈ −0.08 del alto de pantalla (antes 0.62).
+                heightFraction = 0.54f,
                 maxWidth = 640.dp,
                 paddingH = 40.dp,
                 paddingTop = 28.dp,

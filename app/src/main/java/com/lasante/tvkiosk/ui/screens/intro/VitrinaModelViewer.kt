@@ -432,7 +432,7 @@ fun VitrinaModelViewer(
                         }
                     }
                 } catch (t: Throwable) {
-                    // No tumbar Intro en Fire/low-end si Filament rechaza un swap.
+                    // No tumbar Intro en TV42/low-end si Filament rechaza un swap.
                     VitrinaDebugLog.e(
                         "VitrinaDiag",
                         "Material swap failed lit=$litName glassLit=$glassLit",
