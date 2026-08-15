@@ -1418,7 +1418,7 @@ private fun TherapeuticClassFilterSheet(
 ) {
     var draftFormas by remember(initialFilter) { mutableStateOf(initialFilter.formas) }
     var draftStarsOnly by remember(initialFilter) { mutableStateOf(initialFilter.starProductsOnly) }
-    var presentationExpanded by remember { mutableStateOf(false) }
+    var presentationExpanded by remember { mutableStateOf(true) }
     val poppins = MaterialTheme.typography.bodyLarge.fontFamily
     val m = remember(profile) { DeviceProfileResolver.filterSheetMetrics(profile) }
     val filterActionShape = RoundedCornerShape(50.dp)
