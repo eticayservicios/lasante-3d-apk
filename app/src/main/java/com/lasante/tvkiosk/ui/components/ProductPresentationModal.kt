@@ -16,10 +16,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
@@ -60,18 +58,24 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.lasante.tvkiosk.data.Product
 import com.lasante.tvkiosk.ui.layout.DeviceProfileResolver
+import com.lasante.tvkiosk.ui.layout.HikvisionLayoutDebug
 import com.lasante.tvkiosk.ui.layout.SharedModalMetrics
+import com.lasante.tvkiosk.ui.layout.Tv1080LayoutDebug
+import com.lasante.tvkiosk.ui.layout.Tv1080Reference
+import com.lasante.tvkiosk.ui.layout.Tv66Reference
 import com.lasante.tvkiosk.ui.layout.TvProfileDetector
 import com.lasante.tvkiosk.ui.screens.intro.VitrinaAssets
 import com.lasante.tvkiosk.ui.theme.LaSanteGreen
 import com.lasante.tvkiosk.ui.theme.LaSanteGreenDark
 import com.lasante.tvkiosk.ui.theme.LaSanteText
+import com.lasante.tvkiosk.ui.utils.ModalOverlayDialog
 import com.lasante.tvkiosk.ui.utils.splitProductTitleAndStrength
 import com.lasante.tvkiosk.ui.widgets.ModelViewerStub
 import kotlinx.coroutines.delay
 
 private const val MODAL_3D_DEFER_MS = 180L
-private const val CLOSE_MODAL_ASSET = "file:///android_asset/vitrina/ui/close_modal.png"
+/** Misma asset que el close del modal de Filtros ([GreenNavButton]). */
+private const val CLOSE_MODAL_ASSET = "vitrina/ui/close_modal.png"
 private const val MODAL_DESCRIPTION_MAX_CHARS = 280
 private const val MODAL_BULLETS_MAX = 5
 /** Ancho del bloque card+close dentro de su columna (el trim viene del perfil). */
@@ -130,12 +134,23 @@ private fun SharedModalMetrics.toProductModalMetrics() = ProductModalMetrics(
 @Composable
 private fun rememberProductModalMetrics(widthClass: WindowWidthSizeClass?): ProductModalMetrics {
     val configuration = LocalConfiguration.current
-    val maxWidth = configuration.screenWidthDp.dp
-    val maxHeight = configuration.screenHeightDp.dp
+    // Con layout force, el Dialog sale del canvas escalado: usar el viewport de
+    // referencia (igual que Productos/Filtros) para no resolver otro tier.
+    val maxWidth = when {
+        HikvisionLayoutDebug.isForced() -> Tv66Reference.Width
+        Tv1080LayoutDebug.isForced() -> Tv1080Reference.Width
+        else -> configuration.screenWidthDp.dp
+    }
+    val maxHeight = when {
+        HikvisionLayoutDebug.isForced() -> Tv66Reference.Height
+        Tv1080LayoutDebug.isForced() -> Tv1080Reference.Height
+        else -> configuration.screenHeightDp.dp
+    }
     val density = LocalDensity.current
     val context = LocalContext.current
     val preferTv66 = remember(maxWidth, maxHeight, density, context) {
-        TvProfileDetector.isTv66Candidate(maxWidth, maxHeight, density, context)
+        HikvisionLayoutDebug.isForced() ||
+            TvProfileDetector.isTv66Candidate(maxWidth, maxHeight, density, context)
     }
     val profile = remember(maxWidth, maxHeight, widthClass, preferTv66) {
         DeviceProfileResolver.resolve(
@@ -152,6 +167,26 @@ private fun rememberProductModalMetrics(widthClass: WindowWidthSizeClass?): Prod
 
 @Composable
 fun ProductPresentationModal(
+    product: Product,
+    businessUnitName: String? = null,
+    widthClass: WindowWidthSizeClass? = null,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // Dialog como Filtros: mismo espacio de ventana (evita X más grande bajo layout force).
+    ModalOverlayDialog(onDismiss = onClose) {
+        ProductPresentationModalContent(
+            product = product,
+            businessUnitName = businessUnitName,
+            widthClass = widthClass,
+            onClose = onClose,
+            modifier = modifier,
+        )
+    }
+}
+
+@Composable
+private fun ProductPresentationModalContent(
     product: Product,
     businessUnitName: String? = null,
     widthClass: WindowWidthSizeClass? = null,
@@ -251,7 +286,9 @@ fun ProductPresentationModal(
                                     .fillMaxHeight(),
                                 contentAlignment = Alignment.TopCenter,
                             ) {
-                                ProductModalCloseButton(
+                                GreenNavButton(
+                                    assetPath = CLOSE_MODAL_ASSET,
+                                    contentDescription = "Cerrar",
                                     onClick = onClose,
                                     size = closeSize,
                                     modifier = Modifier.zIndex(12f),
@@ -323,7 +360,9 @@ fun ProductPresentationModal(
                                         .fillMaxHeight(),
                                     contentAlignment = Alignment.TopCenter,
                                 ) {
-                                    ProductModalCloseButton(
+                                    GreenNavButton(
+                                        assetPath = CLOSE_MODAL_ASSET,
+                                        contentDescription = "Cerrar",
                                         onClick = onClose,
                                         size = closeSize,
                                         modifier = Modifier.zIndex(12f),
@@ -695,30 +734,4 @@ private fun String.shouldShowInProductModal(): Boolean {
         "destacadoslot",
         "modalenabled",
     )
-}
-
-@Composable
-private fun ProductModalCloseButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    size: Dp = 40.dp * 0.95f,
-) {
-    Box(
-        modifier = modifier
-            .size(size)
-            .clip(CircleShape)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick,
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        AsyncImage(
-            model = CLOSE_MODAL_ASSET,
-            contentDescription = "Cerrar",
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Fit,
-        )
-    }
 }

@@ -279,7 +279,7 @@ object DeviceProfileResolver {
                 modelScaleToUnits = 1.72f * 1.03f,
                 descriptionAlignTop = true,
                 alignRowTop = false,
-                closeButtonSize = 40.dp * 0.95f,
+                closeButtonSize = modalCloseIconSize(DeviceProfileTier.TV_LARGE),
                 justifyDescription = true,
                 descriptionBodyScale = 0.90f,
                 descriptionBottomPadding = 40.dp,
@@ -310,7 +310,7 @@ object DeviceProfileResolver {
                 modelScaleToUnits = 1.656f * 1.03f,
                 descriptionAlignTop = true,
                 alignRowTop = false,
-                closeButtonSize = 38.dp * 0.95f,
+                closeButtonSize = modalCloseIconSize(DeviceProfileTier.TV_REGULAR),
                 justifyDescription = true,
                 descriptionBodyScale = 0.90f,
                 descriptionBottomPadding = 36.dp,
@@ -339,7 +339,7 @@ object DeviceProfileResolver {
                 modelScaleToUnits = 1.55f * 1.02f,
                 descriptionAlignTop = true,
                 alignRowTop = false,
-                closeButtonSize = 36.dp * 0.95f,
+                closeButtonSize = modalCloseIconSize(DeviceProfileTier.TABLET_LANDSCAPE),
                 justifyDescription = true,
                 descriptionBodyScale = 0.90f,
                 descriptionBottomPadding = 32.dp,
@@ -365,7 +365,7 @@ object DeviceProfileResolver {
                 modelScaleToUnits = 1.45f * 1.02f,
                 descriptionAlignTop = true,
                 alignRowTop = true,
-                closeButtonSize = 28.dp * 0.95f,
+                closeButtonSize = modalCloseIconSize(DeviceProfileTier.COMPACT_LANDSCAPE),
                 justifyDescription = true,
                 descriptionBodyScale = 0.92f,
                 descriptionBottomPadding = 24.dp,
@@ -390,7 +390,7 @@ object DeviceProfileResolver {
                 modelScaleToUnits = 1.38f,
                 descriptionAlignTop = true,
                 alignRowTop = true,
-                closeButtonSize = 32.dp * 0.95f,
+                closeButtonSize = modalCloseIconSize(DeviceProfileTier.COMPACT_PORTRAIT),
                 justifyDescription = true,
                 descriptionBodyScale = 0.92f,
                 descriptionBottomPadding = 22.dp,
@@ -416,13 +416,27 @@ object DeviceProfileResolver {
                 modelScaleToUnits = 1.50f * 1.02f,
                 descriptionAlignTop = true,
                 alignRowTop = false,
-                closeButtonSize = 36.dp * 0.95f,
+                closeButtonSize = modalCloseIconSize(DeviceProfileTier.DEFAULT),
                 justifyDescription = true,
                 descriptionBodyScale = 0.90f,
                 descriptionBottomPadding = 32.dp,
                 descriptionExpandable = true,
             )
         }
+    }
+
+    /**
+     * Tamaño único del X de cerrar: modal Productos y modal Filtros.
+     * −5% sobre la base por perfil (misma cifra en ambos sheets).
+     */
+    fun modalCloseIconSize(tier: DeviceProfileTier): Dp = when (tier) {
+        DeviceProfileTier.TV_LARGE -> 40.dp * 0.95f
+        DeviceProfileTier.TV_REGULAR -> 38.dp * 0.95f
+        DeviceProfileTier.TABLET_LANDSCAPE,
+        DeviceProfileTier.DEFAULT,
+        -> 36.dp * 0.95f
+        DeviceProfileTier.COMPACT_LANDSCAPE -> 28.dp * 0.95f
+        DeviceProfileTier.COMPACT_PORTRAIT -> 32.dp * 0.95f
     }
 
     /**
@@ -465,7 +479,7 @@ object DeviceProfileResolver {
                     buttonSp = labelSp,
                     selectSp = labelSp,
                     titleUnderlineWidth = 72.dp,
-                    closeSize = 40.dp * 0.95f,
+                    closeSize = modalCloseIconSize(DeviceProfileTier.TV_LARGE),
                     selectHeight = icon + padV * 2f,
                     pillHorizontalPad = padH,
                     pillVerticalPad = padV,
@@ -502,7 +516,7 @@ object DeviceProfileResolver {
                     buttonSp = labelSp,
                     selectSp = labelSp,
                     titleUnderlineWidth = 68.dp,
-                    closeSize = 38.dp * 0.95f,
+                    closeSize = modalCloseIconSize(DeviceProfileTier.TV_REGULAR),
                     selectHeight = icon + padV * 2f,
                     pillHorizontalPad = padH,
                     pillVerticalPad = padV,
@@ -545,7 +559,7 @@ object DeviceProfileResolver {
                     buttonSp = 11,
                     selectSp = 11,
                     titleUnderlineWidth = 64.dp,
-                    closeSize = 36.dp * 0.95f,
+                    closeSize = modalCloseIconSize(DeviceProfileTier.TABLET_LANDSCAPE),
                     selectHeight = icon + padV * 2f,
                     pillHorizontalPad = padH,
                     pillVerticalPad = padV,
@@ -583,7 +597,7 @@ object DeviceProfileResolver {
                     buttonSp = 11,
                     selectSp = 11,
                     titleUnderlineWidth = 48.dp,
-                    closeSize = 28.dp * 0.95f,
+                    closeSize = modalCloseIconSize(DeviceProfileTier.COMPACT_LANDSCAPE),
                     selectHeight = icon + padV * 2f,
                     pillHorizontalPad = padH,
                     pillVerticalPad = padV,
@@ -621,7 +635,7 @@ object DeviceProfileResolver {
                     buttonSp = 10,
                     selectSp = 10,
                     titleUnderlineWidth = 56.dp,
-                    closeSize = 32.dp * 0.95f,
+                    closeSize = modalCloseIconSize(DeviceProfileTier.COMPACT_PORTRAIT),
                     selectHeight = icon + padV * 2f,
                     pillHorizontalPad = padH,
                     pillVerticalPad = padV,
@@ -661,8 +675,8 @@ data class SharedModalMetrics(
     val modelScaleToUnits: Float,
     val descriptionAlignTop: Boolean,
     val alignRowTop: Boolean,
-    /** Tamaño del botón X (producto). Default −5%. */
-    val closeButtonSize: Dp = 40.dp * 0.95f,
+    /** Tamaño del botón X (producto = filtros vía [DeviceProfileResolver.modalCloseIconSize]). */
+    val closeButtonSize: Dp = DeviceProfileResolver.modalCloseIconSize(DeviceProfileTier.TV_LARGE),
     /** Descripción justificada (Hikvision). */
     val justifyDescription: Boolean = false,
     /** Escala del cuerpo de descripción (<1 = más chico). */
