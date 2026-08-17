@@ -33,11 +33,9 @@ object TreatmentUiMetrics {
         val cardLabelLineHeight: TextUnit = 14.sp,
         val cardIconFill: Float = CARD_ICON_FILL,
         val cardAspectRatio: Float = 1f,
-        /** Padding del Column dentro del card. */
         val cardPaddingH: Dp = 4.dp,
         val cardPaddingTop: Dp = 4.dp,
         val cardPaddingBottom: Dp = 2.dp,
-        /** Padding del Box del icono (dentro del área weight). */
         val cardIconPaddingH: Dp = 6.dp,
         val cardIconPaddingV: Dp = 4.dp,
     )

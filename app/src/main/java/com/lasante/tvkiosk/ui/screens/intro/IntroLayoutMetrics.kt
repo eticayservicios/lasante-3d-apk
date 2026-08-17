@@ -279,10 +279,13 @@ data class IntroLayoutMetrics(
             else -> 0.dp
         }
 
-    /**
-     * Resta a la subida de la diagonal (menos rise = línea baja más arriba).
-     * TV66: −2 espacios (un pelín más inclinada).
-     */
+    val starRampDotExtendLeft: Dp
+        get() = if (isTv66) Tv42Spacing.spaces(2) else 0.dp
+
+    val starRampDiagLeanLeft: Dp
+        get() = if (isTv66) Tv42Spacing.spaces(5) else 0.dp
+
+
     val starRampRiseNudge: Dp
         get() = when {
             isTv1080Canvas -> Tv42Spacing.spaces(1)
@@ -293,10 +296,8 @@ data class IntroLayoutMetrics(
         }
 
     val starRampLowerExtra: Dp
-        // TV66: más = tramo bajo más largo → diagonal más corta = más inclinada.
         get() = if (isTv66) Tv42Spacing.spaces(6) else 0.dp
 
-    /** Fracción Hikvision: diagonal al ~12% final de la rampa. */
     val starRampDiagStartFraction: Float
         get() = 0.88f
 

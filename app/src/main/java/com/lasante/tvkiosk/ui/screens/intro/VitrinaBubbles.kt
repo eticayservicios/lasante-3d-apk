@@ -169,15 +169,16 @@ fun VitrinaBubblesRow(
         } else {
             val diagStartFraction = metrics.starRampDiagStartFraction
                 .coerceIn(0.50f, RAMP_DIAG_START_FRACTION_DEFAULT)
-            // TV66: +2 espacios al tramo bajo; título se centra en lowerSegWidth.
-            (rampStartX + effectiveRampWidth * diagStartFraction + metrics.starRampLowerExtra)
+            (rampStartX + effectiveRampWidth * diagStartFraction + metrics.starRampLowerExtra -
+                metrics.starRampDiagLeanLeft)
                 .coerceAtMost((rampEndX - 14.dp).coerceAtLeast(rampStartX + 80.dp))
         }
-        val lowerSegWidth = diagStartX - rampStartX
+        val lowerLineStartX = rampStartX - metrics.starRampDotExtendLeft
+        val lowerSegWidth = diagStartX - lowerLineStartX
         val titleX = if (titleWidth > 0.dp) {
-            rampStartX + (lowerSegWidth - titleWidth) / 2f
+            lowerLineStartX + (lowerSegWidth - titleWidth) / 2f
         } else {
-            rampStartX
+            lowerLineStartX
         }
 
         Box(
@@ -188,7 +189,7 @@ fun VitrinaBubblesRow(
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val stroke = with(density) { metrics.bubblesConnectorStroke.toPx() }
                 val dotRadius = stroke * 2.8f
-                val startX = with(density) { rampStartX.toPx() }
+                val startX = with(density) { lowerLineStartX.toPx() }
                 val diagX = with(density) { diagStartX.toPx() }
                 val endRampX = with(density) { rampEndX.toPx() }
                 val endX = with(density) { bubblesEnd.toPx() }
