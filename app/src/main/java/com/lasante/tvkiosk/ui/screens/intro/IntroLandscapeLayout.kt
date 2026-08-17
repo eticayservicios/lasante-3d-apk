@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -270,16 +271,21 @@ internal fun IntroActionButton(
     size: androidx.compose.ui.unit.Dp,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    visualScale: Float = 1f,
 ) {
     val context = LocalContext.current
-    val model = remember(assetPath, context) {
-        VitrinaUiImages.request(context, assetPath)
+    val density = LocalDensity.current
+    val sizePx = with(density) { size.roundToPx() }
+    val model = remember(assetPath, context, sizePx) {
+        VitrinaUiImages.request(context, assetPath, sizePx = sizePx)
     }
+    val inset = if (visualScale < 1f) size * ((1f - visualScale) / 2f) else 0.dp
     AsyncImage(
         model = model,
         contentDescription = null,
         modifier = modifier
             .size(size)
+            .padding(inset)
             .clickable(enabled = enabled, onClick = onClick),
         contentScale = ContentScale.Fit,
     )

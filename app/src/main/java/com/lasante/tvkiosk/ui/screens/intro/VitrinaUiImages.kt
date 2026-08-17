@@ -19,6 +19,7 @@ object VitrinaUiImages {
         context: Context,
         data: String,
         isGif: Boolean = data.endsWith(".gif", ignoreCase = true),
+        sizePx: Int? = null,
     ): ImageRequest =
         ImageRequest.Builder(context)
             .data(data)
@@ -26,8 +27,8 @@ object VitrinaUiImages {
             .memoryCachePolicy(CachePolicy.ENABLED)
             .diskCachePolicy(CachePolicy.ENABLED)
             .apply {
-                // Evita frames basura / flash blanco en GIFs con disposal (Infinix / mid-range).
                 if (isGif) allowHardware(false)
+                if (sizePx != null && sizePx > 0) size(sizePx, sizePx)
             }
             .build()
 

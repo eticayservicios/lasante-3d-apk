@@ -27,6 +27,7 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -38,6 +39,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -487,10 +489,8 @@ private fun ProductDescriptionPanel(
         product.modalBulletLines(shorten = false)
     }
     var expanded by remember(product.productoId) { mutableStateOf(false) }
-    val canExpand = expandable && (
-        fullBullets.joinToString("\n") != previewBullets.joinToString("\n") ||
-            (product.description.trim().length > MODAL_DESCRIPTION_MAX_CHARS)
-        )
+    val textShortened = fullBullets.joinToString("\n") != previewBullets.joinToString("\n") ||
+        product.description.trim().length > MODAL_DESCRIPTION_MAX_CHARS
     val bullets = if (expandable && expanded) fullBullets else previewBullets
     val corner = if (compact) 18.dp else 20.dp
     val cornerShape = RoundedCornerShape(corner)
@@ -502,6 +502,11 @@ private fun ProductDescriptionPanel(
     val shadowElevation = if (compact) 12.dp else 20.dp
     val bodySize = ((if (compact) 13f else 14f) * bodyScale).sp
     val bodyLine = ((if (compact) 18f else 20f) * bodyScale).sp
+    val scrollState = rememberScrollState()
+    var viewportPx by remember(product.productoId) { mutableIntStateOf(0) }
+    var contentPx by remember(product.productoId, expanded) { mutableIntStateOf(0) }
+    val overflows = contentPx > viewportPx + 2
+    val canExpand = expandable && (textShortened || overflows || expanded)
 
     Box(modifier = modifier) {
         // Capa de sombra desplazada (arriba + derecha), sin bloque sólido.
@@ -532,7 +537,6 @@ private fun ProductDescriptionPanel(
                 )
                 .background(Color.White, cornerShape)
                 .clip(cornerShape)
-                .verticalScroll(rememberScrollState())
                 .padding(
                     start = panelHorizontalPadding,
                     end = panelHorizontalPadding,
@@ -591,21 +595,37 @@ private fun ProductDescriptionPanel(
                     textAlign = bodyAlign,
                 )
             } else {
-                Column(verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 10.dp)) {
-                    bullets.forEachIndexed { index, line ->
-                        ModalBulletLine(
-                            text = line,
-                            emphasizeLabel = index == 0 && line.contains(':'),
-                            bodySize = bodySize,
-                            bodyLine = bodyLine,
-                            textAlign = bodyAlign,
-                        )
+                Box(
+                    modifier = Modifier
+                        .weight(1f, fill = true)
+                        .fillMaxWidth()
+                        .clipToBounds()
+                        .onSizeChanged { viewportPx = it.height },
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .then(
+                                if (expanded) Modifier.verticalScroll(scrollState) else Modifier,
+                            )
+                            .onSizeChanged { contentPx = it.height },
+                        verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 10.dp),
+                    ) {
+                        bullets.forEachIndexed { index, line ->
+                            ModalBulletLine(
+                                text = line,
+                                emphasizeLabel = index == 0 && line.contains(':'),
+                                bodySize = bodySize,
+                                bodyLine = bodyLine,
+                                textAlign = bodyAlign,
+                            )
+                        }
                     }
                 }
             }
 
             if (canExpand) {
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = if (expanded) "Ver menos" else "Ver más",
                     color = LaSanteGreenDark,
@@ -683,7 +703,9 @@ private fun Product.modalBulletLines(shorten: Boolean = true): List<String> {
             if (value.isEmpty()) k.trim() else "${k.trim()}: $value"
         }
         .filter { it.isNotBlank() }
-    if (fromAttrs.isNotEmpty()) return fromAttrs
+    if (fromAttrs.isNotEmpty()) {
+        return if (shorten) fromAttrs.map { shortenModalText(it, 140) } else fromAttrs
+    }
 
     val raw = description.trim()
     if (raw.isEmpty()) return emptyList()
