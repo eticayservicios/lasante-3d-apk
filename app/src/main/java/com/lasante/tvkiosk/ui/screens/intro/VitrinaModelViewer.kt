@@ -115,13 +115,6 @@ private fun applyLampMaterials(
     if (interior != null && intSlot < primCount) {
         renderableManager.setMaterialInstanceAt(ri, intSlot, interior)
     }
-    // Meshes con 1–2 prims ( varian según loader): encender lo que haya.
-    if (primCount in 1 until 3) {
-        for (slot in 0 until primCount) {
-            if (slot == ledSlot || (interior != null && slot == intSlot)) continue
-            renderableManager.setMaterialInstanceAt(ri, slot, led)
-        }
-    }
 }
 
 private fun applyFaceLamps(
