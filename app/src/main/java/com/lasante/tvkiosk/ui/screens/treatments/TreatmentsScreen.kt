@@ -212,6 +212,11 @@ fun TreatmentsScreen(
                                         iconFill = ui.cardIconFill,
                                         aspectRatio = ui.cardAspectRatio,
                                         blockWidthFraction = ctCardWidthFraction,
+                                        cardPaddingH = ui.cardPaddingH,
+                                        cardPaddingTop = ui.cardPaddingTop,
+                                        cardPaddingBottom = ui.cardPaddingBottom,
+                                        cardIconPaddingH = ui.cardIconPaddingH,
+                                        cardIconPaddingV = ui.cardIconPaddingV,
                                         onClick = { onTreatmentSelected(treatment.id) },
                                     )
                                 }
@@ -279,6 +284,11 @@ private fun TherapeuticClassCard(
     iconFill: Float,
     aspectRatio: Float,
     blockWidthFraction: Float = 1f,
+    cardPaddingH: Dp = 4.dp,
+    cardPaddingTop: Dp = 4.dp,
+    cardPaddingBottom: Dp = 2.dp,
+    cardIconPaddingH: Dp = 6.dp,
+    cardIconPaddingV: Dp = 4.dp,
     onClick: () -> Unit,
 ) {
     val iconModel = TreatmentIconAssets.resolve(iconUrl = treatment.media.icono)
@@ -315,14 +325,19 @@ private fun TherapeuticClassCard(
                     ),
                 )
                 .clickableWithSound(sound = UiSound.Click, onClick = onClick)
-                .padding(start = 4.dp, end = 4.dp, top = 4.dp, bottom = 2.dp),
+                .padding(
+                    start = cardPaddingH,
+                    end = cardPaddingH,
+                    top = cardPaddingTop,
+                    bottom = cardPaddingBottom,
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Box(
                 modifier = Modifier
                     .weight(1f, fill = true)
                     .fillMaxWidth()
-                    .padding(horizontal = 6.dp, vertical = 4.dp),
+                    .padding(horizontal = cardIconPaddingH, vertical = cardIconPaddingV),
                 contentAlignment = Alignment.Center,
             ) {
                 if (imageRequest != null) {
