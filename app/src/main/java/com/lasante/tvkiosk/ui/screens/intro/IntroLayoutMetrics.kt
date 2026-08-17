@@ -860,9 +860,16 @@ data class IntroLayoutMetrics(
             else -> rotateButtonSizeBase * 0.90f
         }
 
-    /** Touch y gira (manitos) comparten tamaño. */
+    /** Touch y gira (manitos) comparten la misma caja en todos los perfiles. */
     val touchHintSize: Dp
         get() = rotateButtonSize
+
+    /**
+     * touch.gif (mano blanca, más “llena”) se ve más grande que gira.gif a igual dp.
+     * Misma escala en TV42, Hikvision y el resto.
+     */
+    val touchHintVisualScale: Float
+        get() = 0.88f
 
     /** Padding inferior del hint touch.gif (sobre el cintillo frontal). */
     val touchHintBottomPadding: Dp

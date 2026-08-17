@@ -237,6 +237,7 @@ fun BusinessUnitVitrina(
                     onUnitClick(activeVitrinaUnit.unit.id)
                 },
                 size = metrics.touchHintSize,
+                visualScale = metrics.touchHintVisualScale,
                 enabled = touchVisible,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)

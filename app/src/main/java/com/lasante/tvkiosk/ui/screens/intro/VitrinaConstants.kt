@@ -87,8 +87,9 @@ object VitrinaConstants {
     )
 
     /**
-     * Lámparas del GLB vitrina_1408 (`shade.*`).
-     * 2 por cara (estante alto + medio), alineadas a [slot_categoria_1…5] / [UNIT_GLB_NODE_NAMES].
+     * Lámparas del GLB (`shade.*`): 2 por cara, estante alto (Y≈1.43) + bajo (Y≈0.79).
+     * Alineadas a [slot_categoria_1…5] / [UNIT_GLB_NODE_NAMES].
+     * Ambas deben encender juntas (misma cara activa / idle).
      *
      * Índice = cara GLB: 0 Genéricos … 4 Hospital.
      */

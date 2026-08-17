@@ -30,8 +30,10 @@ import io.github.sceneview.environment.Environment
 import io.github.sceneview.math.Position
 import io.github.sceneview.math.Scale
 import io.github.sceneview.model.ModelInstance
+import io.github.sceneview.model.engine
 import io.github.sceneview.model.model
 import io.github.sceneview.node.ModelNode
+import com.google.android.filament.Engine
 import com.google.android.filament.RenderableManager
 import io.github.sceneview.rememberCameraNode
 import io.github.sceneview.rememberEnvironment
@@ -73,6 +75,55 @@ private fun duplicateLampOff(
     }
 }
 
+private fun collectRenderableEntities(
+    engine: Engine,
+    rootEntity: Int,
+    renderableManager: RenderableManager,
+): List<Int> {
+    if (rootEntity == 0) return emptyList()
+    val out = mutableListOf<Int>()
+    val tm = engine.transformManager
+    fun walk(entity: Int) {
+        if (renderableManager.hasComponent(entity)) out += entity
+        if (!tm.hasComponent(entity)) return
+        val ti = tm.getInstance(entity)
+        val childCount = tm.getChildCount(ti)
+        if (childCount <= 0) return
+        val children = IntArray(childCount)
+        tm.getChildren(ti, children)
+        children.forEach(::walk)
+    }
+    walk(rootEntity)
+    return out
+}
+
+private fun applyLampMaterials(
+    renderableManager: RenderableManager,
+    entity: Int,
+    led: MaterialInstance,
+    interior: MaterialInstance?,
+) {
+    if (!renderableManager.hasComponent(entity)) return
+    val ri = renderableManager.getInstance(entity)
+    if (ri == 0) return
+    val primCount = renderableManager.getPrimitiveCount(ri)
+    val ledSlot = VitrinaConstants.LAMP_PRIMITIVE_LED
+    val intSlot = VitrinaConstants.LAMP_PRIMITIVE_INTERIOR
+    if (ledSlot < primCount) {
+        renderableManager.setMaterialInstanceAt(ri, ledSlot, led)
+    }
+    if (interior != null && intSlot < primCount) {
+        renderableManager.setMaterialInstanceAt(ri, intSlot, interior)
+    }
+    // Meshes con 1–2 prims ( varian según loader): encender lo que haya.
+    if (primCount in 1 until 3) {
+        for (slot in 0 until primCount) {
+            if (slot == ledSlot || (interior != null && slot == intSlot)) continue
+            renderableManager.setMaterialInstanceAt(ri, slot, led)
+        }
+    }
+}
+
 private fun applyFaceLamps(
     instance: ModelInstance,
     renderableManager: RenderableManager,
@@ -83,6 +134,8 @@ private fun applyFaceLamps(
     val ledOff = mats.lampLedOff ?: return
     val intOn = mats.lampInteriorOn
     val intOff = mats.lampInteriorOff
+    val engine = instance.engine
+    val model = instance.model
 
     VitrinaConstants.LAMP_NODES_BY_FACE.forEachIndexed { faceIndex, nodeNames ->
         val on = faceIndex == litFaceIndex
@@ -94,19 +147,23 @@ private fun applyFaceLamps(
         }
         nodeNames.forEach { nodeName ->
             try {
-                val entity = instance.model.getFirstEntityByName(nodeName)
-                if (entity == 0 || !renderableManager.hasComponent(entity)) return@forEach
-                val ri = renderableManager.getInstance(entity)
-                if (ri == 0) return@forEach
-                val primCount = renderableManager.getPrimitiveCount(ri)
-                val ledSlot = VitrinaConstants.LAMP_PRIMITIVE_LED
-                val intSlot = VitrinaConstants.LAMP_PRIMITIVE_INTERIOR
-                // Evitar abort nativo Filament si el mesh no tiene 3 primitives.
-                if (ledSlot < primCount) {
-                    renderableManager.setMaterialInstanceAt(ri, ledSlot, led)
+                val named = model.getFirstEntityByName(nodeName)
+                val entities = collectRenderableEntities(engine, named, renderableManager)
+                if (entities.isEmpty()) {
+                    VitrinaDebugLog.w(
+                        "VitrinaDiag",
+                        "lamp miss $nodeName entity=$named face=$faceIndex on=$on",
+                    )
+                    return@forEach
                 }
-                if (interior != null && intSlot < primCount) {
-                    renderableManager.setMaterialInstanceAt(ri, intSlot, interior)
+                entities.forEach { entity ->
+                    applyLampMaterials(renderableManager, entity, led, interior)
+                }
+                if (on) {
+                    VitrinaDebugLog.d(
+                        "VitrinaDiag",
+                        "lamp ON $nodeName entities=${entities.size} face=$faceIndex",
+                    )
                 }
             } catch (t: Throwable) {
                 VitrinaDebugLog.w(
