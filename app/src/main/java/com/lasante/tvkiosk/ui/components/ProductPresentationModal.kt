@@ -52,6 +52,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -95,6 +96,10 @@ private data class ProductModalMetrics(
     val modelScaleToUnits: Float,
     val descriptionAlignTop: Boolean,
     val alignRowTop: Boolean,
+    val closeButtonSize: Dp,
+    val descriptionBodyScale: Float,
+    val descriptionBottomPadding: Dp,
+    val descriptionExpandable: Boolean,
 )
 
 private fun SharedModalMetrics.toProductModalMetrics() = ProductModalMetrics(
@@ -112,10 +117,14 @@ private fun SharedModalMetrics.toProductModalMetrics() = ProductModalMetrics(
     descriptionOffsetX = descriptionOffsetX,
     descriptionOffsetY = descriptionOffsetY,
     descriptionHorizontalPadding = descriptionHorizontalPadding,
-    descriptionTextAlign = TextAlign.Start,
+    descriptionTextAlign = if (justifyDescription) TextAlign.Justify else TextAlign.Start,
     modelScaleToUnits = modelScaleToUnits,
     descriptionAlignTop = descriptionAlignTop,
     alignRowTop = alignRowTop,
+    closeButtonSize = closeButtonSize,
+    descriptionBodyScale = descriptionBodyScale,
+    descriptionBottomPadding = descriptionBottomPadding,
+    descriptionExpandable = descriptionExpandable,
 )
 
 @Composable
@@ -159,7 +168,7 @@ fun ProductPresentationModal(
     val fallbackImageUrl = remember(product) {
         product.resolvePresentationImage()
     }
-    val closeSize = (if (isCompact) 38.dp else 40.dp) * 0.95f
+    val closeSize = layout.closeButtonSize
     // Franja a la derecha del card para el close (top al lado, no arriba).
     val closeSideSlot = closeSize + layout.closeSideGap
 
@@ -229,6 +238,12 @@ fun ProductPresentationModal(
                                     .weight(1f)
                                     .fillMaxHeight(),
                                 compact = true,
+                                horizontalPadding = layout.descriptionHorizontalPadding,
+                                descriptionTextAlign = layout.descriptionTextAlign,
+                                alignContentTop = layout.descriptionAlignTop,
+                                bodyScale = layout.descriptionBodyScale,
+                                bottomPadding = layout.descriptionBottomPadding,
+                                expandable = layout.descriptionExpandable,
                             )
                             Box(
                                 modifier = Modifier
@@ -298,6 +313,9 @@ fun ProductPresentationModal(
                                     horizontalPadding = layout.descriptionHorizontalPadding,
                                     descriptionTextAlign = layout.descriptionTextAlign,
                                     alignContentTop = layout.descriptionAlignTop,
+                                    bodyScale = layout.descriptionBodyScale,
+                                    bottomPadding = layout.descriptionBottomPadding,
+                                    expandable = layout.descriptionExpandable,
                                 )
                                 Box(
                                     modifier = Modifier
@@ -407,8 +425,13 @@ private fun ProductDescriptionPanel(
     horizontalPadding: Dp? = null,
     descriptionTextAlign: TextAlign? = null,
     alignContentTop: Boolean = true,
+    bodyScale: Float = 1f,
+    bottomPadding: Dp? = null,
+    expandable: Boolean = false,
 ) {
     val panelHorizontalPadding = horizontalPadding ?: if (compact) 18.dp else 28.dp
+    val panelBottomPadding = bottomPadding ?: if (compact) 18.dp else 24.dp
+    val bodyAlign = descriptionTextAlign ?: TextAlign.Start
     val (titlePart, strengthPart) = remember(product.name, product.dosisDisplay) {
         val apiDosis = product.dosisDisplay
         if (!apiDosis.isNullOrBlank()) {
@@ -418,9 +441,18 @@ private fun ProductDescriptionPanel(
             splitProductTitleAndStrength(product.name)
         }
     }
-    val bullets = remember(product.description, product.atributos) {
-        product.modalBulletLines()
+    val previewBullets = remember(product.description, product.atributos) {
+        product.modalBulletLines(shorten = true)
     }
+    val fullBullets = remember(product.description, product.atributos) {
+        product.modalBulletLines(shorten = false)
+    }
+    var expanded by remember(product.productoId) { mutableStateOf(false) }
+    val canExpand = expandable && (
+        fullBullets.joinToString("\n") != previewBullets.joinToString("\n") ||
+            (product.description.trim().length > MODAL_DESCRIPTION_MAX_CHARS)
+        )
+    val bullets = if (expandable && expanded) fullBullets else previewBullets
     val corner = if (compact) 18.dp else 20.dp
     val cornerShape = RoundedCornerShape(corner)
     val titleBrush = Brush.horizontalGradient(
@@ -429,6 +461,8 @@ private fun ProductDescriptionPanel(
     val titleFontFamily = MaterialTheme.typography.bodyLarge.fontFamily
     // Sombra suave (mock): elevación difusa + leve sesgo arriba/derecha.
     val shadowElevation = if (compact) 12.dp else 20.dp
+    val bodySize = ((if (compact) 13f else 14f) * bodyScale).sp
+    val bodyLine = ((if (compact) 18f else 20f) * bodyScale).sp
 
     Box(modifier = modifier) {
         // Capa de sombra desplazada (arriba + derecha), sin bloque sólido.
@@ -464,7 +498,7 @@ private fun ProductDescriptionPanel(
                     start = panelHorizontalPadding,
                     end = panelHorizontalPadding,
                     top = if (compact) 20.dp else 28.dp,
-                    bottom = if (compact) 18.dp else 24.dp,
+                    bottom = panelBottomPadding,
                 ),
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.Start,
@@ -513,8 +547,9 @@ private fun ProductDescriptionPanel(
                 Text(
                     text = "Sin descripción disponible.",
                     color = LaSanteText.copy(alpha = 0.75f),
-                    fontSize = if (compact) 13.sp else 14.sp,
-                    lineHeight = if (compact) 18.sp else 20.sp,
+                    fontSize = bodySize,
+                    lineHeight = bodyLine,
+                    textAlign = bodyAlign,
                 )
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 10.dp)) {
@@ -522,10 +557,29 @@ private fun ProductDescriptionPanel(
                         ModalBulletLine(
                             text = line,
                             emphasizeLabel = index == 0 && line.contains(':'),
-                            compact = compact,
+                            bodySize = bodySize,
+                            bodyLine = bodyLine,
+                            textAlign = bodyAlign,
                         )
                     }
                 }
+            }
+
+            if (canExpand) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = if (expanded) "Ver menos" else "Ver más",
+                    color = LaSanteGreenDark,
+                    fontSize = bodySize,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = { expanded = !expanded },
+                        )
+                        .padding(vertical = 4.dp),
+                )
             }
         }
     }
@@ -535,10 +589,10 @@ private fun ProductDescriptionPanel(
 private fun ModalBulletLine(
     text: String,
     emphasizeLabel: Boolean,
-    compact: Boolean,
+    bodySize: TextUnit,
+    bodyLine: TextUnit,
+    textAlign: TextAlign,
 ) {
-    val bodySize = if (compact) 13.sp else 14.sp
-    val bodyLine = if (compact) 18.sp else 20.sp
     val annotated = remember(text, emphasizeLabel) {
         buildAnnotatedString {
             append("• ")
@@ -572,7 +626,7 @@ private fun ModalBulletLine(
         text = annotated,
         fontSize = bodySize,
         lineHeight = bodyLine,
-        textAlign = TextAlign.Start,
+        textAlign = textAlign,
         modifier = Modifier.fillMaxWidth(),
     )
 }
@@ -580,7 +634,7 @@ private fun ModalBulletLine(
 /**
  * Bullets del modal: características (atributos) si hay; si no, frases de la descripción.
  */
-private fun Product.modalBulletLines(): List<String> {
+private fun Product.modalBulletLines(shorten: Boolean = true): List<String> {
     val fromAttrs = atributos
         .filterKeys { it.shouldShowInProductModal() }
         .entries
@@ -600,7 +654,8 @@ private fun Product.modalBulletLines(): List<String> {
         .map { it.trim().trimStart('-', '*', '–').trim() }
         .filter { it.isNotBlank() }
     if (byLines.size >= 2) {
-        return byLines.take(MODAL_BULLETS_MAX).map { shortenModalText(it, 140) }
+        val lines = byLines.take(MODAL_BULLETS_MAX)
+        return if (shorten) lines.map { shortenModalText(it, 140) } else lines
     }
 
     // Una sola descripción → partir por oraciones.
@@ -609,8 +664,13 @@ private fun Product.modalBulletLines(): List<String> {
         .map { it.trim() }
         .filter { it.isNotBlank() }
     return when {
-        sentences.size >= 2 -> sentences.take(MODAL_BULLETS_MAX).map { shortenModalText(it, 160) }
-        else -> listOf(shortenModalText(raw, MODAL_DESCRIPTION_MAX_CHARS))
+        sentences.size >= 2 -> {
+            val lines = sentences.take(MODAL_BULLETS_MAX)
+            if (shorten) lines.map { shortenModalText(it, 160) } else lines
+        }
+        else -> listOf(
+            if (shorten) shortenModalText(raw, MODAL_DESCRIPTION_MAX_CHARS) else raw,
+        )
     }
 }
 

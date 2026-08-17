@@ -5,6 +5,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,6 +43,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -53,6 +55,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.lasante.tvkiosk.BuildConfig
@@ -1428,319 +1432,346 @@ private fun TherapeuticClassFilterSheet(
         fontFamily = poppins,
         fontWeight = FontWeight.Normal,
     )
+    // Misma proporción que Ordenar A-Z: alto por pad+icon; ancho wrap al texto.
     val actionModifier = if (m.actionFillColumn) {
-        Modifier
-            .fillMaxWidth(0.9f)
-            .height(m.actionHeight)
+        Modifier.fillMaxWidth(0.9f)
     } else {
         Modifier
-            .width(m.actionWidth)
-            .height(m.actionHeight)
     }
 
-    BackHandler(onBack = onDismiss)
-
-    // Scrim y contenido separados (evita clickable anidado → ANR/input timeout).
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.45f)),
-        contentAlignment = Alignment.Center,
+    // Dialog aísla gestos del LazyGrid (evita ANR / “cerrar app”).
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false,
+        ),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onDismiss,
-                ),
-        )
-        // Card del modal: el X va anclado TopEnd (fuera del padding de contenido).
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(m.widthFraction)
-                .widthIn(max = m.maxWidth)
-                .fillMaxHeight(m.heightFraction)
-                .shadow(8.dp, RoundedCornerShape(22.dp))
-                .clip(RoundedCornerShape(22.dp))
-                .background(Color.White)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = {},
-                ),
+                .background(Color.Black.copy(alpha = 0.45f)),
+            contentAlignment = Alignment.Center,
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = m.paddingH)
-                    .padding(top = m.paddingTop, bottom = m.paddingBottom),
-            ) {
             Box(
                 modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .width(42.dp)
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(Color(0xFF2F2F2F)),
+                    .fillMaxSize()
+                    .pointerInput(Unit) {
+                        detectTapGestures(onTap = { onDismiss() })
+                    },
             )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            LaSanteScreenTitle(
-                text = "Filtros",
-                fontSize = m.titleSp,
-                textBrush = FilterTitleBrush,
-                underlineBrush = Brush.horizontalGradient(
-                    listOf(Color(0xFF8FA88A), Color(0xFFD5D8D2), Color.White),
-                ),
-                underlineMatchTextWidth = true,
-                underlineWidth = m.titleUnderlineWidth,
-                fontFamily = poppins,
-                fontWeight = FontWeight.SemiBold,
-                allCaps = false,
-                textAlign = TextAlign.Start,
-            )
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            Row(
+            Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(m.columnGap),
+                    .fillMaxWidth(m.widthFraction)
+                    .widthIn(max = m.maxWidth)
+                    .fillMaxHeight(m.heightFraction)
+                    .shadow(8.dp, RoundedCornerShape(22.dp))
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(Color.White)
+                    .pointerInput(Unit) {
+                        detectTapGestures(onTap = {})
+                    },
             ) {
                 Column(
                     modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                        .fillMaxSize()
+                        .padding(horizontal = m.paddingH)
+                        .padding(top = m.paddingTop, bottom = m.paddingBottom),
                 ) {
-                    Text(
-                        text = "Presentación del producto",
-                        modifier = Modifier.fillMaxWidth(),
-                        style = filterSubtitleStyle.copy(fontSize = m.subtitleSp.sp),
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .width(42.dp)
+                            .height(4.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(Color(0xFF2F2F2F)),
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    LaSanteScreenTitle(
+                        text = "Filtros",
+                        fontSize = m.titleSp,
+                        textBrush = FilterTitleBrush,
+                        underlineBrush = Brush.horizontalGradient(
+                            listOf(Color(0xFF8FA88A), Color(0xFFD5D8D2), Color.White),
+                        ),
+                        underlineMatchTextWidth = true,
+                        underlineWidth = m.titleUnderlineWidth,
+                        fontFamily = poppins,
+                        fontWeight = FontWeight.SemiBold,
+                        allCaps = false,
                         textAlign = TextAlign.Start,
                     )
-                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
                     Row(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(m.selectHeight)
-                            .clip(filterSelectShape)
-                            .background(FilterGreenBrush)
-                            .clickable { presentationExpanded = !presentationExpanded }
-                            .padding(horizontal = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(m.columnGap),
                     ) {
-                        Text(
-                            text = when {
-                                draftFormas.isEmpty() -> "Seleccionar presentación"
-                                draftFormas.size == 1 -> draftFormas.first().label
-                                else -> "${draftFormas.size} seleccionadas"
-                            },
-                            modifier = Modifier.weight(1f),
-                            color = Color.White,
-                            fontFamily = poppins,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = m.selectSp.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Icon(
-                            imageVector = if (presentationExpanded) {
-                                Icons.Filled.KeyboardArrowUp
-                            } else {
-                                Icons.Filled.KeyboardArrowDown
-                            },
-                            contentDescription = null,
-                            tint = Color.White,
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-                    if (presentationExpanded) {
                         Column(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height(m.menuHeight)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color.White)
-                                .border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(12.dp))
-                                .padding(top = 2.dp, bottom = 2.dp),
+                                .weight(1f)
+                                .fillMaxHeight(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
-                            listOf(
-                                FormaFarmaceutica.COMPRIMIDOS to null,
-                                FormaFarmaceutica.CAPSULAS to null,
-                                FormaFarmaceutica.SUSPENSION to FormaFarmaceutica.OTROS,
-                            ).forEach { (left, right) ->
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
+                            Text(
+                                text = "Presentación del producto",
+                                modifier = Modifier.fillMaxWidth(),
+                                style = filterSubtitleStyle.copy(fontSize = m.subtitleSp.sp),
+                                textAlign = TextAlign.Start,
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(m.selectHeight)
+                                    .clip(filterSelectShape)
+                                    .background(FilterGreenBrush)
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                        onClick = { presentationExpanded = !presentationExpanded },
+                                    )
+                                    .padding(horizontal = m.pillHorizontalPad),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = when {
+                                        draftFormas.isEmpty() -> "Seleccionar presentación"
+                                        draftFormas.size == 1 -> draftFormas.first().label
+                                        else -> "${draftFormas.size} seleccionadas"
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    color = Color.White,
+                                    fontFamily = poppins,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = m.selectSp.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Icon(
+                                    imageVector = if (presentationExpanded) {
+                                        Icons.Filled.KeyboardArrowUp
+                                    } else {
+                                        Icons.Filled.KeyboardArrowDown
+                                    },
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(m.pillIconSize),
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+                            if (presentationExpanded) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(m.menuHeight)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color.White)
+                                        .border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(12.dp))
+                                        .padding(top = 2.dp, bottom = 2.dp),
                                 ) {
-                                    Box(modifier = Modifier.weight(1.15f)) {
-                                        val checked = left in draftFormas
-                                        FilterSquareCheckboxRow(
-                                            label = left.label,
-                                            checked = checked,
-                                            labelColor = LaSanteText,
-                                            optionSp = m.optionSp,
-                                            checkboxSize = m.checkboxSize,
-                                            checkboxIconSize = m.checkboxIconSize,
-                                            onToggle = {
-                                                draftFormas = if (checked) {
-                                                    draftFormas - left
-                                                } else {
-                                                    draftFormas + left
+                                    listOf(
+                                        FormaFarmaceutica.COMPRIMIDOS to null,
+                                        FormaFarmaceutica.CAPSULAS to null,
+                                        FormaFarmaceutica.SUSPENSION to FormaFarmaceutica.OTROS,
+                                    ).forEach { (left, right) ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            Box(modifier = Modifier.weight(1.15f)) {
+                                                val checked = left in draftFormas
+                                                FilterSquareCheckboxRow(
+                                                    label = left.label,
+                                                    checked = checked,
+                                                    labelColor = LaSanteText,
+                                                    optionSp = m.optionSp,
+                                                    checkboxSize = m.checkboxSize,
+                                                    checkboxIconSize = m.checkboxIconSize,
+                                                    onToggle = {
+                                                        draftFormas = if (checked) {
+                                                            draftFormas - left
+                                                        } else {
+                                                            draftFormas + left
+                                                        }
+                                                    },
+                                                )
+                                            }
+                                            Box(modifier = Modifier.weight(1f)) {
+                                                if (right != null) {
+                                                    val checked = right in draftFormas
+                                                    FilterSquareCheckboxRow(
+                                                        label = right.label,
+                                                        checked = checked,
+                                                        labelColor = LaSanteText,
+                                                        optionSp = m.optionSp,
+                                                        checkboxSize = m.checkboxSize,
+                                                        checkboxIconSize = m.checkboxIconSize,
+                                                        onToggle = {
+                                                            draftFormas = if (checked) {
+                                                                draftFormas - right
+                                                            } else {
+                                                                draftFormas + right
+                                                            }
+                                                        },
+                                                    )
                                                 }
-                                            },
-                                        )
-                                    }
-                                    Box(modifier = Modifier.weight(1f)) {
-                                        if (right != null) {
-                                            val checked = right in draftFormas
-                                            FilterSquareCheckboxRow(
-                                                label = right.label,
-                                                checked = checked,
-                                                labelColor = LaSanteText,
-                                                optionSp = m.optionSp,
-                                                checkboxSize = m.checkboxSize,
-                                                checkboxIconSize = m.checkboxIconSize,
-                                                onToggle = {
-                                                    draftFormas = if (checked) {
-                                                        draftFormas - right
-                                                    } else {
-                                                        draftFormas + right
-                                                    }
-                                                },
-                                            )
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
-                    }
 
-                    Spacer(modifier = Modifier.weight(1f))
-                    Box(
-                        modifier = actionModifier
-                            .clip(filterActionShape)
-                            .background(FilterGreenBrush)
-                            .clickable {
-                                draftFormas = emptySet()
-                                draftStarsOnly = false
-                                presentationExpanded = false
-                                onClear()
-                            },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = "Limpiar filtros",
-                            color = Color.White,
-                            fontFamily = poppins,
-                            fontWeight = FontWeight.Normal,
-                            fontSize = m.buttonSp.sp,
-                        )
-                    }
-                }
-
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        text = "Productos Estrellas",
-                        modifier = Modifier.fillMaxWidth(),
-                        style = filterSubtitleStyle.copy(fontSize = m.subtitleSp.sp),
-                        textAlign = TextAlign.Start,
-                    )
-                    Text(
-                        text = "Se mostrará únicamente los productos estrellas relacionados a esta unidad de negocio.",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 2.dp),
-                        style = filterSubtitleStyle.copy(
-                            fontSize = m.helpSp.sp,
-                            lineHeight = m.helpLineSp.sp,
-                        ),
-                        textAlign = TextAlign.Start,
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .drawBehind {
-                                val stroke = Stroke(
-                                    width = 1.5.dp.toPx(),
-                                    pathEffect = PathEffect.dashPathEffect(
-                                        floatArrayOf(10f, 8f),
-                                        0f,
+                            Spacer(modifier = Modifier.weight(1f))
+                            Box(
+                                modifier = actionModifier
+                                    .clip(filterActionShape)
+                                    .background(FilterGreenBrush)
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                        onClick = {
+                                            draftFormas = emptySet()
+                                            draftStarsOnly = false
+                                            presentationExpanded = false
+                                            onClear()
+                                        },
+                                    )
+                                    .padding(
+                                        horizontal = m.pillHorizontalPad,
+                                        vertical = m.pillVerticalPad,
                                     ),
-                                )
-                                drawRoundRect(
-                                    color = Color(0xFFD1D5DB),
-                                    style = stroke,
-                                    cornerRadius = CornerRadius(12.dp.toPx()),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = "Limpiar filtros",
+                                    color = Color.White,
+                                    fontFamily = poppins,
+                                    fontWeight = FontWeight.Normal,
+                                    fontSize = m.buttonSp.sp,
+                                    maxLines = 1,
                                 )
                             }
-                            .clickable { draftStarsOnly = !draftStarsOnly }
-                            .padding(horizontal = 12.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        FilterSquareCheckbox(
-                            checked = draftStarsOnly,
-                            size = m.checkboxSize,
-                            iconSize = m.checkboxIconSize,
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = "Mostrar Productos estrellas",
-                            color = FilterStarGold,
-                            fontFamily = poppins,
-                            fontWeight = FontWeight.Normal,
-                            fontSize = m.selectSp.sp,
-                        )
-                    }
+                        }
 
-                    Spacer(modifier = Modifier.weight(1f))
-                    Box(
-                        modifier = actionModifier
-                            .clip(filterActionShape)
-                            .background(FilterBlueBrush)
-                            .clickable {
-                                onApply(
-                                    TherapeuticClassCatalogFilter(
-                                        formas = draftFormas,
-                                        starProductsOnly = draftStarsOnly,
-                                    ),
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text(
+                                text = "Productos Estrellas",
+                                modifier = Modifier.fillMaxWidth(),
+                                style = filterSubtitleStyle.copy(fontSize = m.subtitleSp.sp),
+                                textAlign = TextAlign.Start,
+                            )
+                            Text(
+                                text = "Se mostrará únicamente los productos estrellas relacionados a esta unidad de negocio.",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 2.dp),
+                                style = filterSubtitleStyle.copy(
+                                    fontSize = m.helpSp.sp,
+                                    lineHeight = m.helpLineSp.sp,
+                                ),
+                                textAlign = TextAlign.Start,
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .drawBehind {
+                                        val stroke = Stroke(
+                                            width = 1.5.dp.toPx(),
+                                            pathEffect = PathEffect.dashPathEffect(
+                                                floatArrayOf(10f, 8f),
+                                                0f,
+                                            ),
+                                        )
+                                        drawRoundRect(
+                                            color = Color(0xFFD1D5DB),
+                                            style = stroke,
+                                            cornerRadius = CornerRadius(12.dp.toPx()),
+                                        )
+                                    }
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                        onClick = { draftStarsOnly = !draftStarsOnly },
+                                    )
+                                    .padding(horizontal = 12.dp, vertical = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                FilterSquareCheckbox(
+                                    checked = draftStarsOnly,
+                                    size = m.checkboxSize,
+                                    iconSize = m.checkboxIconSize,
                                 )
-                            },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = "Aplicar filtros",
-                            color = Color.White,
-                            fontFamily = poppins,
-                            fontWeight = FontWeight.Normal,
-                            fontSize = m.buttonSp.sp,
-                        )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = "Mostrar Productos estrellas",
+                                    color = FilterStarGold,
+                                    fontFamily = poppins,
+                                    fontWeight = FontWeight.Normal,
+                                    fontSize = m.selectSp.sp,
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.weight(1f))
+                            Box(
+                                modifier = actionModifier
+                                    .clip(filterActionShape)
+                                    .background(FilterBlueBrush)
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                        onClick = {
+                                            onApply(
+                                                TherapeuticClassCatalogFilter(
+                                                    formas = draftFormas,
+                                                    starProductsOnly = draftStarsOnly,
+                                                ),
+                                            )
+                                        },
+                                    )
+                                    .padding(
+                                        horizontal = m.pillHorizontalPad,
+                                        vertical = m.pillVerticalPad,
+                                    ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = "Aplicar filtros",
+                                    color = Color.White,
+                                    fontFamily = poppins,
+                                    fontWeight = FontWeight.Normal,
+                                    fontSize = m.buttonSp.sp,
+                                    maxLines = 1,
+                                )
+                            }
+                        }
                     }
                 }
-            }
-            }
 
-            GreenNavButton(
-                assetPath = CLOSE_NAV_ASSET,
-                contentDescription = "Cerrar",
-                size = m.closeSize,
-                onClick = onDismiss,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 12.dp, end = 12.dp),
-            )
+                GreenNavButton(
+                    assetPath = CLOSE_NAV_ASSET,
+                    contentDescription = "Cerrar",
+                    size = m.closeSize,
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 12.dp, end = 12.dp),
+                )
+            }
         }
     }
 }
@@ -1788,13 +1819,13 @@ private fun FilterSquareCheckbox(
     size: Dp = 22.dp,
     iconSize: Dp = 16.dp,
 ) {
-    val shape = RoundedCornerShape(4.dp)
+    val shape = RoundedCornerShape(3.dp)
     Box(
         modifier = Modifier
             .size(size)
             .clip(shape)
             .border(
-                width = 2.dp,
+                width = 1.5.dp,
                 color = if (checked) FilterGreenEnd else FilterGreenStart,
                 shape = shape,
             )

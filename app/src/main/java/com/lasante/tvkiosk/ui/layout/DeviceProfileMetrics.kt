@@ -6,6 +6,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 
 /**
  * Perfil responsive unificado para Intro, Tratamientos y Productos.
@@ -278,6 +279,11 @@ object DeviceProfileResolver {
                 modelScaleToUnits = 1.72f * 1.03f,
                 descriptionAlignTop = true,
                 alignRowTop = false,
+                closeButtonSize = 40.dp * 0.95f,
+                justifyDescription = true,
+                descriptionBodyScale = 0.90f,
+                descriptionBottomPadding = 40.dp,
+                descriptionExpandable = true,
             )
 
             /**
@@ -304,11 +310,15 @@ object DeviceProfileResolver {
                 modelScaleToUnits = 1.656f * 1.03f,
                 descriptionAlignTop = true,
                 alignRowTop = false,
+                closeButtonSize = 38.dp * 0.95f,
+                justifyDescription = true,
+                descriptionBodyScale = 0.90f,
+                descriptionBottomPadding = 36.dp,
+                descriptionExpandable = true,
             )
 
             /**
-             * Tablets (tablet large / Infinix / landscape): gaps relativos al ancho,
-             * no [Tv42Spacing] (comentario histórico: no tablet large/Infinix).
+             * Tablets landscape: gaps relativos al ancho.
              * Más % de modal porque el canvas físico es más chico.
              */
             DeviceProfileTier.TABLET_LANDSCAPE -> SharedModalMetrics(
@@ -329,6 +339,11 @@ object DeviceProfileResolver {
                 modelScaleToUnits = 1.55f * 1.02f,
                 descriptionAlignTop = true,
                 alignRowTop = false,
+                closeButtonSize = 36.dp * 0.95f,
+                justifyDescription = true,
+                descriptionBodyScale = 0.90f,
+                descriptionBottomPadding = 32.dp,
+                descriptionExpandable = true,
             )
 
             /** Phone landscape: suele ir apilado (compact); métricas por si usa fila. */
@@ -350,6 +365,11 @@ object DeviceProfileResolver {
                 modelScaleToUnits = 1.45f * 1.02f,
                 descriptionAlignTop = true,
                 alignRowTop = true,
+                closeButtonSize = 28.dp * 0.95f,
+                justifyDescription = true,
+                descriptionBodyScale = 0.92f,
+                descriptionBottomPadding = 24.dp,
+                descriptionExpandable = true,
             )
 
             DeviceProfileTier.COMPACT_PORTRAIT -> SharedModalMetrics(
@@ -370,6 +390,11 @@ object DeviceProfileResolver {
                 modelScaleToUnits = 1.38f,
                 descriptionAlignTop = true,
                 alignRowTop = true,
+                closeButtonSize = 32.dp * 0.95f,
+                justifyDescription = true,
+                descriptionBodyScale = 0.92f,
+                descriptionBottomPadding = 22.dp,
+                descriptionExpandable = true,
             )
 
             /** Default / fallback: proporciones tipo tablet. */
@@ -391,150 +416,225 @@ object DeviceProfileResolver {
                 modelScaleToUnits = 1.50f * 1.02f,
                 descriptionAlignTop = true,
                 alignRowTop = false,
+                closeButtonSize = 36.dp * 0.95f,
+                justifyDescription = true,
+                descriptionBodyScale = 0.90f,
+                descriptionBottomPadding = 32.dp,
+                descriptionExpandable = true,
             )
         }
     }
 
     /**
      * Modal de filtros CT (presentación + estrellas).
-     * Baseline visual = [DeviceProfileTier.TV_LARGE] (Hikvision 1280×720 validado).
+     * Baseline = Hikvision TV_LARGE; pills = misma proporción que Ordenar A-Z
+     * ([ProductsSortButton]: padH 28 / padV 3 / icon 20 / label 14 × sortScale).
      */
     fun filterSheetMetrics(profile: DeviceProfile): FilterSheetMetrics {
-        return when (profile.tier) {
-            DeviceProfileTier.TV_LARGE -> FilterSheetMetrics(
-                widthFraction = 0.53f,
-                heightFraction = 0.60f,
-                maxWidth = 700.dp,
-                paddingH = 66.dp,
-                paddingTop = 45.dp,
-                paddingBottom = 36.dp,
-                titleSp = 28,
-                subtitleSp = 15,
-                helpSp = 12,
-                helpLineSp = 15,
-                optionSp = 13,
-                buttonSp = 14,
-                selectSp = 14,
-                titleUnderlineWidth = 72.dp,
-                closeSize = 40.dp,
-                selectHeight = 46.dp,
-                actionWidth = 168.dp,
-                actionHeight = 44.dp,
-                actionFillColumn = false,
-                menuHeight = 108.dp,
-                columnGap = 22.dp,
-                checkboxSize = 22.dp,
-                checkboxIconSize = 16.dp,
-            )
+        fun sortLikePill(
+            sortScale: Float,
+            baseH: Dp = 28.dp,
+            baseV: Dp = 3.dp,
+            baseIcon: Dp = 20.dp,
+            baseLabelSp: Float = 14f,
+        ): Triple<Dp, Dp, Dp> {
+            val h = baseH * sortScale
+            val v = baseV * sortScale
+            val icon = baseIcon * sortScale
+            return Triple(h, v, icon)
+        }
 
-            DeviceProfileTier.TV_REGULAR -> FilterSheetMetrics(
-                widthFraction = 0.56f,
-                // TV42 / TV1080: −1 cm físico ≈ −0.08 del alto de pantalla (misma regla que tablet large −0,5 cm ≈ −0.04).
-                heightFraction = 0.54f,
-                maxWidth = 720.dp,
-                paddingH = 56.dp,
-                paddingTop = 36.dp,
-                paddingBottom = 30.dp,
-                titleSp = 26,
-                subtitleSp = 14,
-                helpSp = 12,
-                helpLineSp = 15,
-                optionSp = 13,
-                buttonSp = 14,
-                selectSp = 14,
-                titleUnderlineWidth = 68.dp,
-                closeSize = 38.dp,
-                selectHeight = 44.dp,
-                actionWidth = 160.dp,
-                actionHeight = 42.dp,
-                actionFillColumn = false,
-                menuHeight = 104.dp,
-                columnGap = 18.dp,
-                checkboxSize = 22.dp,
-                checkboxIconSize = 16.dp,
-            )
+        return when (profile.tier) {
+            DeviceProfileTier.TV_LARGE -> {
+                // Ordenar A-Z TV66: scale 1.10
+                val (padH, padV, icon) = sortLikePill(1.10f)
+                val labelSp = (14f * 1.10f).roundToInt()
+                FilterSheetMetrics(
+                    widthFraction = 0.53f,
+                    // −1,5 cm vs 0.60 (regla proyecto: 1 cm ≈ 0.08H → 1,5 cm ≈ 0.12H).
+                    heightFraction = 0.48f,
+                    maxWidth = 700.dp,
+                    paddingH = 66.dp,
+                    paddingTop = 36.dp,
+                    paddingBottom = 29.dp,
+                    titleSp = 28,
+                    subtitleSp = 15,
+                    helpSp = 12,
+                    helpLineSp = 15,
+                    optionSp = 13,
+                    buttonSp = labelSp,
+                    selectSp = labelSp,
+                    titleUnderlineWidth = 72.dp,
+                    closeSize = 40.dp * 0.95f,
+                    selectHeight = icon + padV * 2f,
+                    pillHorizontalPad = padH,
+                    pillVerticalPad = padV,
+                    pillIconSize = icon,
+                    actionWidth = 0.dp,
+                    actionHeight = icon + padV * 2f,
+                    actionFillColumn = false,
+                    // +0,5 cm (≈29.dp @720H) para ver las 4 opciones sin cortar.
+                    menuHeight = 115.dp,
+                    columnGap = 22.dp,
+                    // Checkbox ≈ alto del texto de opción (13.sp).
+                    checkboxSize = 13.dp,
+                    checkboxIconSize = 9.dp,
+                )
+            }
+
+            DeviceProfileTier.TV_REGULAR -> {
+                // Ordenar A-Z TV1080/shared: scale 1.05
+                val (padH, padV, icon) = sortLikePill(1.05f)
+                val labelSp = (14f * 1.05f).roundToInt()
+                FilterSheetMetrics(
+                    widthFraction = 0.56f,
+                    // Escala −1,5 cm desde Hikvision (0.54 × 0.80).
+                    heightFraction = 0.43f,
+                    maxWidth = 720.dp,
+                    paddingH = 56.dp,
+                    paddingTop = 29.dp,
+                    paddingBottom = 24.dp,
+                    titleSp = 26,
+                    subtitleSp = 14,
+                    helpSp = 12,
+                    helpLineSp = 15,
+                    optionSp = 13,
+                    buttonSp = labelSp,
+                    selectSp = labelSp,
+                    titleUnderlineWidth = 68.dp,
+                    closeSize = 38.dp * 0.95f,
+                    selectHeight = icon + padV * 2f,
+                    pillHorizontalPad = padH,
+                    pillVerticalPad = padV,
+                    pillIconSize = icon,
+                    actionWidth = 0.dp,
+                    actionHeight = icon + padV * 2f,
+                    actionFillColumn = false,
+                    menuHeight = 111.dp,
+                    columnGap = 18.dp,
+                    // Checkbox ≈ alto del texto de opción (13.sp).
+                    checkboxSize = 13.dp,
+                    checkboxIconSize = 9.dp,
+                )
+            }
 
             DeviceProfileTier.TABLET_LANDSCAPE,
             DeviceProfileTier.DEFAULT,
-            -> FilterSheetMetrics(
-                widthFraction = 0.62f,
-                // tablet large: −1 cm físico ≈ −0.08 del alto de pantalla (antes 0.62).
-                heightFraction = 0.54f,
-                maxWidth = 640.dp,
-                paddingH = 40.dp,
-                paddingTop = 28.dp,
-                paddingBottom = 24.dp,
-                titleSp = 24,
-                subtitleSp = 14,
-                helpSp = 11,
-                helpLineSp = 14,
-                optionSp = 12,
-                buttonSp = 13,
-                selectSp = 13,
-                titleUnderlineWidth = 64.dp,
-                closeSize = 36.dp,
-                selectHeight = 42.dp,
-                actionWidth = 148.dp,
-                actionHeight = 40.dp,
-                actionFillColumn = false,
-                menuHeight = 100.dp,
-                columnGap = 14.dp,
-                checkboxSize = 20.dp,
-                checkboxIconSize = 14.dp,
-            )
+            -> {
+                // Escala desde Hikvision (~0.85) → pads landscape Ordenar (20/1/14/11).
+                val (padH, padV, icon) = sortLikePill(
+                    sortScale = 1f,
+                    baseH = 20.dp,
+                    baseV = 1.dp,
+                    baseIcon = 14.dp,
+                    baseLabelSp = 11f,
+                )
+                FilterSheetMetrics(
+                    widthFraction = 0.62f,
+                    // Escala −1,5 cm desde Hikvision (0.54 × 0.80).
+                    heightFraction = 0.43f,
+                    maxWidth = 640.dp,
+                    paddingH = 40.dp,
+                    paddingTop = 22.dp,
+                    paddingBottom = 19.dp,
+                    titleSp = 24,
+                    subtitleSp = 14,
+                    helpSp = 11,
+                    helpLineSp = 14,
+                    optionSp = 12,
+                    buttonSp = 11,
+                    selectSp = 11,
+                    titleUnderlineWidth = 64.dp,
+                    closeSize = 36.dp * 0.95f,
+                    selectHeight = icon + padV * 2f,
+                    pillHorizontalPad = padH,
+                    pillVerticalPad = padV,
+                    pillIconSize = icon,
+                    actionWidth = 0.dp,
+                    actionHeight = icon + padV * 2f,
+                    actionFillColumn = false,
+                    menuHeight = 107.dp,
+                    columnGap = 14.dp,
+                    checkboxSize = 12.dp,
+                    checkboxIconSize = 8.dp,
+                )
+            }
 
-            DeviceProfileTier.COMPACT_LANDSCAPE -> FilterSheetMetrics(
-                // Infinix / phone landscape: más angosto, un poco más alto, UI más chica.
-                widthFraction = 0.80f,
-                heightFraction = 0.80f,
-                maxWidth = 440.dp,
-                paddingH = 14.dp,
-                paddingTop = 12.dp,
-                paddingBottom = 12.dp,
-                titleSp = 18,
-                subtitleSp = 11,
-                helpSp = 10,
-                helpLineSp = 12,
-                optionSp = 11,
-                buttonSp = 11,
-                selectSp = 11,
-                titleUnderlineWidth = 48.dp,
-                closeSize = 28.dp,
-                selectHeight = 32.dp,
-                actionWidth = 120.dp,
-                actionHeight = 32.dp,
-                actionFillColumn = true,
-                menuHeight = 100.dp,
-                columnGap = 8.dp,
-                checkboxSize = 18.dp,
-                checkboxIconSize = 12.dp,
-            )
+            DeviceProfileTier.COMPACT_LANDSCAPE -> {
+                val (padH, padV, icon) = sortLikePill(
+                    sortScale = 1f,
+                    baseH = 20.dp,
+                    baseV = 1.dp,
+                    baseIcon = 14.dp,
+                )
+                FilterSheetMetrics(
+                    widthFraction = 0.80f,
+                    // Escala −1,5 cm desde Hikvision (0.80 × 0.80).
+                    heightFraction = 0.64f,
+                    maxWidth = 440.dp,
+                    paddingH = 14.dp,
+                    paddingTop = 10.dp,
+                    paddingBottom = 10.dp,
+                    titleSp = 18,
+                    subtitleSp = 11,
+                    helpSp = 10,
+                    helpLineSp = 12,
+                    optionSp = 11,
+                    buttonSp = 11,
+                    selectSp = 11,
+                    titleUnderlineWidth = 48.dp,
+                    closeSize = 28.dp * 0.95f,
+                    selectHeight = icon + padV * 2f,
+                    pillHorizontalPad = padH,
+                    pillVerticalPad = padV,
+                    pillIconSize = icon,
+                    actionWidth = 0.dp,
+                    actionHeight = icon + padV * 2f,
+                    actionFillColumn = true,
+                    menuHeight = 107.dp,
+                    columnGap = 8.dp,
+                    checkboxSize = 11.dp,
+                    checkboxIconSize = 8.dp,
+                )
+            }
 
-            DeviceProfileTier.COMPACT_PORTRAIT -> FilterSheetMetrics(
-                widthFraction = 0.96f,
-                heightFraction = 0.78f,
-                maxWidth = 520.dp,
-                paddingH = 20.dp,
-                paddingTop = 16.dp,
-                paddingBottom = 16.dp,
-                titleSp = 22,
-                subtitleSp = 13,
-                helpSp = 11,
-                helpLineSp = 14,
-                optionSp = 12,
-                buttonSp = 13,
-                selectSp = 13,
-                titleUnderlineWidth = 56.dp,
-                closeSize = 32.dp,
-                selectHeight = 40.dp,
-                actionWidth = 140.dp,
-                actionHeight = 40.dp,
-                actionFillColumn = true,
-                menuHeight = 96.dp,
-                columnGap = 10.dp,
-                checkboxSize = 20.dp,
-                checkboxIconSize = 14.dp,
-            )
+            DeviceProfileTier.COMPACT_PORTRAIT -> {
+                val (padH, padV, icon) = sortLikePill(
+                    sortScale = 1f,
+                    baseH = 16.dp,
+                    baseV = 2.dp,
+                    baseIcon = 12.dp,
+                )
+                FilterSheetMetrics(
+                    widthFraction = 0.96f,
+                    // Escala −1,5 cm desde Hikvision (0.78 × 0.80).
+                    heightFraction = 0.62f,
+                    maxWidth = 520.dp,
+                    paddingH = 20.dp,
+                    paddingTop = 13.dp,
+                    paddingBottom = 13.dp,
+                    titleSp = 22,
+                    subtitleSp = 13,
+                    helpSp = 11,
+                    helpLineSp = 14,
+                    optionSp = 12,
+                    buttonSp = 10,
+                    selectSp = 10,
+                    titleUnderlineWidth = 56.dp,
+                    closeSize = 32.dp * 0.95f,
+                    selectHeight = icon + padV * 2f,
+                    pillHorizontalPad = padH,
+                    pillVerticalPad = padV,
+                    pillIconSize = icon,
+                    actionWidth = 0.dp,
+                    actionHeight = icon + padV * 2f,
+                    actionFillColumn = true,
+                    menuHeight = 103.dp,
+                    columnGap = 10.dp,
+                    checkboxSize = 12.dp,
+                    checkboxIconSize = 8.dp,
+                )
+            }
         }
     }
 }
@@ -561,6 +661,16 @@ data class SharedModalMetrics(
     val modelScaleToUnits: Float,
     val descriptionAlignTop: Boolean,
     val alignRowTop: Boolean,
+    /** Tamaño del botón X (producto). Default −5%. */
+    val closeButtonSize: Dp = 40.dp * 0.95f,
+    /** Descripción justificada (Hikvision). */
+    val justifyDescription: Boolean = false,
+    /** Escala del cuerpo de descripción (<1 = más chico). */
+    val descriptionBodyScale: Float = 1f,
+    /** Padding inferior interno del card de descripción. */
+    val descriptionBottomPadding: Dp = 24.dp,
+    /** Mostrar “Ver más” si el texto supera el preview. */
+    val descriptionExpandable: Boolean = false,
 )
 
 /** Métricas del modal de filtros de clase terapéutica. */
@@ -581,8 +691,20 @@ data class FilterSheetMetrics(
     val selectSp: Int,
     val titleUnderlineWidth: Dp,
     val closeSize: Dp,
+    /**
+     * Alto del pill “Seleccionar…” = misma proporción que Ordenar A-Z
+     * ([pillIconSize] + 2×[pillVerticalPad]).
+     */
     val selectHeight: Dp,
+    /** Padding horizontal del pill (igual que Ordenar A-Z). */
+    val pillHorizontalPad: Dp,
+    /** Padding vertical del pill (igual que Ordenar A-Z). */
+    val pillVerticalPad: Dp,
+    /** Icono chevron del select (igual que Ordenar A-Z). */
+    val pillIconSize: Dp,
+    /** @deprecated Ancho fijo ya no se usa: Limpiar/Aplicar son wrap-content. */
     val actionWidth: Dp,
+    /** @deprecated Alto fijo: Limpiar/Aplicar usan [pillVerticalPad]. */
     val actionHeight: Dp,
     /** En compact: el botón de acción usa casi todo el ancho de la columna. */
     val actionFillColumn: Boolean,
