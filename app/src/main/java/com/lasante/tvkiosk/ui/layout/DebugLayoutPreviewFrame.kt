@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.Dp
 
 /**
  * Viewport lógico fijo + scale-to-fit del host.
- * Usado por [HikvisionLayoutDebug] (1280×720) y [Tv1080LayoutDebug] (1137×711).
+ * Usado por [Tv66LayoutDebug] (1280×720) y [Tv1080LayoutDebug] (1137×711).
  */
 @Composable
 fun DebugLayoutPreviewFrame(
@@ -72,17 +72,17 @@ fun DebugLayoutPreviewFrame(
 }
 
 /**
- * Cuando [HikvisionLayoutDebug] está ON, monta la UI en canvas lógico **1280×720 dp**
+ * Cuando [Tv66LayoutDebug] está ON, monta la UI en canvas lógico **1280×720 dp**
  * y la escala para llenar el host.
  */
 @Composable
-fun HikvisionPreviewFrame(content: @Composable () -> Unit) {
+fun Tv66PreviewFrame(content: @Composable () -> Unit) {
     DebugLayoutPreviewFrame(
-        forced = HikvisionLayoutDebug.isForced(),
+        forced = Tv66LayoutDebug.isForced(),
         refWidth = Tv66Reference.Width,
         refHeight = Tv66Reference.Height,
         onHostUpdated = { w, h, scale ->
-            HikvisionLayoutDebug.updatePreviewHost(w, h, scale)
+            Tv66LayoutDebug.updatePreviewHost(w, h, scale)
         },
         content = content,
     )

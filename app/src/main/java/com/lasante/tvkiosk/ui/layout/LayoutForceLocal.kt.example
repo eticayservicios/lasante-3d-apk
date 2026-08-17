@@ -12,9 +12,9 @@ package com.lasante.tvkiosk.ui.layout
  * Si falta, Gradle lo genera desde este example (todo en `false`).
  */
 object LayoutForceLocal {
-    /** Viewport lógico 1280×720 (Hikvision TV66). */
-    const val FORCE_HIKVISION_LAYOUT: Boolean = false
+    /** Viewport lógico 1280×720 (TV66). */
+    const val FORCE_TV66_LAYOUT: Boolean = false
 
-    /** Viewport lógico 1137×711 (TV1080). Ignorado si Hikvision está ON. */
+    /** Viewport lógico 1137×711 (TV1080). Ignorado si TV66 está ON. */
     const val FORCE_TV1080_LAYOUT: Boolean = false
 }

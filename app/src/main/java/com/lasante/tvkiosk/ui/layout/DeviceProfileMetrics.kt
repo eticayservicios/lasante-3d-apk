@@ -79,10 +79,10 @@ object DeviceProfileResolver {
     ): DeviceProfile {
         val isLandscape = maxWidth > maxHeight
 
-        // TV66 Hikvision: canvas ref., preferTv66, o force DEBUG (tablet large).
+        // TV66: canvas ref., preferTv66, o force DEBUG (tablet large).
         // TV1080 force no entra aquí: el viewport 1137×711 ya resuelve TV_REGULAR.
         if (
-            HikvisionLayoutDebug.isForced() ||
+            Tv66LayoutDebug.isForced() ||
             Tv66Reference.matchesReferenceCanvas(maxWidth, maxHeight) ||
             preferTv66
         ) {
@@ -90,7 +90,7 @@ object DeviceProfileResolver {
                 android.util.Log.i(
                     "Tv66Profile",
                     "FORCE TV_LARGE canvas=${maxWidth.value.toInt()}×${maxHeight.value.toInt()} " +
-                        "prefer=$preferTv66 hikForce=${HikvisionLayoutDebug.isForced()}",
+                        "prefer=$preferTv66 tv66Force=${Tv66LayoutDebug.isForced()}",
                 )
             }
             return DeviceProfile(
@@ -163,7 +163,7 @@ object DeviceProfileResolver {
                 topPadding = 28.dp,
             )
             DeviceProfileTier.TV_LARGE -> SharedGridMetrics(
-                // Hikvision 1280×720: 4 cols; top más bajo que canvas 4K altos.
+                // TV66 1280×720: 4 cols; top más bajo que canvas 4K altos.
                 // cardSpacing: aire entre cards CT/Productos (un poco más pegados, no juntos).
                 columns = 4,
                 horizontalPadding = sideMargin,
@@ -217,7 +217,7 @@ object DeviceProfileResolver {
             titleUnderlineWidth = 150.dp,
         )
         DeviceProfileTier.TV_LARGE -> SharedNavMetrics(
-            // Hikvision 720: 28.sp. tablet large/canvas altos: 36×0.80 (−20%).
+            // TV66 720: 28.sp. tablet large/canvas altos: 36×0.80 (−20%).
             buttonSize = 53.dp,
             buttonSpacing = 12.dp,
             titleFontSize = if (profile.maxHeight <= Tv66Reference.Height + 40.dp) {
@@ -256,7 +256,7 @@ object DeviceProfileResolver {
         val w = profile.maxWidth
         return when (profile.tier) {
             /**
-             * Hikvision TV66 1280×720 — referencia visual validada.
+             * TV66 1280×720 — referencia visual validada.
              * Gaps en “espacios” Poppins (misma unidad usada en el ajuste en tablet forzada).
              */
             DeviceProfileTier.TV_LARGE -> SharedModalMetrics(
@@ -441,7 +441,7 @@ object DeviceProfileResolver {
 
     /**
      * Modal de filtros CT (presentación + estrellas).
-     * Baseline = Hikvision TV_LARGE; pills = misma proporción que Ordenar A-Z
+     * Baseline = TV_LARGE; pills = misma proporción que Ordenar A-Z
      * ([ProductsSortButton]: padH 28 / padV 3 / icon 20 / label 14 × sortScale).
      */
     fun filterSheetMetrics(profile: DeviceProfile): FilterSheetMetrics {
@@ -502,7 +502,7 @@ object DeviceProfileResolver {
                 val labelSp = (14f * 1.05f).roundToInt()
                 FilterSheetMetrics(
                     widthFraction = 0.56f,
-                    // Escala −1,5 cm desde Hikvision (0.54 × 0.80).
+                    // Escala −1,5 cm desde TV66 (0.54 × 0.80).
                     heightFraction = 0.43f,
                     maxWidth = 720.dp,
                     paddingH = 56.dp,
@@ -535,7 +535,7 @@ object DeviceProfileResolver {
             DeviceProfileTier.TABLET_LANDSCAPE,
             DeviceProfileTier.DEFAULT,
             -> {
-                // Escala desde Hikvision (~0.85) → pads landscape Ordenar (20/1/14/11).
+                // Escala desde TV66 (~0.85) → pads landscape Ordenar (20/1/14/11).
                 val (padH, padV, icon) = sortLikePill(
                     sortScale = 1f,
                     baseH = 20.dp,
@@ -545,7 +545,7 @@ object DeviceProfileResolver {
                 )
                 FilterSheetMetrics(
                     widthFraction = 0.62f,
-                    // Escala −1,5 cm desde Hikvision (0.54 × 0.80).
+                    // Escala −1,5 cm desde TV66 (0.54 × 0.80).
                     heightFraction = 0.43f,
                     maxWidth = 640.dp,
                     paddingH = 40.dp,
@@ -583,7 +583,7 @@ object DeviceProfileResolver {
                 )
                 FilterSheetMetrics(
                     widthFraction = 0.80f,
-                    // Escala −1,5 cm desde Hikvision (0.80 × 0.80).
+                    // Escala −1,5 cm desde TV66 (0.80 × 0.80).
                     heightFraction = 0.64f,
                     maxWidth = 440.dp,
                     paddingH = 14.dp,
@@ -621,7 +621,7 @@ object DeviceProfileResolver {
                 )
                 FilterSheetMetrics(
                     widthFraction = 0.96f,
-                    // Escala −1,5 cm desde Hikvision (0.78 × 0.80).
+                    // Escala −1,5 cm desde TV66 (0.78 × 0.80).
                     heightFraction = 0.62f,
                     maxWidth = 520.dp,
                     paddingH = 20.dp,
@@ -677,7 +677,7 @@ data class SharedModalMetrics(
     val alignRowTop: Boolean,
     /** Tamaño del botón X (producto = filtros vía [DeviceProfileResolver.modalCloseIconSize]). */
     val closeButtonSize: Dp = DeviceProfileResolver.modalCloseIconSize(DeviceProfileTier.TV_LARGE),
-    /** Descripción justificada (Hikvision). */
+    /** Descripción justificada (TV66). */
     val justifyDescription: Boolean = false,
     /** Escala del cuerpo de descripción (<1 = más chico). */
     val descriptionBodyScale: Float = 1f,

@@ -60,7 +60,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.lasante.tvkiosk.data.Product
 import com.lasante.tvkiosk.ui.layout.DeviceProfileResolver
-import com.lasante.tvkiosk.ui.layout.HikvisionLayoutDebug
+import com.lasante.tvkiosk.ui.layout.Tv66LayoutDebug
 import com.lasante.tvkiosk.ui.layout.SharedModalMetrics
 import com.lasante.tvkiosk.ui.layout.Tv1080LayoutDebug
 import com.lasante.tvkiosk.ui.layout.Tv1080Reference
@@ -139,19 +139,19 @@ private fun rememberProductModalMetrics(widthClass: WindowWidthSizeClass?): Prod
     // Con layout force, el Dialog sale del canvas escalado: usar el viewport de
     // referencia (igual que Productos/Filtros) para no resolver otro tier.
     val maxWidth = when {
-        HikvisionLayoutDebug.isForced() -> Tv66Reference.Width
+        Tv66LayoutDebug.isForced() -> Tv66Reference.Width
         Tv1080LayoutDebug.isForced() -> Tv1080Reference.Width
         else -> configuration.screenWidthDp.dp
     }
     val maxHeight = when {
-        HikvisionLayoutDebug.isForced() -> Tv66Reference.Height
+        Tv66LayoutDebug.isForced() -> Tv66Reference.Height
         Tv1080LayoutDebug.isForced() -> Tv1080Reference.Height
         else -> configuration.screenHeightDp.dp
     }
     val density = LocalDensity.current
     val context = LocalContext.current
     val preferTv66 = remember(maxWidth, maxHeight, density, context) {
-        HikvisionLayoutDebug.isForced() ||
+        Tv66LayoutDebug.isForced() ||
             TvProfileDetector.isTv66Candidate(maxWidth, maxHeight, density, context)
     }
     val profile = remember(maxWidth, maxHeight, widthClass, preferTv66) {

@@ -12,7 +12,7 @@ import com.lasante.tvkiosk.app.LaSanteApp
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Landscape fijo (no sensor): evita portrait en paneles kiosco/Hikvision
+        // Landscape fijo (no sensor): evita portrait en paneles kiosco/TV66
         // que ignoran o retrasan sensorLandscape hasta “pantalla completa”.
         lockLandscape()
         super.onCreate(savedInstanceState)
@@ -40,7 +40,7 @@ class MainActivity : ComponentActivity() {
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
     }
 
-    /** Oculta barras de sistema; en Hikvision evita el modo ventana / “abrir pantalla completa”. */
+    /** Oculta barras de sistema; en TV66 evita el modo ventana / “abrir pantalla completa”. */
     private fun applyImmersiveFullscreen() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val controller = WindowInsetsControllerCompat(window, window.decorView)

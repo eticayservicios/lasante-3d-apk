@@ -35,7 +35,7 @@ object Tv1080Reference {
  * - Viewport lógico [Tv1080Reference] 1137×711, escalado para llenar el host
  * - Perfil natural: TV_REGULAR / tv_42 (no tv_66)
  *
- * Mutuamente exclusivo con [HikvisionLayoutDebug]: si hikForce está ON, este se ignora.
+ * Mutuamente exclusivo con [Tv66LayoutDebug]: si tv66Force está ON, este se ignora.
  *
  * Activar/desactivar solo en [LayoutForceLocal] (archivo local, gitignored).
  */
@@ -43,7 +43,7 @@ object Tv1080LayoutDebug {
     fun isForced(): Boolean =
         BuildConfig.DEBUG &&
             LayoutForceLocal.FORCE_TV1080_LAYOUT &&
-            !HikvisionLayoutDebug.isForced()
+            !Tv66LayoutDebug.isForced()
 
     var previewScale: Float by mutableFloatStateOf(1f)
         private set
@@ -82,9 +82,9 @@ object Tv1080LayoutDebug {
         }
 }
 
-/** Label DEBUG del force activo (Hikvision o TV1080). */
+/** Label DEBUG del force activo (TV66 o TV1080). */
 fun layoutForceOverlayLabel(): String = when {
-    HikvisionLayoutDebug.isForced() -> HikvisionLayoutDebug.overlayLabel()
+    Tv66LayoutDebug.isForced() -> Tv66LayoutDebug.overlayLabel()
     Tv1080LayoutDebug.isForced() -> Tv1080LayoutDebug.overlayLabel()
     else -> "layoutForce=off"
 }

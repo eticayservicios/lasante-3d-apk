@@ -18,7 +18,7 @@ import com.lasante.tvkiosk.ui.layout.DeviceProfile
 import com.lasante.tvkiosk.ui.layout.DeviceProfileResolver
 import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
 import com.lasante.tvkiosk.ui.layout.Tv42Spacing
-import com.lasante.tvkiosk.ui.layout.HikvisionLayoutDebug
+import com.lasante.tvkiosk.ui.layout.Tv66LayoutDebug
 import com.lasante.tvkiosk.ui.layout.Tv66Reference
 import com.lasante.tvkiosk.ui.layout.TvProfileDetector
 
@@ -32,7 +32,7 @@ data class IntroLayoutMetrics(
     val maxHeight: Dp,
     val widthClass: WindowWidthSizeClass,
     val profile: DeviceProfile,
-    /** Forzar tv_66 en paneles 4K/Hikvision aunque reporten ~960 dp. */
+    /** Forzar tv_66 en paneles 4K aunque reporten ~960 dp. */
     val preferTv66: Boolean = false,
 ) {
     val isCompactWidth: Boolean
@@ -93,11 +93,11 @@ data class IntroLayoutMetrics(
     val isLargeTv42Canvas: Boolean
         get() = isTv42LargeCanvas && !isTv1080Canvas && !isTv66
 
-    /** TV Hikvision — TV_LARGE, canvas ref. 1280×720, o force DEBUG. */
+    /** TV66 — TV_LARGE, canvas ref. 1280×720, o force DEBUG. */
     val isTv66: Boolean
         get() = profile.tier == DeviceProfileTier.TV_LARGE ||
             preferTv66 ||
-            HikvisionLayoutDebug.isForced() ||
+            Tv66LayoutDebug.isForced() ||
             Tv66Reference.matchesReferenceCanvas(maxWidth, maxHeight)
 
     /** @deprecated Usar isTv42 — alias para compatibilidad en logs. */
@@ -214,14 +214,14 @@ data class IntroLayoutMetrics(
 
     /**
      * Ancho de la rampa verde (punto + horizontal + diagonal).
-     * TV66 Hikvision = 282.dp; TV42 = misma geometría escalada por ancho vs 1280.
+     * TV66 = 282.dp; TV42 = misma geometría escalada por ancho vs 1280.
      */
     val starLineStartWidth: Dp
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 188.dp
             "phone_portrait" -> 197.dp
             "tv_42", "tablet_landscape" -> {
-                // Escala desde Hikvision 282.dp @ [Tv66Reference.Width].
+                // Escala desde TV66 282.dp @ [Tv66Reference.Width].
                 val scaled = 282.dp * (maxWidth / Tv66Reference.Width)
                 when {
                     isTv42LargeCanvas -> scaled.coerceIn(248.dp, 282.dp)
@@ -238,7 +238,7 @@ data class IntroLayoutMetrics(
 
     /**
      * Tamaño Poppins de "PRODUCTOS ESTRELLAS" (Intro).
-     * TV66 = 19.sp; TV42 escala desde Hikvision.
+     * TV66 = 19.sp; TV42 escala desde TV66.
      */
     val starTitleFontSize: TextUnit
         get() = when (vitrinaProfileKey) {
@@ -302,7 +302,7 @@ data class IntroLayoutMetrics(
         get() = 0.88f
 
     /**
-     * Diagonal corta fija (solo TV1080). TV66 usa la rampa Hikvision por fracción.
+     * Diagonal corta fija (solo TV1080). TV66 usa la rampa por fracción.
      */
     val starRampShortDiagRun: Dp
         get() = if (isTv1080Canvas) Tv42Spacing.spaces(6) else 0.dp
@@ -313,7 +313,7 @@ data class IntroLayoutMetrics(
 
     /**
      * Sin stub entre diagonal y 1.ª burbuja (TV42 / large / tablet).
-     * TV66: false — geometría Hikvision (diagonal → horizontal por centros).
+     * TV66: false — geometría de referencia (diagonal → horizontal por centros).
      */
     val starRampAttachToFirstBubble: Boolean
         get() = isTv42 ||
@@ -847,7 +847,7 @@ data class IntroLayoutMetrics(
 
     /**
      * Gira/touch (manitos). Historia usa [rotateButtonSizeBase], no este.
-     * TV66: −14.5% y −20% (Hikvision físico), luego −10% pedido.
+     * TV66: −14.5% y −20% (panel físico), luego −10% pedido.
      * TV42/TV1080: −15%, −10% previo, y −10% adicional (Intro).
      * Otros tablet_landscape: −15% y −10%.
      */
@@ -867,7 +867,7 @@ data class IntroLayoutMetrics(
 
     /**
      * touch.gif (mano blanca) se ve más grande que gira.gif a igual dp.
-     * Misma escala visual en TV42, Hikvision y el resto.
+     * Misma escala visual en TV42, TV66 y el resto.
      */
     val touchHintVisualScale: Float
         get() = 0.88f
@@ -1005,7 +1005,7 @@ data class IntroLayoutMetrics(
                     else -> base
                 }
             }
-            // TV66 / Hikvision: −2 espacios (bajar 1 vs previo −3).
+            // TV66: −2 espacios (bajar 1 vs previo −3).
             "tv_66" -> maxHeight * sceneHeightFraction * 0.035f - 5.dp -
                 Tv42Spacing.spaces(2)
             "expanded" -> maxHeight * sceneHeightFraction * 0.04f

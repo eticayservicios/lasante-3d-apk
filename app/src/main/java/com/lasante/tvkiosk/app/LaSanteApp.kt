@@ -11,8 +11,8 @@ import androidx.navigation.compose.rememberNavController
 import com.lasante.tvkiosk.navigation.LaSanteNavHost
 import com.lasante.tvkiosk.ui.layout.Tv1080LayoutDebug
 import com.lasante.tvkiosk.ui.layout.Tv1080PreviewFrame
-import com.lasante.tvkiosk.ui.layout.HikvisionLayoutDebug
-import com.lasante.tvkiosk.ui.layout.HikvisionPreviewFrame
+import com.lasante.tvkiosk.ui.layout.Tv66LayoutDebug
+import com.lasante.tvkiosk.ui.layout.Tv66PreviewFrame
 import com.lasante.tvkiosk.ui.screens.treatments.TreatmentsViewModel
 import com.lasante.tvkiosk.ui.screens.treatments.TreatmentsViewModelFactory
 import com.lasante.tvkiosk.ui.theme.LaSanteTheme
@@ -35,9 +35,9 @@ fun LaSanteApp() {
 
     LaSanteTheme {
         Surface {
-            // Solo uno activo: hikForce gana si ambos flags están ON.
+            // Solo uno activo: tv66Force gana si ambos flags están ON.
             when {
-                HikvisionLayoutDebug.isForced() -> HikvisionPreviewFrame {
+                Tv66LayoutDebug.isForced() -> Tv66PreviewFrame {
                     LaSanteNavHost(
                         navController = navController,
                         catalogRepository = app.catalogRepository,
