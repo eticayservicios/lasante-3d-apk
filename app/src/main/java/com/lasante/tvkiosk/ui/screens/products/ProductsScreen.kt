@@ -1193,7 +1193,7 @@ private fun TreatmentIconBadge(
     val badgeHeight = metrics.badgeHeight
     val badgeWidth =
         (badgeHeight * TreatmentUiMetrics.BADGE_WIDTH_TO_HEIGHT).coerceAtLeast(24.dp)
-    val iconSize = metrics.badgeIconSize
+    val iconSize = metrics.badgeIconSize * 0.95f
     // Badge PNG es pequeño; el icono CT del CDN es ~1080² — no usar ORIGINAL (OOM + Trim).
     val badgeDecodePx = with(density) {
         maxOf(badgeWidth, badgeHeight).times(2f).roundToPx().coerceIn(64, 256)
