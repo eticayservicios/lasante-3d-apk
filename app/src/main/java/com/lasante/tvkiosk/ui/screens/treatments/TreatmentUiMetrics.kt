@@ -33,6 +33,13 @@ object TreatmentUiMetrics {
         val cardLabelLineHeight: TextUnit = 14.sp,
         val cardIconFill: Float = CARD_ICON_FILL,
         val cardAspectRatio: Float = 1f,
+        /** Padding del Column dentro del card. */
+        val cardPaddingH: Dp = 4.dp,
+        val cardPaddingTop: Dp = 4.dp,
+        val cardPaddingBottom: Dp = 2.dp,
+        /** Padding del Box del icono (dentro del área weight). */
+        val cardIconPaddingH: Dp = 6.dp,
+        val cardIconPaddingV: Dp = 4.dp,
     )
 
     val tv42 = ProfileMetrics(
@@ -77,6 +84,11 @@ object TreatmentUiMetrics {
         // Television_1080 / TV1080: iconos −30% (fill 0.86 → 0.60).
         cardIconFill = CARD_ICON_FILL_LARGE * 0.70f,
         cardAspectRatio = 1.12f,
+        cardPaddingH = 2.dp,
+        cardPaddingTop = 2.dp,
+        cardPaddingBottom = 2.dp,
+        cardIconPaddingH = 2.dp,
+        cardIconPaddingV = 0.dp,
     )
 
     val tv66 = ProfileMetrics(
@@ -90,6 +102,11 @@ object TreatmentUiMetrics {
         // Hikvision: −30% para que no se corten arriba del card.
         cardIconFill = 0.70f * 0.70f,
         cardAspectRatio = 1.08f,
+        cardPaddingH = 1.dp,
+        cardPaddingTop = 1.dp,
+        cardPaddingBottom = 2.dp,
+        cardIconPaddingH = 2.dp,
+        cardIconPaddingV = 0.dp,
     )
 
     fun forProfile(
