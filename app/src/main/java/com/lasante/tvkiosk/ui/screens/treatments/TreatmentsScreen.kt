@@ -2,7 +2,6 @@ package com.lasante.tvkiosk.ui.screens.treatments
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -61,6 +60,8 @@ import com.lasante.tvkiosk.ui.layout.rememberCatalogLayout
 import com.lasante.tvkiosk.ui.theme.LaSanteGreen
 import com.lasante.tvkiosk.ui.theme.LaSanteText
 import com.lasante.tvkiosk.ui.utils.SoundManager
+import com.lasante.tvkiosk.ui.utils.UiSound
+import com.lasante.tvkiosk.ui.utils.clickableWithSound
 
 @Composable
 fun TreatmentsScreen(
@@ -313,7 +314,7 @@ private fun TherapeuticClassCard(
                         colors = listOf(Color(0xFFF4F4F4), Color(0xFFE1E1E1)),
                     ),
                 )
-                .clickable(onClick = onClick)
+                .clickableWithSound(sound = UiSound.Click, onClick = onClick)
                 .padding(start = 4.dp, end = 4.dp, top = 4.dp, bottom = 2.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {

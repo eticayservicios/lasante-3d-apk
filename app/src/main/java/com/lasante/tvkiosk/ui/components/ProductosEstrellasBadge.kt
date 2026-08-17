@@ -19,6 +19,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.lasante.tvkiosk.ui.utils.UiSound
 import com.lasante.tvkiosk.ui.utils.clickableWithSound
 
 private val BadgeGreenStart = Color(0xFF6FA320)
@@ -40,7 +41,7 @@ fun ProductosEstrellasBadge(
         else -> 9.sp
     }
     val clickModifier = if (onClick != null) {
-        Modifier.clickableWithSound(onClick = onClick)
+        Modifier.clickableWithSound(sound = UiSound.Product, onClick = onClick)
     } else {
         Modifier
     }

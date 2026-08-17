@@ -8,12 +8,17 @@ import androidx.annotation.RawRes
 import com.lasante.tvkiosk.R
 
 /**
- * Sonidos de UI desde [R.raw], mapeados a `MP3 Sonidos/`.
+ * Sonidos de UI desde [R.raw] (paquete `MP3 Sonidos/`, sin duplicar archivos idénticos).
  *
- * - [UiSound.Click] — historia, estrellas, redes, retroceso (`denielcz…` → [R.raw.ui_click])
- * - [UiSound.Unit] — tap unidad de negocio (`universfield-interface…` → [R.raw.unit_tap])
- * - [UiSound.Product] — grid / burbujas (`freesound…marker-lid` → [R.raw.ui_tap])
- * - [UiSound.Error] — pantallas de error (`universfield-ui-interface-03` → [R.raw.ui_error])
+ * Mapping real (md5):
+ * - [UiSound.Click] → [R.raw.ui_click]
+ *   = historia = redes = retroceso = clase terapéutica
+ * - [UiSound.Unit] → [R.raw.unit_tap]
+ *   = botón unidad de negocio
+ * - [UiSound.Product] → [R.raw.ui_tap]
+ *   = productos panel = productos estrellas
+ * - [UiSound.Error] → [R.raw.ui_error]
+ *   = errores
  */
 enum class UiSound(@RawRes val resId: Int) {
     Click(R.raw.ui_click),
@@ -50,9 +55,9 @@ object SoundManager {
                 .build()
                 .also { created ->
                     soundPool = created
-                    UiSound.entries.forEach { sound ->
-                        val id = created.load(context.applicationContext, sound.resId, 1)
-                        loadedIds[sound.resId] = id
+                    // Cargar cada raw una sola vez aunque varios UiSound compartan resId.
+                    UiSound.entries.map { it.resId }.toSet().forEach { resId ->
+                        loadedIds[resId] = created.load(context.applicationContext, resId, 1)
                     }
                 }
         }
@@ -69,11 +74,12 @@ object SoundManager {
         }
     }
 
-    /** Click compartido (historia / estrellas / redes / retroceso). */
+    /** Click compartido (historia / redes / retroceso / clase terapéutica). */
     fun playClickSound(context: Context) = play(context, UiSound.Click)
 
     fun playUnitSound(context: Context) = play(context, UiSound.Unit)
 
+    /** Productos del grid/burbujas y badge Productos Estrellas (mismo MP3). */
     fun playProductSound(context: Context) = play(context, UiSound.Product)
 
     fun playErrorSound(context: Context) = play(context, UiSound.Error)
