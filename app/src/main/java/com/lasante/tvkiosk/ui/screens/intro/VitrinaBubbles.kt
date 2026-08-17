@@ -63,7 +63,7 @@ private val StarTitleBrush = Brush.verticalGradient(
     ),
 )
 
-/** Fracción del ancho de rampa donde empieza la diagonal (asset Linea inicial / Hikvision). */
+/** Fracción del ancho de rampa donde empieza la diagonal (asset Linea inicial / TV66). */
 private const val RAMP_DIAG_START_FRACTION_DEFAULT = 0.88f
 
 /** Altura de la rampa / ancho (265 px de subida útil sobre 1368 de ancho). */
@@ -73,7 +73,7 @@ private const val RAMP_RISE_OVER_WIDTH = 265f / 1368f
  * Título Poppins + rampa verde en código (sin PNG),
  * burbujas centradas sobre la vitrina.
  *
- * Misma geometría en todos los perfiles (Hikvision / phone / TV42):
+ * Misma geometría en todos los perfiles (TV66 / phone / TV42):
  * punto → horizontal larga (~88%) → diagonal corta (~12%) →
  * horizontal por centros de burbujas.
  * TV42: −8 espacios en X (línea+título); −N espacios de rise (diagonal).
@@ -110,7 +110,7 @@ fun VitrinaBubblesRow(
         val bubblesStart = clusterStart + (clusterWidth - bubblesContentWidth) / 2f
         val bubblesEnd = bubblesStart + bubblesContentWidth
 
-        // Misma geometría Hikvision; nudges TV42 viven en IntroLayoutMetrics.
+        // Misma geometría TV66; nudges TV42 viven en IntroLayoutMetrics.
         val rampStartX =
             metrics.bubblesBadgeCenterXInRow - metrics.socialIconSize / 2f -
                 metrics.starRampStartNudge
@@ -119,7 +119,7 @@ fun VitrinaBubblesRow(
             (bubblesStart + metrics.starRampBubbleOverlap)
                 .coerceAtLeast(rampStartX + 80.dp)
         } else {
-            // TV66: base Hikvision + 1 espacio hacia la burbuja (pegar diagonal).
+            // TV66: +1 espacio hacia la burbuja (pegar diagonal).
             (minOf(rampStartX + rampWidth, bubblesStart) + metrics.starRampBubbleOverlap)
                 .coerceAtLeast(rampStartX + 80.dp)
         }
@@ -128,7 +128,7 @@ fun VitrinaBubblesRow(
         val titleHeight = with(density) { titleFontSize.toDp() }
         var titleWidth by remember(titleFontSize) { mutableStateOf(0.dp) }
 
-        // TV1080: diagonal corta. TV66 y resto: fracción Hikvision (0.88).
+        // TV1080: diagonal corta. TV66 y resto: fracción 0.88.
         val shortDiagRun = metrics.starRampShortDiagRun
         val riseFactor = metrics.starRampRiseFactor
         val rawRampRise = if (shortDiagRun > 0.dp) {

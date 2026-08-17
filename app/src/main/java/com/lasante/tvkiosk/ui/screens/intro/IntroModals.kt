@@ -215,7 +215,7 @@ fun IntroSocialQrModal(
             preferTv66 = preferTv66,
         ).tier == DeviceProfileTier.TV_LARGE
     }
-    // TV66 (Hikvision ref. 1280×720): ~22.4% del ancho.
+    // TV66 (TV66 ref. 1280×720): ~22.4% del ancho.
     val qrSize = if (isTv66) {
         (screenW * 0.224f).coerceIn(256.dp, 448.dp)
     } else {

@@ -210,9 +210,9 @@ data class CatalogHeaderMetrics(
             isLandscape: Boolean,
         ): CatalogHeaderMetrics {
             val isPhoneLandscape = profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE
-            // Cinturón + tirantes: canvas Hikvision fuerza métricas TV66 aunque el tier viniera mal.
+            // Cinturón + tirantes: canvas de referencia fuerza métricas TV66 aunque el tier viniera mal.
             val isTv66 = profile.tier == DeviceProfileTier.TV_LARGE ||
-                HikvisionLayoutDebug.isForced() ||
+                Tv66LayoutDebug.isForced() ||
                 Tv66Reference.matchesReferenceCanvas(profile.maxWidth, profile.maxHeight)
             val isTv42 = profile.tier == DeviceProfileTier.TV_REGULAR && !isTv66
             val badgeWidth = uiMetrics.badgeHeight * TreatmentUiMetrics.BADGE_WIDTH_TO_HEIGHT
@@ -220,7 +220,7 @@ data class CatalogHeaderMetrics(
 
             val searchBarWidth = when {
                 isTv66 -> 400.dp
-                // TV42/TV1080: entre 280 y 400 (escala hacia Hikvision).
+                // TV42/TV1080: entre 280 y 400 (escala hacia TV66).
                 largeCanvas || isTv42 -> 320.dp
                 isPhoneLandscape -> 196.dp
                 isLandscape -> 256.dp
@@ -291,7 +291,7 @@ data class CatalogHeaderMetrics(
                 isTv66 = isTv66,
                 isLargeCanvas = largeCanvas,
                 badgeWidth = badgeWidth,
-                // Shared TV: al ras (patrón Hikvision). Phone: +7%W.
+                // Shared TV: al ras (patrón TV66). Phone: +7%W.
                 titleStartGap = if (sharedTv) 0.dp else profile.maxWidth * 0.07f,
                 titleTopGap = if (sharedTv) {
                     0.dp

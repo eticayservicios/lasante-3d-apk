@@ -11,11 +11,11 @@ import androidx.compose.ui.unit.dp
 /**
  * Detecta paneles TV grandes (perfil **tv_66** / [DeviceProfileTier.TV_LARGE]).
  *
- * Canvas de referencia (Hikvision definitivo): [Tv66Reference] → **1280×720 dp**.
+ * Canvas de referencia: [Tv66Reference] → **1280×720 dp**.
  *
  * Perfiles:
  * - **tv_42 / TV42 / 1080p**: canvas ~960×540 dp (o tablet similar ~1137×711). NO usar tv_66.
- * - **tv_66**: canvas ref. Hikvision 1280×720, ancho >1400 dp, Hikvision HW,
+ * - **tv_66**: canvas ref. 1280×720, ancho >1400 dp, OEM TV66,
  *   TV leanback 4K, o 4K “comprimido” por densidad alta.
  *
  * Importante: tablets 2K (p. ej. 2560×1600 @ 240–320 dpi) NO son tv_66.
@@ -28,10 +28,10 @@ object TvProfileDetector {
         density: Density,
         context: Context,
     ): Boolean {
-        // Debug: forzar TV66 en toda la app (tablet large → layout Hikvision).
-        if (HikvisionLayoutDebug.isForced()) return true
+        // Debug: forzar TV66 en toda la app (tablet large → layout TV66).
+        if (Tv66LayoutDebug.isForced()) return true
 
-        // Hikvision definitivo (emulador skin 1280×720 o panel real).
+        // Canvas de referencia (emulador skin 1280×720 o panel real).
         if (Tv66Reference.matchesReferenceCanvas(maxWidth, maxHeight)) return true
         // Paneles Compose muy anchos.
         if (maxWidth > Tv66Reference.MinWidthForLargeTier) return true
@@ -47,7 +47,7 @@ object TvProfileDetector {
         val isTrue4k = longSidePx >= 3840f
         val isDensityCompressed4k = longSidePx >= 2560f && densityDpi >= 400f
 
-        if (isHikvisionDevice()) return true
+        if (isTv66OemPanel()) return true
 
         // 4K / “comprimido” solo en UI de TV (leanback). Tablets 2K (p. ej. 2560×1600)
         // no deben caer en tv_66.
@@ -63,7 +63,7 @@ object TvProfileDetector {
         return uiMode == Configuration.UI_MODE_TYPE_TELEVISION
     }
 
-    private fun isHikvisionDevice(): Boolean {
+    private fun isTv66OemPanel(): Boolean {
         val tokens = listOf(
             Build.MANUFACTURER,
             Build.BRAND,
@@ -74,7 +74,6 @@ object TvProfileDetector {
         return tokens.contains("hikvision") ||
             tokens.contains("hiksoft") ||
             tokens.contains("hikvisiondigital") ||
-            // Monitores/paneles comerciales Hikvision (serie DS-D…)
             Regex("""\bds-d""").containsMatchIn(tokens)
     }
 }

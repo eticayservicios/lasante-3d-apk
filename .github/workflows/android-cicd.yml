@@ -24,18 +24,10 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: gradle
 
-      - name: Configurar Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Cache Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: gradle-
+      # ubuntu-latest ya trae Android SDK (ANDROID_HOME).
+      # No usar android-actions/setup-android: GitHub lo rate-limita (429 / codeload).
 
       - name: Dar permisos a gradlew
         run: chmod +x gradlew

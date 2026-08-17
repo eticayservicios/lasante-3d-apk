@@ -41,7 +41,7 @@ object TreatmentUiMetrics {
     )
 
     val tv42 = ProfileMetrics(
-        // Fondo +2 esp; icono −1 esp (patrón Hikvision escalado).
+        // Fondo +2 esp; icono −1 esp (patrón TV66 escalado).
         badgeHeight = 64.dp + Tv42Spacing.spaces(2),
         badgeIconSize = 28.dp - Tv42Spacing.spaces(1),
         cardIconSize = 320.dp,
@@ -97,7 +97,7 @@ object TreatmentUiMetrics {
         navButtonSize = 52.dp,
         cardLabelFontSize = scaledSp(18.sp),
         cardLabelLineHeight = scaledSp(21.sp),
-        // Hikvision: −30% para que no se corten arriba del card.
+        // TV66: −30% para que no se corten arriba del card.
         cardIconFill = 0.70f * 0.70f,
         cardAspectRatio = 1.08f,
         cardPaddingH = 1.dp,

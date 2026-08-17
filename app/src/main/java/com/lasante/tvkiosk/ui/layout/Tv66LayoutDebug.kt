@@ -6,7 +6,7 @@ import androidx.compose.runtime.setValue
 import com.lasante.tvkiosk.BuildConfig
 
 /**
- * Fuerza **toda** la app a verse como el panel Hikvision TV66.
+ * Fuerza **toda** la app a verse como TV66.
  *
  * ON (DEBUG):
  * - Perfil / métricas TV_LARGE + tv_66
@@ -16,9 +16,9 @@ import com.lasante.tvkiosk.BuildConfig
  *
  * Activar/desactivar solo en [LayoutForceLocal] (archivo local, gitignored).
  */
-object HikvisionLayoutDebug {
+object Tv66LayoutDebug {
     fun isForced(): Boolean =
-        BuildConfig.DEBUG && LayoutForceLocal.FORCE_HIKVISION_LAYOUT
+        BuildConfig.DEBUG && LayoutForceLocal.FORCE_TV66_LAYOUT
 
     /** Escala aplicada (host / 1280×720). En tablet large ≈ 1.04. */
     var previewScale: Float by mutableFloatStateOf(1f)
@@ -37,7 +37,7 @@ object HikvisionLayoutDebug {
         previewHostW = hostWidthDp
         previewHostH = hostHeightDp
         android.util.Log.i(
-            "HikvisionLayout",
+            "Tv66Layout",
             "host=${previewHostW.toInt()}×${previewHostH.toInt()} " +
                 "ref=1280×720 scale=${"%.3f".format(previewScale)} " +
                 "forced=${isForced()}",
@@ -53,8 +53,8 @@ object HikvisionLayoutDebug {
             } else {
                 ""
             }
-            "hikForce=ON·1280×720·scale=$scaleTxt$hostTxt"
+            "tv66Force=ON·1280×720·scale=$scaleTxt$hostTxt"
         } else {
-            "hikForce=off"
+            "tv66Force=off"
         }
 }
