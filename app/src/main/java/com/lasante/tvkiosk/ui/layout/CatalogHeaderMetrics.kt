@@ -126,7 +126,10 @@ data class CatalogHeaderMetrics(
         /** Ancho bloque producto: TV66 0.90 → TV42/TV1080 0.92 → resto 1. */
         private const val PRODUCT_BLOCK_WIDTH_TV42 = 0.92f
         private const val PRODUCT_BLOCK_WIDTH_TV66 = 0.90f
-        private const val CT_CARD_WIDTH_TV66 = 0.90f
+        /** Cards CT: −5% en todos los perfiles (icono escala con el card). */
+        private const val CT_CARD_WIDTH_TV66 = 0.90f * 0.95f
+        private const val CT_CARD_WIDTH_TV42 = 0.92f * 0.95f
+        private const val CT_CARD_WIDTH_PHONE = 0.95f
         /** Nav: TV66 1.15×1.05; TV42/TV1080 ×1.08 (escala). */
         private const val TV66_NAV_SCALE = 1.15f * 1.05f
         private const val SHARED_TV_NAV_SCALE = 1.08f
@@ -156,8 +159,8 @@ data class CatalogHeaderMetrics(
             largeCanvas: Boolean = false,
         ): Float = when {
             isTv66 -> CT_CARD_WIDTH_TV66
-            isTv42 || largeCanvas -> PRODUCT_BLOCK_WIDTH_TV42
-            else -> 1f
+            isTv42 || largeCanvas -> CT_CARD_WIDTH_TV42
+            else -> CT_CARD_WIDTH_PHONE
         }
 
         fun isLargeCatalogCanvas(profile: DeviceProfile, canvasHeight: Dp): Boolean =

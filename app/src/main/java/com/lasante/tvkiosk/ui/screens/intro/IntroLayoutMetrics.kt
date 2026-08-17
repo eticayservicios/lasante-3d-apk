@@ -283,7 +283,10 @@ data class IntroLayoutMetrics(
         get() = if (isTv66) Tv42Spacing.spaces(2) else 0.dp
 
     val starRampDiagLeanLeft: Dp
-        get() = if (isTv66) Tv42Spacing.spaces(5) else 0.dp
+        get() = if (isTv66) Tv42Spacing.spaces(6) else 0.dp
+
+    val starTitleLowerLift: Dp
+        get() = if (isTv66) maxHeight * 0.03f else 0.dp
 
 
     val starRampRiseNudge: Dp

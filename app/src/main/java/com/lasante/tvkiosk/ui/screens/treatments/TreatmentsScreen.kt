@@ -52,7 +52,6 @@ import com.lasante.tvkiosk.ui.components.TrimTransparentTransformation
 import com.lasante.tvkiosk.ui.layout.CatalogHeaderMetrics
 import com.lasante.tvkiosk.ui.layout.CatalogScreenTitle
 import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
-import com.lasante.tvkiosk.ui.layout.Tv42Spacing
 import com.lasante.tvkiosk.ui.layout.LogCatalogHeaderProfile
 import com.lasante.tvkiosk.ui.layout.SharedNavMetrics
 import com.lasante.tvkiosk.ui.layout.layoutForceOverlayLabel
@@ -95,19 +94,11 @@ fun TreatmentsScreen(
                 profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE -> 14.dp
                 else -> 18.dp
             }
-            // Shared TV: subir subtítulo (TV66 −2 esp; TV42/TV1080 −1 esp).
-            val subtitleTopGap = when {
-                header.isTv66 -> (26.dp - Tv42Spacing.spaces(2)).coerceAtLeast(8.dp)
-                header.usesSharedTvCatalogLayout ->
-                    (26.dp - Tv42Spacing.spaces(1)).coerceAtLeast(10.dp)
-                profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE -> 14.dp
-                else -> if (profile.isWide) 18.dp else 14.dp
-            }
-            val subtitleToGridGap = when {
-                header.usesSharedTvCatalogLayout -> 26.dp
-                profile.tier == DeviceProfileTier.COMPACT_LANDSCAPE -> 14.dp
-                else -> if (profile.isWide) 18.dp else 14.dp
-            }
+            // Distancias con regla en panel (1 cm ≈ 0.08H).
+            // Back → subtítulo = 1 cm; subtítulo → cards = 0,5 cm.
+            val cmOnCanvas = maxHeight * 0.08f
+            val subtitleTopGap = cmOnCanvas
+            val subtitleToGridGap = cmOnCanvas * 0.5f
             val ctCardWidthFraction = CatalogHeaderMetrics.ctCardWidthFraction(
                 isTv66 = header.isTv66,
                 isTv42 = header.isTv42,
