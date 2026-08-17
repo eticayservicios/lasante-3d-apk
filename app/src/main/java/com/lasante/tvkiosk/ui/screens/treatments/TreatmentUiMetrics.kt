@@ -44,67 +44,69 @@ object TreatmentUiMetrics {
         // Fondo +2 esp; icono −1 esp (patrón TV66 escalado).
         badgeHeight = 64.dp + Tv42Spacing.spaces(2),
         badgeIconSize = 28.dp - Tv42Spacing.spaces(1),
-        cardIconSize = 320.dp,
+        cardIconSize = 320.dp * 0.95f,
         navButtonSize = 38.dp,
         cardLabelFontSize = scaledSp(12.sp),
         cardLabelLineHeight = scaledSp(14.sp),
-        // TV42: iconos −30% vs fill previo 0.62.
-        cardIconFill = 0.62f * 0.70f,
+        // TV42: iconos −30% vs fill previo 0.62, luego −5% con el card.
+        cardIconFill = 0.62f * 0.70f * 0.95f,
         cardAspectRatio = 1.07f,
     )
 
     val phoneLandscape = ProfileMetrics(
         badgeHeight = 46.dp + Tv42Spacing.spaces(1),
         badgeIconSize = (22.dp - Tv42Spacing.spaces(1)).coerceAtLeast(16.dp),
-        cardIconSize = 240.dp,
+        cardIconSize = 240.dp * 0.95f,
         navButtonSize = 32.dp,
         cardLabelFontSize = scaledSp(12.sp),
         cardLabelLineHeight = scaledSp(14.sp),
+        cardIconFill = CARD_ICON_FILL * 0.95f,
     )
 
     val phonePortrait = ProfileMetrics(
         badgeHeight = 62.dp + Tv42Spacing.spaces(1),
         badgeIconSize = (26.dp - Tv42Spacing.spaces(1)).coerceAtLeast(18.dp),
-        cardIconSize = 240.dp,
+        cardIconSize = 240.dp * 0.95f,
         navButtonSize = 35.dp,
         cardLabelFontSize = scaledSp(13.sp),
         cardLabelLineHeight = scaledSp(15.sp),
+        cardIconFill = CARD_ICON_FILL * 0.95f,
     )
 
     val tv42Large = ProfileMetrics(
         // TV1080/large: fondo +3 esp; icono −2 esp.
         badgeHeight = 78.dp + Tv42Spacing.spaces(3),
         badgeIconSize = 38.dp - Tv42Spacing.spaces(2),
-        cardIconSize = 560.dp,
+        cardIconSize = 560.dp * 0.95f,
         navButtonSize = 52.dp,
         cardLabelFontSize = scaledSp(20.sp),
         cardLabelLineHeight = scaledSp(23.sp),
-        // Television_1080 / TV1080: iconos −30% (fill 0.86 → 0.60).
-        cardIconFill = CARD_ICON_FILL_LARGE * 0.70f,
+        // TV1080: −30% (fill 0.86 → 0.60), luego −5% con el card + padding para no recortar.
+        cardIconFill = CARD_ICON_FILL_LARGE * 0.70f * 0.95f,
         cardAspectRatio = 1.12f,
         cardPaddingH = 2.dp,
         cardPaddingTop = 2.dp,
         cardPaddingBottom = 2.dp,
-        cardIconPaddingH = 2.dp,
-        cardIconPaddingV = 0.dp,
+        cardIconPaddingH = 4.dp,
+        cardIconPaddingV = 2.dp,
     )
 
     val tv66 = ProfileMetrics(
         // Fondo +4 espacios; icono 38 − 2 espacios.
         badgeHeight = 104.dp + Tv42Spacing.spaces(4),
         badgeIconSize = 38.dp - Tv42Spacing.spaces(2),
-        cardIconSize = 420.dp,
+        cardIconSize = 420.dp * 0.95f,
         navButtonSize = 52.dp,
         cardLabelFontSize = scaledSp(18.sp),
         cardLabelLineHeight = scaledSp(21.sp),
-        // TV66: −30% para que no se corten arriba del card.
-        cardIconFill = 0.70f * 0.70f,
+        // −5% extra vs fill 0.49 + padding interno: el icono escala con el card y no se recorta.
+        cardIconFill = 0.70f * 0.70f * 0.95f,
         cardAspectRatio = 1.08f,
-        cardPaddingH = 1.dp,
-        cardPaddingTop = 1.dp,
+        cardPaddingH = 2.dp,
+        cardPaddingTop = 2.dp,
         cardPaddingBottom = 2.dp,
-        cardIconPaddingH = 2.dp,
-        cardIconPaddingV = 0.dp,
+        cardIconPaddingH = 4.dp,
+        cardIconPaddingV = 2.dp,
     )
 
     fun forProfile(

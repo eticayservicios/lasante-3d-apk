@@ -458,7 +458,7 @@ object DeviceProfileResolver {
             return Triple(h, v, icon)
         }
 
-        return when (profile.tier) {
+        val metrics = when (profile.tier) {
             DeviceProfileTier.TV_LARGE -> {
                 // Ordenar A-Z TV66: scale 1.10
                 val (padH, padV, icon) = sortLikePill(1.10f)
@@ -650,6 +650,11 @@ object DeviceProfileResolver {
                 )
             }
         }
+        // Título −3%; alto +5% para que Limpiar/Aplicar no se corten.
+        return metrics.copy(
+            titleSp = (metrics.titleSp * 0.97f).roundToInt().coerceAtLeast(1),
+            heightFraction = (metrics.heightFraction * 1.05f).coerceAtMost(1f),
+        )
     }
 }
 

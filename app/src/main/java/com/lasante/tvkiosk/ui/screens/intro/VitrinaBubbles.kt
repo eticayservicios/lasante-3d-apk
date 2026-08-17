@@ -149,9 +149,9 @@ fun VitrinaBubblesRow(
         val lowerY = upperY + rampRise
         val rawTitleY = lowerY - titleHeight - metrics.starTitleLineGap
         val titleLift = if (rawTitleY < 0.dp) -rawTitleY else 0.dp
-        val titleY = rawTitleY + titleLift
+        val titleY = (rawTitleY + titleLift - metrics.starTitleLowerLift).coerceAtLeast(0.dp)
         val placedUpperY = upperY + titleLift
-        val placedLowerY = lowerY + titleLift
+        val placedLowerY = lowerY + titleLift - metrics.starTitleLowerLift
         val bubbleTop = titleLift
         val barHeight = maxOf(
             bubbleTop + bubbleSize,

@@ -48,24 +48,35 @@ fun DebugLayoutPreviewFrame(
             onHostUpdated(maxWidth.value, maxHeight.value, scale)
         }
 
-        Box(
-            modifier = Modifier
-                .width(refWidth * scale)
-                .height(refHeight * scale)
-                .clipToBounds(),
-        ) {
+        if (scale in 0.98f..1.02f) {
             Box(
                 modifier = Modifier
                     .requiredWidth(refWidth)
                     .requiredHeight(refHeight)
-                    .graphicsLayer {
-                        scaleX = scale
-                        scaleY = scale
-                        transformOrigin = TransformOrigin(0f, 0f)
-                    }
                     .clipToBounds(),
             ) {
                 content()
+            }
+        } else {
+            Box(
+                modifier = Modifier
+                    .width(refWidth * scale)
+                    .height(refHeight * scale)
+                    .clipToBounds(),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .requiredWidth(refWidth)
+                        .requiredHeight(refHeight)
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                            transformOrigin = TransformOrigin(0f, 0f)
+                        }
+                        .clipToBounds(),
+                ) {
+                    content()
+                }
             }
         }
     }

@@ -33,7 +33,6 @@ import io.github.sceneview.model.ModelInstance
 import io.github.sceneview.model.engine
 import io.github.sceneview.model.model
 import io.github.sceneview.node.ModelNode
-import com.google.android.filament.Engine
 import com.google.android.filament.RenderableManager
 import io.github.sceneview.rememberCameraNode
 import io.github.sceneview.rememberEnvironment
@@ -78,28 +77,6 @@ private fun duplicateLampOff(
     }
 }
 
-private fun collectRenderableEntities(
-    engine: Engine,
-    rootEntity: Int,
-    renderableManager: RenderableManager,
-): List<Int> {
-    if (rootEntity == 0) return emptyList()
-    val out = mutableListOf<Int>()
-    val tm = engine.transformManager
-    fun walk(entity: Int) {
-        if (renderableManager.hasComponent(entity)) out += entity
-        if (!tm.hasComponent(entity)) return
-        val ti = tm.getInstance(entity)
-        val childCount = tm.getChildCount(ti)
-        if (childCount <= 0) return
-        val children = IntArray(childCount)
-        tm.getChildren(ti, children)
-        children.forEach(::walk)
-    }
-    walk(rootEntity)
-    return out
-}
-
 private fun resolveLampEntities(
     instance: ModelInstance,
     renderableManager: RenderableManager,
@@ -110,7 +87,16 @@ private fun resolveLampEntities(
     val candidates = listOf(nodeName, nodeName.replace('.', '_'))
     for (name in candidates) {
         val named = model.getFirstEntityByName(name)
-        val found = collectRenderableEntities(engine, named, renderableManager)
+        if (named == 0) continue
+        if (renderableManager.hasComponent(named)) return listOf(named)
+        val tm = engine.transformManager
+        if (!tm.hasComponent(named)) continue
+        val ti = tm.getInstance(named)
+        val childCount = tm.getChildCount(ti).coerceAtMost(16)
+        if (childCount <= 0) continue
+        val children = IntArray(childCount)
+        tm.getChildren(ti, children)
+        val found = children.filter { renderableManager.hasComponent(it) }
         if (found.isNotEmpty()) return found
     }
     return emptyList()
@@ -530,24 +516,25 @@ fun VitrinaModelViewer(
     }
 
     Box(modifier = modifier) {
-        SceneView(
-            modifier = Modifier
-                .matchParentSize()
-                .modalBackdropBlur(backdropBlurred),
-            surfaceType = SurfaceType.TextureSurface,
-            renderQuality = renderQuality,
-            engine = engine,
-            modelLoader = modelLoader,
-            environmentLoader = environmentLoader,
-            environment = environment,
-            cameraNode = cameraNode,
-            mainLightNode = mainLightNode,
-            cameraManipulator = null,
-            lifecycle = sceneLifecycle,
-            isOpaque = false,
-            autoCenterContent = false,
-            content = {
-                baseInstance?.let { instance ->
+        if (baseInstance != null) {
+            SceneView(
+                modifier = Modifier
+                    .matchParentSize()
+                    .modalBackdropBlur(backdropBlurred),
+                surfaceType = SurfaceType.TextureSurface,
+                renderQuality = renderQuality,
+                engine = engine,
+                modelLoader = modelLoader,
+                environmentLoader = environmentLoader,
+                environment = environment,
+                cameraNode = cameraNode,
+                mainLightNode = mainLightNode,
+                cameraManipulator = null,
+                lifecycle = sceneLifecycle,
+                isOpaque = false,
+                autoCenterContent = false,
+                content = {
+                    val instance = baseInstance
                     ModelNode(
                         modelInstance = instance,
                         autoAnimate = false,
@@ -562,11 +549,9 @@ fun VitrinaModelViewer(
                     SideEffect {
                         baseRotationHandle.reapply()
                     }
-                }
-            },
-        )
-
-        if (baseInstance == null) {
+                },
+            )
+        } else {
             CircularProgressIndicator(
                 modifier = Modifier.align(Alignment.Center),
                 color = LaSanteGreen,
