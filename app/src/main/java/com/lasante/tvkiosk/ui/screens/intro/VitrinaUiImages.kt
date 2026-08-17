@@ -27,9 +27,7 @@ object VitrinaUiImages {
             .memoryCachePolicy(CachePolicy.ENABLED)
             .diskCachePolicy(CachePolicy.ENABLED)
             .apply {
-                // Evita frames basura / flash blanco en GIFs con disposal (Infinix / mid-range).
                 if (isGif) allowHardware(false)
-                // Mismo decode px para gira/touch (gira.gif es mucho más pesado).
                 if (sizePx != null && sizePx > 0) size(sizePx, sizePx)
             }
             .build()

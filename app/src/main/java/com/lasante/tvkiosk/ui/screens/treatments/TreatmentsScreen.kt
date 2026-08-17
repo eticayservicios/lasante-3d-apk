@@ -27,7 +27,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -196,11 +195,7 @@ fun TreatmentsScreen(
                                     top = CatalogHeaderMetrics.treatmentsGridTopPadding(
                                         sharedTv = header.usesSharedTvCatalogLayout,
                                     ),
-                                    bottom = when {
-                                        header.isTv66 -> 36.dp
-                                        profile.isWide -> 24.dp
-                                        else -> 16.dp
-                                    },
+                                    bottom = if (profile.isWide) 24.dp else 16.dp,
                                 ),
                                 verticalArrangement = Arrangement.spacedBy(cardSpacing),
                                 horizontalArrangement = Arrangement.spacedBy(cardSpacing),
@@ -327,8 +322,7 @@ private fun TherapeuticClassCard(
                 modifier = Modifier
                     .weight(1f, fill = true)
                     .fillMaxWidth()
-                    .clipToBounds()
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 if (imageRequest != null) {

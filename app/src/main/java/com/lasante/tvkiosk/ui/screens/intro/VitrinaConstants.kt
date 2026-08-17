@@ -87,9 +87,8 @@ object VitrinaConstants {
     )
 
     /**
-     * Lámparas del GLB (`shade.*`): 2 por cara, estante alto (Y≈1.43) + bajo (Y≈0.79).
-     * Alineadas a [slot_categoria_1…5] / [UNIT_GLB_NODE_NAMES].
-     * Ambas deben encender juntas (misma cara activa / idle).
+     * Lámparas del GLB (`shade.*`): 2 por cara, estante alto + bajo.
+     * Ambas deben encender juntas con la cara activa.
      *
      * Índice = cara GLB: 0 Genéricos … 4 Hospital.
      */
@@ -102,8 +101,10 @@ object VitrinaConstants {
     )
     val LAMP_NODE_NAMES: List<String> = LAMP_NODES_BY_FACE.flatten()
     /** Slots de material en cada mesh shade: bake / LED / Luz Interior. */
+    const val LAMP_PRIMITIVE_BAKE = 0
     const val LAMP_PRIMITIVE_LED = 1
     const val LAMP_PRIMITIVE_INTERIOR = 2
+    const val LAMP_BAKE_MATERIAL = "mtl_busselamp_bake"
     const val LAMP_LED_MATERIAL = "mtl_busselamp_led"
     const val LAMP_INTERIOR_MATERIAL = "Luz Interior"
     /** Valores ON del export Blender (apagado = 0). */

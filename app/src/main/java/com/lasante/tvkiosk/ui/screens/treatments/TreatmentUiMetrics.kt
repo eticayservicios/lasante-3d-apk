@@ -87,9 +87,9 @@ object TreatmentUiMetrics {
         navButtonSize = 52.dp,
         cardLabelFontSize = scaledSp(18.sp),
         cardLabelLineHeight = scaledSp(21.sp),
-        // Hikvision físico: más reducido para que el icono no se corte en el card ni al borde.
-        cardIconFill = 0.70f * 0.55f,
-        cardAspectRatio = 1.14f,
+        // Hikvision: −30% para que no se corten arriba del card.
+        cardIconFill = 0.70f * 0.70f,
+        cardAspectRatio = 1.08f,
     )
 
     fun forProfile(

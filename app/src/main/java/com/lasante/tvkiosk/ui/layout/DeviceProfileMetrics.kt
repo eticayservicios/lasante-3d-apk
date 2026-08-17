@@ -145,12 +145,11 @@ object DeviceProfileResolver {
         val w = profile.maxWidth
         // Base: 90% ancho útil (5% margen por lado). TV66: márgenes −10% y ancho útil −10%.
         val sideMargin = when (profile.tier) {
-            // Hikvision físico: más aire lateral (overscan / iconos cortados al borde).
-            DeviceProfileTier.TV_LARGE -> w * 0.08f
+            DeviceProfileTier.TV_LARGE -> w * 0.05f * 0.90f
             else -> w * 0.05f
         }
         val maxContentWidth = when (profile.tier) {
-            DeviceProfileTier.TV_LARGE -> w * 0.84f
+            DeviceProfileTier.TV_LARGE -> w * 0.90f
             else -> w
         }
         return when (profile.tier) {
@@ -164,13 +163,14 @@ object DeviceProfileResolver {
                 topPadding = 28.dp,
             )
             DeviceProfileTier.TV_LARGE -> SharedGridMetrics(
-                // Hikvision 1280×720: 4 cols; márgenes extra vs overscan del panel.
+                // Hikvision 1280×720: 4 cols; top más bajo que canvas 4K altos.
+                // cardSpacing: aire entre cards CT/Productos (un poco más pegados, no juntos).
                 columns = 4,
                 horizontalPadding = sideMargin,
                 maxContentWidth = maxContentWidth,
-                contentPadding = 12.dp,
-                cardSpacing = 14.dp,
-                topPadding = if (profile.maxHeight <= Tv66Reference.Height + 40.dp) 20.dp else 58.dp,
+                contentPadding = 10.dp,
+                cardSpacing = 16.dp,
+                topPadding = if (profile.maxHeight <= Tv66Reference.Height + 40.dp) 28.dp else 58.dp,
             )
             DeviceProfileTier.TV_REGULAR -> SharedGridMetrics(
                 // TV42 / TV1080 (~1137) y tablet large (~1333): 4 cols.

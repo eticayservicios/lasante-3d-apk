@@ -865,8 +865,8 @@ data class IntroLayoutMetrics(
         get() = rotateButtonSize
 
     /**
-     * touch.gif (mano blanca, más “llena”) se ve más grande que gira.gif a igual dp.
-     * Misma escala en TV42, Hikvision y el resto.
+     * touch.gif (mano blanca) se ve más grande que gira.gif a igual dp.
+     * Misma escala visual en TV42, Hikvision y el resto.
      */
     val touchHintVisualScale: Float
         get() = 0.88f

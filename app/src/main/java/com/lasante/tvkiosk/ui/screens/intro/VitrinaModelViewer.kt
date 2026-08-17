@@ -48,10 +48,13 @@ private data class VitrinaSwapMaterials(
     val glassOn: MaterialInstance,
     val glassOff: MaterialInstance,
     /**
-     * LED / Luz Interior ON+OFF.
+     * LED / Luz Interior / bake ON+OFF.
      * El GLB comparte una sola instancia entre las 10 lámparas; hay que clonar OFF
      * para poder apagar laterales y dejar solo la cara frontal encendida.
+     * El bombillo de abajo queda detrás del estante: al prender se ilumina también
+     * el housing (prim bake) para que se vea de frente.
      */
+    val lampBake: MaterialInstance?,
     val lampLedOn: MaterialInstance?,
     val lampLedOff: MaterialInstance?,
     val lampInteriorOn: MaterialInstance?,
@@ -97,23 +100,51 @@ private fun collectRenderableEntities(
     return out
 }
 
+private fun resolveLampEntities(
+    instance: ModelInstance,
+    renderableManager: RenderableManager,
+    nodeName: String,
+): List<Int> {
+    val model = instance.model
+    val engine = instance.engine
+    val candidates = listOf(nodeName, nodeName.replace('.', '_'))
+    for (name in candidates) {
+        val named = model.getFirstEntityByName(name)
+        val found = collectRenderableEntities(engine, named, renderableManager)
+        if (found.isNotEmpty()) return found
+    }
+    return emptyList()
+}
+
 private fun applyLampMaterials(
     renderableManager: RenderableManager,
     entity: Int,
-    led: MaterialInstance,
-    interior: MaterialInstance?,
+    on: Boolean,
+    mats: VitrinaSwapMaterials,
 ) {
     if (!renderableManager.hasComponent(entity)) return
     val ri = renderableManager.getInstance(entity)
     if (ri == 0) return
     val primCount = renderableManager.getPrimitiveCount(ri)
-    val ledSlot = VitrinaConstants.LAMP_PRIMITIVE_LED
-    val intSlot = VitrinaConstants.LAMP_PRIMITIVE_INTERIOR
-    if (ledSlot < primCount) {
-        renderableManager.setMaterialInstanceAt(ri, ledSlot, led)
-    }
-    if (interior != null && intSlot < primCount) {
-        renderableManager.setMaterialInstanceAt(ri, intSlot, interior)
+    val ledOn = mats.lampLedOn ?: return
+    val ledOff = mats.lampLedOff ?: return
+    val bake = mats.lampBake
+    val intOn = mats.lampInteriorOn
+    val intOff = mats.lampInteriorOff
+    for (slot in 0 until primCount) {
+        val mat = if (on) {
+            when (slot) {
+                VitrinaConstants.LAMP_PRIMITIVE_INTERIOR -> intOn ?: ledOn
+                else -> ledOn
+            }
+        } else {
+            when (slot) {
+                VitrinaConstants.LAMP_PRIMITIVE_BAKE -> bake ?: ledOff
+                VitrinaConstants.LAMP_PRIMITIVE_INTERIOR -> intOff ?: ledOff
+                else -> ledOff
+            }
+        }
+        renderableManager.setMaterialInstanceAt(ri, slot, mat)
     }
 }
 
@@ -123,41 +154,27 @@ private fun applyFaceLamps(
     mats: VitrinaSwapMaterials,
     litFaceIndex: Int,
 ) {
-    val ledOn = mats.lampLedOn ?: return
-    val ledOff = mats.lampLedOff ?: return
-    val intOn = mats.lampInteriorOn
-    val intOff = mats.lampInteriorOff
-    val engine = instance.engine
-    val model = instance.model
+    if (mats.lampLedOn == null || mats.lampLedOff == null) return
 
     VitrinaConstants.LAMP_NODES_BY_FACE.forEachIndexed { faceIndex, nodeNames ->
         val on = faceIndex == litFaceIndex
-        val led = if (on) ledOn else ledOff
-        val interior = when {
-            intOn == null || intOff == null -> null
-            on -> intOn
-            else -> intOff
-        }
         nodeNames.forEach { nodeName ->
             try {
-                val named = model.getFirstEntityByName(nodeName)
-                val entities = collectRenderableEntities(engine, named, renderableManager)
+                val entities = resolveLampEntities(instance, renderableManager, nodeName)
                 if (entities.isEmpty()) {
                     VitrinaDebugLog.w(
                         "VitrinaDiag",
-                        "lamp miss $nodeName entity=$named face=$faceIndex on=$on",
+                        "lamp miss $nodeName face=$faceIndex on=$on",
                     )
                     return@forEach
                 }
                 entities.forEach { entity ->
-                    applyLampMaterials(renderableManager, entity, led, interior)
+                    applyLampMaterials(renderableManager, entity, on, mats)
                 }
-                if (on) {
-                    VitrinaDebugLog.d(
-                        "VitrinaDiag",
-                        "lamp ON $nodeName entities=${entities.size} face=$faceIndex",
-                    )
-                }
+                VitrinaDebugLog.d(
+                    "VitrinaDiag",
+                    "lamp ${if (on) "ON" else "off"} $nodeName n=${entities.size} face=$faceIndex",
+                )
             } catch (t: Throwable) {
                 VitrinaDebugLog.w(
                     "VitrinaDiag",
@@ -361,6 +378,7 @@ fun VitrinaModelViewer(
         var glassOff: MaterialInstance? = null
         var lampLed: MaterialInstance? = null
         var lampInterior: MaterialInstance? = null
+        var lampBake: MaterialInstance? = null
         val materialInstances = instance.getMaterialInstances()
         materialInstances.forEachIndexed { idx, mat ->
             val name = try { mat.getName() ?: "" } catch (_: Exception) { "" }
@@ -372,6 +390,7 @@ fun VitrinaModelViewer(
                 "GLASS" -> glassOff = mat
                 VitrinaConstants.LAMP_LED_MATERIAL -> lampLed = mat
                 VitrinaConstants.LAMP_INTERIOR_MATERIAL -> lampInterior = mat
+                VitrinaConstants.LAMP_BAKE_MATERIAL -> lampBake = mat
             }
         }
         if (matOn == null || matOff == null || glassOn == null || glassOff == null) {
@@ -387,7 +406,8 @@ fun VitrinaModelViewer(
         VitrinaDebugLog.d(
             "VitrinaMaterials",
             "Materiales listos ON/OFF + GLASS + lamps " +
-                "(led=${lampLed != null} interior=${lampInterior != null} count=${materialInstances.size})",
+                "(led=${lampLed != null} interior=${lampInterior != null} " +
+                "bake=${lampBake != null} count=${materialInstances.size})",
         )
         // No mutar los materiales ON del GLB (setParameter puede abortar Filament).
         // OFF = clon con emisión en 0; si falla el clon, Intro sigue sin lámparas dinámicas.
@@ -402,6 +422,7 @@ fun VitrinaModelViewer(
             matOff = matOff!!,
             glassOn = glassOn!!,
             glassOff = glassOff!!,
+            lampBake = lampBake,
             lampLedOn = if (lampLedOff != null) lampLed else null,
             lampLedOff = lampLedOff,
             lampInteriorOn = if (lampInteriorOff != null) lampInterior else null,
