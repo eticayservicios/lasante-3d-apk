@@ -20,6 +20,7 @@ import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
 import com.lasante.tvkiosk.ui.layout.Tv42Spacing
 import com.lasante.tvkiosk.ui.layout.Tv66LayoutDebug
 import com.lasante.tvkiosk.ui.layout.Tv66Reference
+import com.lasante.tvkiosk.ui.components.ProductSearchBarMetrics
 import com.lasante.tvkiosk.ui.layout.TvProfileDetector
 
 /**
@@ -677,7 +678,9 @@ data class IntroLayoutMetrics(
     val introLeftChromePadding: Dp
         get() = when (vitrinaProfileKey) {
             "tv_66" -> maxWidth * 0.028f
-            "tv_42", "tablet_landscape" -> maxWidth * 0.032f
+            // TV42 / TV1080: ~0,3 cm más a la izquierda (1 cm ≈ 0.08H).
+            "tv_42" -> maxWidth * 0.017f
+            "tablet_landscape" -> maxWidth * 0.032f
             "phone_landscape" -> maxWidth * 0.024f
             else -> maxWidth * 0.04f
         }
@@ -707,48 +710,25 @@ data class IntroLayoutMetrics(
     val socialCenterYOffset: Dp
         get() = vitrinaCintilloCenterYOffset - panelCentimeter * 0.8f
 
+    /** Barra, lista y thumbs: misma escala que CT (TV66 = 239×34). */
+    val introSearchMetrics: ProductSearchBarMetrics
+        get() = ProductSearchBarMetrics.scaledForCanvas(maxHeight)
+
     val introSearchBarWidth: Dp
-        get() = when (vitrinaProfileKey) {
-            "tv_66" -> 228.dp
-            "tv_42", "tablet_landscape" -> 196.dp
-            "phone_landscape" -> 168.dp
-            else -> 184.dp
-        } * 1.05f
+        get() = introSearchMetrics.width
 
     val introSearchBarHeight: Dp
-        get() = when (vitrinaProfileKey) {
-            "tv_66" -> 32.dp
-            "tv_42", "tablet_landscape" -> 28.dp
-            "phone_landscape" -> 24.dp
-            else -> 26.dp
-        } * 1.05f
-
-    val introSearchIconSize: Dp
-        get() = when (vitrinaProfileKey) {
-            "tv_66" -> 16.dp
-            "tv_42", "tablet_landscape" -> 14.dp
-            else -> 13.dp
-        } * 1.05f
-
-    val introSearchFontSize: TextUnit
-        get() = when (vitrinaProfileKey) {
-            "tv_66" -> 12.sp
-            "tv_42", "tablet_landscape" -> 11.sp
-            else -> 10.sp
-        }
+        get() = introSearchMetrics.height
 
     /**
      * Centro del buscador a la altura de la base top, bajado 1,3 cm.
+     * El empujón extra (10 dp en TV66) escala con el alto del canvas.
      */
     val introSearchCenterYOffset: Dp
         get() = vitrinaCenterYOffset -
             vitrinaVisualHeight / 2f +
             introSearchBarHeight / 2f +
-            when (vitrinaProfileKey) {
-                "tv_66" -> 10.dp
-                "phone_landscape" -> 6.dp
-                else -> 8.dp
-            } +
+            10.dp * introSearchMetrics.layoutScale +
             panelCentimeter * 1.3f
 
     val vitrinaBlockWidthFraction: Float

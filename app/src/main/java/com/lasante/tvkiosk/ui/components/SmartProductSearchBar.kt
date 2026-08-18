@@ -46,6 +46,8 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.PlatformTextStyle
@@ -62,7 +64,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.lasante.tvkiosk.data.Product
+import com.lasante.tvkiosk.ui.layout.Tv66Reference
+import com.lasante.tvkiosk.ui.theme.LaSanteGreenDark
 import com.lasante.tvkiosk.ui.theme.LaSanteText
 import com.lasante.tvkiosk.ui.theme.LaSanteTextSecondary
 import com.lasante.tvkiosk.ui.theme.LaSanteWhite
@@ -70,6 +75,8 @@ import com.lasante.tvkiosk.ui.utils.UiSound
 import com.lasante.tvkiosk.ui.utils.clickableWithSound
 import java.text.Normalizer
 import java.util.Locale
+import kotlin.math.roundToInt
+import kotlinx.coroutines.delay
 
 @Immutable
 data class ProductSearchBarMetrics(
@@ -77,6 +84,11 @@ data class ProductSearchBarMetrics(
     val height: Dp,
     val iconSize: Dp,
     val fontSize: TextUnit,
+    /**
+     * 1f = TV66 (720 dp de alto). Escala lista, paddings y thumbs
+     * con el mismo factor que la barra.
+     */
+    val layoutScale: Float = 1f,
     val dropdownMaxHeight: Dp = 280.dp,
     val suggestionImageSize: Dp = 28.dp,
     /** Filas visibles en el desplegable; el resto se ve con scroll. */
@@ -90,53 +102,54 @@ data class ProductSearchBarMetrics(
     /** Bloque verde cuadrado (ancho = alto), no medio círculo. */
     val greenWidth: Dp = height,
 ) {
+    val suggestionRowHeight: Dp get() = SuggestionRowHeightTv66 * layoutScale
+    val listGap: Dp get() = 6.dp * layoutScale
+    val listContentPadding: Dp get() = SuggestionListPaddingTv66 * layoutScale
+    val listCornerRadius: Dp get() = 12.dp * layoutScale
+    val fieldPaddingStartExtra: Dp get() = 8.dp * layoutScale
+    val fieldPaddingEnd: Dp get() = 14.dp * layoutScale
+    val emptyPaddingH: Dp get() = 16.dp * layoutScale
+    val emptyPaddingV: Dp get() = 14.dp * layoutScale
+    val emptyCornerRadius: Dp get() = 14.dp * layoutScale
+    val rowPaddingH: Dp get() = 10.dp * layoutScale
+    val rowItemSpacing: Dp get() = 8.dp * layoutScale
+    val imageCornerRadius: Dp get() = 6.dp * layoutScale
+    val scrollbarEndPadding: Dp get() = 12.dp * layoutScale
+    val scrollbarThumbInset: Dp get() = 4.dp * layoutScale
+    val scrollbarVerticalInset: Dp get() = 8.dp * layoutScale
+
     companion object {
-        /** Mismo tamaño en Intro y CT (TV66 ≈ 239×34). */
-        fun kioskChrome(
-            isTv66: Boolean,
-            isTv42OrLarge: Boolean,
-            isPhoneLandscape: Boolean,
+        /**
+         * Misma barra en Intro y CT. TV66 (720 de alto) = 239×34.
+         * El resto de dispositivos escala por alto de canvas vs [Tv66Reference.Height].
+         */
+        fun scaledForCanvas(
+            canvasHeight: Dp,
             suggestionLimit: Int = 24,
-            dropdownVisibleRows: Int = 10,
+            dropdownVisibleRows: Int? = null,
         ): ProductSearchBarMetrics {
-            val width = when {
-                isTv66 -> 228.dp
-                isTv42OrLarge -> 196.dp
-                isPhoneLandscape -> 168.dp
-                else -> 184.dp
-            } * 1.05f
-            val height = when {
-                isTv66 -> 32.dp
-                isTv42OrLarge -> 28.dp
-                isPhoneLandscape -> 24.dp
-                else -> 26.dp
-            } * 1.05f
-            val iconSize = when {
-                isTv66 -> 16.dp
-                isTv42OrLarge -> 14.dp
-                else -> 13.dp
-            } * 1.05f
-            val fontSize = when {
-                isTv66 -> 12.sp
-                isTv42OrLarge -> 11.sp
-                else -> 10.sp
-            }
+            val layoutScale = (canvasHeight / Tv66Reference.Height).coerceIn(0.70f, 1.18f)
+            val chrome = 1.05f
+            val visibleRows = dropdownVisibleRows
+                ?: (10f * layoutScale).roundToInt().coerceIn(6, 10)
             return ProductSearchBarMetrics(
-                width = width,
-                height = height,
-                iconSize = iconSize,
-                fontSize = fontSize,
+                width = 228.dp * chrome * layoutScale,
+                height = 32.dp * chrome * layoutScale,
+                iconSize = 22.dp * chrome * layoutScale,
+                fontSize = (12f * layoutScale).sp,
+                layoutScale = layoutScale,
+                dropdownMaxHeight = 280.dp * layoutScale,
+                suggestionImageSize = 28.dp * layoutScale,
                 suggestionLimit = suggestionLimit,
-                dropdownVisibleRows = dropdownVisibleRows,
+                dropdownVisibleRows = visibleRows,
             )
         }
     }
 }
 
 private const val DEFAULT_PLACEHOLDER = "¿Buscas algun producto?"
-private val SearchBarGreen = Color(0xFF68BD45)
-private val SuggestionRowHeight = 40.dp
-private val SuggestionListPadding = 4.dp
+private val SuggestionRowHeightTv66 = 40.dp
+private val SuggestionListPaddingTv66 = 4.dp
 
 /**
  * Buscador inteligente: coincide solo en **nombre** (y dosis como fallback), nunca en descripción.
@@ -171,8 +184,9 @@ fun SmartProductSearchBar(
     val keyboard = LocalSoftwareKeyboardController.current
 
     val queryText = query.text
-    val suggestions = remember(queryText, products) {
-        rankSmartProductMatches(products, queryText, metrics.suggestionLimit)
+    val searchIndex = remember(products) { buildProductSearchIndex(products) }
+    val suggestions = remember(queryText, searchIndex, metrics.suggestionLimit) {
+        rankIndexedProductMatches(searchIndex, queryText, metrics.suggestionLimit)
     }
     val showList = queryText.isNotBlank() && (focused || pinResultsOpen)
     val showDropdown = showList && suggestions.isNotEmpty()
@@ -220,11 +234,21 @@ fun SmartProductSearchBar(
     }
 
     LaunchedEffect(pendingFocus, enabled) {
-        if (pendingFocus && enabled) {
-            focusRequester.requestFocus()
-            keyboard?.show()
-            pendingFocus = false
+        if (!pendingFocus || !enabled) return@LaunchedEffect
+        var focusedOk = false
+        for (attempt in 0 until 4) {
+            try {
+                focusRequester.requestFocus()
+                focusedOk = true
+                break
+            } catch (_: IllegalStateException) {
+                if (attempt < 3) delay(16)
+            }
         }
+        if (focusedOk) {
+            keyboard?.show()
+        }
+        pendingFocus = false
     }
 
     LaunchedEffect(screenActive) {
@@ -296,7 +320,10 @@ fun SmartProductSearchBar(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
                     .fillMaxSize()
-                    .padding(start = metrics.greenWidth + 8.dp, end = 14.dp),
+                    .padding(
+                        start = metrics.greenWidth + metrics.fieldPaddingStartExtra,
+                        end = metrics.fieldPaddingEnd,
+                    ),
                 contentAlignment = Alignment.CenterStart,
             ) {
                 BasicTextField(
@@ -310,7 +337,7 @@ fun SmartProductSearchBar(
                     enabled = enabled,
                     singleLine = true,
                     textStyle = fieldTextStyle,
-                    cursorBrush = SolidColor(SearchBarGreen),
+                    cursorBrush = SolidColor(LaSanteGreenDark),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(
                         onDone = { hideKeyboardKeepList() },
@@ -366,7 +393,7 @@ fun SmartProductSearchBar(
                     .width(metrics.greenWidth)
                     .fillMaxHeight()
                     .clip(greenShape)
-                    .background(SearchBarGreen)
+                    .background(LaSanteGreenDark)
                     .clickableWithSound(enabled = enabled) { focusSearchField() },
                 contentAlignment = Alignment.Center,
             ) {
@@ -383,7 +410,7 @@ fun SmartProductSearchBar(
             Box(
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .offset(y = metrics.height + 6.dp)
+                    .offset(y = metrics.height + metrics.listGap)
                     .width(metrics.width)
                     .zIndex(9f),
             ) {
@@ -394,7 +421,7 @@ fun SmartProductSearchBar(
                         onSelect = ::openProduct,
                     )
                 } else {
-                    EmptySuggestionsCard(fontSize = metrics.fontSize)
+                    EmptySuggestionsCard(metrics = metrics)
                 }
             }
         }
@@ -402,20 +429,20 @@ fun SmartProductSearchBar(
 }
 
 @Composable
-private fun EmptySuggestionsCard(fontSize: TextUnit) {
-    val shape = RoundedCornerShape(14.dp)
+private fun EmptySuggestionsCard(metrics: ProductSearchBarMetrics) {
+    val shape = RoundedCornerShape(metrics.emptyCornerRadius)
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(elevation = 8.dp, shape = shape)
             .clip(shape)
             .background(LaSanteWhite)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = metrics.emptyPaddingH, vertical = metrics.emptyPaddingV),
     ) {
         Text(
             text = "Sin coincidencias",
             color = LaSanteTextSecondary,
-            fontSize = fontSize,
+            fontSize = metrics.fontSize,
         )
     }
 }
@@ -432,9 +459,10 @@ private fun SuggestionDropdown(
     }
     val visibleRows = metrics.dropdownVisibleRows.coerceAtLeast(1)
     val viewportRows = suggestions.size.coerceAtMost(visibleRows).coerceAtLeast(1)
-    val dropdownHeight = SuggestionRowHeight * viewportRows + SuggestionListPadding * 2
+    val dropdownHeight =
+        metrics.suggestionRowHeight * viewportRows + metrics.listContentPadding * 2
     val showScrollbar = suggestions.size > visibleRows
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(metrics.listCornerRadius)
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -448,9 +476,9 @@ private fun SuggestionDropdown(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(dropdownHeight)
-                .padding(end = if (showScrollbar) 12.dp else 0.dp),
+                .padding(end = if (showScrollbar) metrics.scrollbarEndPadding else 0.dp),
             state = listState,
-            contentPadding = PaddingValues(vertical = SuggestionListPadding),
+            contentPadding = PaddingValues(vertical = metrics.listContentPadding),
             userScrollEnabled = true,
         ) {
             items(
@@ -459,9 +487,7 @@ private fun SuggestionDropdown(
             ) { product ->
                 SuggestionRow(
                     product = product,
-                    imageSize = metrics.suggestionImageSize,
-                    titleSize = metrics.fontSize,
-                    rowHeight = SuggestionRowHeight,
+                    metrics = metrics,
                     onClick = { onSelect(product) },
                 )
             }
@@ -472,8 +498,12 @@ private fun SuggestionDropdown(
                 thumbFraction = scrollInfo.thumbFraction,
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
-                    .padding(end = 4.dp, top = 8.dp, bottom = 8.dp)
-                    .height(dropdownHeight - 16.dp),
+                    .padding(
+                        end = metrics.scrollbarThumbInset,
+                        top = metrics.scrollbarVerticalInset,
+                        bottom = metrics.scrollbarVerticalInset,
+                    )
+                    .height(dropdownHeight - metrics.scrollbarVerticalInset * 2),
             )
         }
     }
@@ -521,13 +551,24 @@ private fun computeLazyListScrollbar(state: LazyListState): LazyListScrollbar {
 @Composable
 private fun SuggestionRow(
     product: Product,
-    imageSize: Dp,
-    titleSize: TextUnit,
-    rowHeight: Dp,
+    metrics: ProductSearchBarMetrics,
     onClick: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val thumbPx = with(LocalDensity.current) {
+        (metrics.suggestionImageSize * 2f).roundToPx().coerceIn(32, 128)
+    }
     val imageUrl = product.media.imagenes2d.miniatura?.trim()?.takeIf { it.isNotBlank() }
         ?: product.media.imagenes2d.principal?.trim()?.takeIf { it.isNotBlank() }
+    val imageRequest = remember(imageUrl, thumbPx, context) {
+        imageUrl?.let { url ->
+            ImageRequest.Builder(context)
+                .data(url)
+                .size(thumbPx)
+                .crossfade(false)
+                .build()
+        }
+    }
     val line = remember(product.nombre, product.dosisDisplay, product.formaFarmaceutica) {
         product.searchSuggestionLine()
     }
@@ -535,24 +576,24 @@ private fun SuggestionRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(rowHeight)
+            .height(metrics.suggestionRowHeight)
             .clickableWithSound(sound = UiSound.Product, onClick = onClick)
-            .padding(horizontal = 10.dp),
+            .padding(horizontal = metrics.rowPaddingH),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(metrics.rowItemSpacing),
     ) {
         Box(
             modifier = Modifier
-                .size(imageSize)
-                .clip(RoundedCornerShape(6.dp))
+                .size(metrics.suggestionImageSize)
+                .clip(RoundedCornerShape(metrics.imageCornerRadius))
                 .background(Color(0xFFF3F3F3)),
             contentAlignment = Alignment.Center,
         ) {
-            if (imageUrl != null) {
+            if (imageRequest != null) {
                 AsyncImage(
-                    model = imageUrl,
+                    model = imageRequest,
                     contentDescription = null,
-                    modifier = Modifier.size(imageSize),
+                    modifier = Modifier.size(metrics.suggestionImageSize),
                     contentScale = ContentScale.Fit,
                 )
             }
@@ -560,7 +601,7 @@ private fun SuggestionRow(
         Text(
             text = line,
             color = LaSanteText,
-            fontSize = titleSize,
+            fontSize = metrics.fontSize,
             fontWeight = FontWeight.Normal,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -587,24 +628,30 @@ internal fun rankSmartProductMatches(
     products: List<Product>,
     query: String,
     limit: Int,
+): List<Product> = rankIndexedProductMatches(
+    index = buildProductSearchIndex(products),
+    query = query,
+    limit = limit,
+)
+
+internal fun rankIndexedProductMatches(
+    index: List<ProductSearchIndexEntry>,
+    query: String,
+    limit: Int,
 ): List<Product> {
     val normalizedQuery = query.normalizeForSearch()
     if (normalizedQuery.isEmpty()) return emptyList()
-    return products.asSequence()
-        .filter { it.nombre.isNotBlank() }
-        .mapNotNull { product ->
-            val name = product.nombre.normalizeForSearch()
-            val dose = product.dosisDisplay?.normalizeForSearch().orEmpty()
-            val nameWords = name.split(NAME_WORD_DELIMITER)
+    return index.asSequence()
+        .mapNotNull { entry ->
             val score = when {
-                name.startsWith(normalizedQuery) -> 0
-                nameWords.any { it.startsWith(normalizedQuery) } -> 1
-                name.contains(normalizedQuery) -> 2
+                entry.name.startsWith(normalizedQuery) -> 0
+                entry.nameWords.any { it.startsWith(normalizedQuery) } -> 1
+                entry.name.contains(normalizedQuery) -> 2
                 normalizedQuery.length >= 2 &&
-                    (dose.startsWith(normalizedQuery) || dose.contains(normalizedQuery)) -> 3
+                    (entry.dose.startsWith(normalizedQuery) || entry.dose.contains(normalizedQuery)) -> 3
                 else -> return@mapNotNull null
             }
-            Triple(score, name, product)
+            Triple(score, entry.name, entry.product)
         }
         .sortedWith(compareBy({ it.first }, { it.second }))
         .map { it.third }
@@ -613,9 +660,33 @@ internal fun rankSmartProductMatches(
         .toList()
 }
 
+@Immutable
+internal data class ProductSearchIndexEntry(
+    val product: Product,
+    val name: String,
+    val nameWords: List<String>,
+    val dose: String,
+)
+
+internal fun buildProductSearchIndex(products: List<Product>): List<ProductSearchIndexEntry> {
+    if (products.isEmpty()) return emptyList()
+    return products.mapNotNull { product ->
+        if (product.nombre.isBlank()) return@mapNotNull null
+        val name = product.nombre.normalizeForSearch()
+        if (name.isEmpty()) return@mapNotNull null
+        ProductSearchIndexEntry(
+            product = product,
+            name = name,
+            nameWords = name.split(NAME_WORD_DELIMITER).filter { it.isNotEmpty() },
+            dose = product.dosisDisplay?.normalizeForSearch().orEmpty(),
+        )
+    }
+}
+
 private val NAME_WORD_DELIMITER = Regex("[\\s-]+")
+private val COMBINING_DIACRITICS = "\\p{Mn}+".toRegex()
 
 private fun String.normalizeForSearch(): String =
     Normalizer.normalize(this.trim(), Normalizer.Form.NFD)
-        .replace("\\p{Mn}+".toRegex(), "")
+        .replace(COMBINING_DIACRITICS, "")
         .lowercase(Locale.ROOT)

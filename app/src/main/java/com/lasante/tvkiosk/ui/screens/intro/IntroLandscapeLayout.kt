@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -149,19 +150,6 @@ fun IntroResponsiveLayout(
                     vertical = metrics.verticalPadding,
                 ),
         ) {
-            var searchSessionOpen by remember { mutableStateOf(false) }
-            var searchEditing by remember { mutableStateOf(false) }
-            var dismissListTick by remember { mutableStateOf(0) }
-            val focusManager = LocalFocusManager.current
-            val keyboard = LocalSoftwareKeyboardController.current
-            fun dismissSearchSession() {
-                if (searchEditing) {
-                    focusManager.clearFocus()
-                    keyboard?.hide()
-                } else {
-                    dismissListTick += 1
-                }
-            }
             Box(modifier = Modifier.fillMaxSize().then(vitrinaPadding)) {
                 BusinessUnitVitrina(
                     metrics = metrics,
@@ -202,52 +190,15 @@ fun IntroResponsiveLayout(
                 )
             }
 
-            if (searchSessionOpen && showVitrinaControls && !backdropBlurred) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .zIndex(20.5f)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = { dismissSearchSession() },
-                        ),
-                )
-            }
-
-            // Buscador — izquierda, encima de las redes (encima del SurfaceView).
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(start = metrics.introLeftChromePadding)
-                    .offset(
-                        y = metrics.maxHeight / 2 +
-                            metrics.introSearchCenterYOffset -
-                            metrics.introSearchBarHeight / 2,
-                    )
-                    .width(metrics.introSearchBarWidth)
-                    .wrapContentHeight(unbounded = true, align = Alignment.Top)
-                    .zIndex(21f),
-            ) {
-                SmartProductSearchBar(
-                    products = catalogProducts,
-                    onProductSelected = onSearchProductSelected,
-                    metrics = ProductSearchBarMetrics(
-                        width = metrics.introSearchBarWidth,
-                        height = metrics.introSearchBarHeight,
-                        iconSize = metrics.introSearchIconSize,
-                        fontSize = metrics.introSearchFontSize,
-                        suggestionLimit = 24,
-                        dropdownVisibleRows = 10,
-                    ),
-                    enabled = showVitrinaControls,
-                    screenActive = contentActive,
-                    onInteraction = onWakeFromIdle,
-                    onActiveChange = { searchSessionOpen = it },
-                    onEditingChange = { searchEditing = it },
-                    dismissListTick = dismissListTick,
-                )
-            }
+            IntroProductSearchLayer(
+                products = catalogProducts,
+                metrics = metrics,
+                enabled = showVitrinaControls,
+                screenActive = contentActive,
+                backdropBlurred = backdropBlurred,
+                onProductSelected = onSearchProductSelected,
+                onInteraction = onWakeFromIdle,
+            )
 
             // Redes sociales — fila horizontal, izquierda del cintillo.
             SocialRail(
@@ -298,6 +249,85 @@ fun IntroResponsiveLayout(
                     .zIndex(16f),
             )
         }
+    }
+}
+
+/**
+ * Scrim + buscador en su propio estado Compose.
+ * Abrir la lista no recompone la vitrina (el estado vive aquí, no en el padre).
+ */
+@Composable
+private fun BoxScope.IntroProductSearchLayer(
+    products: List<Product>,
+    metrics: IntroLayoutMetrics,
+    enabled: Boolean,
+    screenActive: Boolean,
+    backdropBlurred: Boolean,
+    onProductSelected: (Product) -> Unit,
+    onInteraction: () -> Unit,
+) {
+    var searchSessionOpen by remember { mutableStateOf(false) }
+    var searchEditing by remember { mutableStateOf(false) }
+    var dismissListTick by remember { mutableStateOf(0) }
+    val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    fun dismissSearchSession() {
+        if (searchEditing) {
+            focusManager.clearFocus()
+            keyboard?.hide()
+        } else {
+            dismissListTick += 1
+        }
+    }
+
+    if (searchSessionOpen && enabled && !backdropBlurred) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .zIndex(20.5f)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = { dismissSearchSession() },
+                ),
+        )
+    }
+
+    // Buscador — izquierda, encima de las redes (encima del SurfaceView).
+    val searchMetrics = remember(metrics.maxHeight, metrics.vitrinaProfileKey) {
+        val base = ProductSearchBarMetrics.scaledForCanvas(metrics.maxHeight)
+        if (metrics.vitrinaProfileKey != "tv_42") {
+            base
+        } else {
+            // 0,3 cm más estrecha en TV42/TV1080 para no pegar en la vitrina.
+            val nudge = metrics.maxHeight * 0.024f
+            base.copy(width = (base.width - nudge).coerceAtLeast(120.dp))
+        }
+    }
+    Box(
+        modifier = Modifier
+            .align(Alignment.TopStart)
+            .padding(start = metrics.introLeftChromePadding)
+            .offset(
+                y = metrics.maxHeight / 2 +
+                    metrics.introSearchCenterYOffset -
+                    searchMetrics.height / 2,
+            )
+            .width(searchMetrics.width)
+            .wrapContentHeight(unbounded = true, align = Alignment.Top)
+            .zIndex(21f),
+    ) {
+        SmartProductSearchBar(
+            products = products,
+            onProductSelected = onProductSelected,
+            metrics = searchMetrics,
+            enabled = enabled,
+            screenActive = screenActive,
+            onInteraction = onInteraction,
+            onActiveChange = { searchSessionOpen = it },
+            onEditingChange = { searchEditing = it },
+            dismissListTick = dismissListTick,
+        )
     }
 }
 

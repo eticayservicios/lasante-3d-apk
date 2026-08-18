@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -37,11 +38,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -74,6 +79,7 @@ import com.lasante.tvkiosk.ui.theme.LaSanteText
 import com.lasante.tvkiosk.ui.utils.SoundManager
 import com.lasante.tvkiosk.ui.utils.UiSound
 import com.lasante.tvkiosk.ui.utils.clickableWithSound
+import kotlin.math.roundToInt
 
 @Composable
 fun TreatmentsScreen(
@@ -140,8 +146,16 @@ fun TreatmentsScreen(
             )
             val canvasW = maxWidth
             val canvasH = maxHeight
+            val searchMetrics = ProductSearchBarMetrics.scaledForCanvas(canvasH)
+            var overlayRootCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
+            var searchBarOffset by remember { mutableStateOf(IntOffset.Zero) }
+            var searchBarPlaced by remember { mutableStateOf(false) }
 
-            Box(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .onGloballyPositioned { overlayRootCoordinates = it },
+            ) {
                 if (BuildConfig.DEBUG) {
                     Text(
                         text = "${canvasW.value.toInt()}×${canvasH.value.toInt()} · ${profile.tier} · " +
@@ -173,15 +187,23 @@ fun TreatmentsScreen(
                     ) {
                         TreatmentsHeader(
                             unitName = unitName,
-                            products = products,
                             nav = catalog.nav,
                             header = header,
+                            searchMetrics = searchMetrics,
                             contentPadding = catalog.contentPadding,
                             onBack = onBack,
-                            onProductSelected = onProductSelected,
-                            onSearchActiveChange = { searchSessionOpen = it },
-                            onSearchEditingChange = { searchEditing = it },
-                            dismissListTick = dismissListTick,
+                            onSearchBarPositioned = { coords ->
+                                val root = overlayRootCoordinates
+                                if (root == null || !root.isAttached || !coords.isAttached) return@TreatmentsHeader
+                                val pos = root.localPositionOf(coords, Offset.Zero)
+                                val next = IntOffset(pos.x.roundToInt(), pos.y.roundToInt())
+                                if (next != searchBarOffset) {
+                                    searchBarOffset = next
+                                }
+                                if (!searchBarPlaced) {
+                                    searchBarPlaced = true
+                                }
+                            },
                             modifier = Modifier.zIndex(2f),
                         )
 
@@ -263,19 +285,39 @@ fun TreatmentsScreen(
                             }
                         }
                             }
-
-                            if (searchSessionOpen) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .clickable(
-                                            interactionSource = remember { MutableInteractionSource() },
-                                            indication = null,
-                                            onClick = { dismissSearchSession() },
-                                        ),
-                                )
-                            }
                         }
+                    }
+                }
+
+                if (searchSessionOpen) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .zIndex(20.5f)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = { dismissSearchSession() },
+                            ),
+                    )
+                }
+
+                if (searchBarPlaced) {
+                    Box(
+                        modifier = Modifier
+                            .offset { searchBarOffset }
+                            .width(searchMetrics.width)
+                            .wrapContentHeight(unbounded = true, align = Alignment.Top)
+                            .zIndex(21f),
+                    ) {
+                        SmartProductSearchBar(
+                            products = products,
+                            onProductSelected = onProductSelected,
+                            metrics = searchMetrics,
+                            onActiveChange = { searchSessionOpen = it },
+                            onEditingChange = { searchEditing = it },
+                            dismissListTick = dismissListTick,
+                        )
                     }
                 }
             }
@@ -286,24 +328,14 @@ fun TreatmentsScreen(
 @Composable
 private fun TreatmentsHeader(
     unitName: String,
-    products: List<Product>,
     nav: SharedNavMetrics,
     header: CatalogHeaderMetrics,
+    searchMetrics: ProductSearchBarMetrics,
     contentPadding: Dp = 0.dp,
     onBack: () -> Unit,
-    onProductSelected: (Product) -> Unit,
-    onSearchActiveChange: (Boolean) -> Unit = {},
-    onSearchEditingChange: (Boolean) -> Unit = {},
-    dismissListTick: Int = 0,
+    onSearchBarPositioned: (LayoutCoordinates) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val searchMetrics = ProductSearchBarMetrics.kioskChrome(
-        isTv66 = header.isTv66,
-        isTv42OrLarge = header.isTv42 || header.isLargeCanvas,
-        isPhoneLandscape = header.isPhoneLandscape,
-        suggestionLimit = 24,
-        dropdownVisibleRows = 10,
-    )
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -321,18 +353,10 @@ private fun TreatmentsHeader(
         Spacer(modifier = Modifier.weight(1f))
         Box(
             modifier = Modifier
+                .width(searchMetrics.width)
                 .height(searchMetrics.height)
-                .wrapContentHeight(unbounded = true, align = Alignment.Top),
-        ) {
-            SmartProductSearchBar(
-                products = products,
-                onProductSelected = onProductSelected,
-                metrics = searchMetrics,
-                onActiveChange = onSearchActiveChange,
-                onEditingChange = onSearchEditingChange,
-                dismissListTick = dismissListTick,
-            )
-        }
+                .onGloballyPositioned(onSearchBarPositioned),
+        )
         Spacer(modifier = Modifier.width(header.searchToNavGap))
         // Misma X que Productos: Back + hueco de Home (aunque Home no esté).
         Row(
