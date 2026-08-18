@@ -56,4 +56,6 @@ data class VitrinaConfig(
     val autoRotateAfterMs: Long = 120_000L,
     val screenSaverAfterMs: Long = 180_000L,
     val screenSaverPlaylistEnabled: Boolean = false,
+    /** Icono del cintillo de producto estrella; si es null, la APK usa el PNG embebido. */
+    val starProductIconUrl: String? = null,
 )
