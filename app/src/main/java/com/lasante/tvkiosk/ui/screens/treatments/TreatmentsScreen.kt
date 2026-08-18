@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -40,13 +41,17 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.lasante.tvkiosk.BuildConfig
 import com.lasante.tvkiosk.data.DisplayTitles
+import com.lasante.tvkiosk.data.Product
 import com.lasante.tvkiosk.data.Treatment
 import com.lasante.tvkiosk.ui.components.GreenNavButton
 import com.lasante.tvkiosk.ui.components.LaSanteBackground
+import com.lasante.tvkiosk.ui.components.ProductSearchBarMetrics
+import com.lasante.tvkiosk.ui.components.SmartProductSearchBar
 import com.lasante.tvkiosk.ui.components.TreatmentIconAssets
 import com.lasante.tvkiosk.ui.components.TrimTransparentTransformation
 import com.lasante.tvkiosk.ui.layout.CatalogHeaderMetrics
@@ -66,8 +71,10 @@ import com.lasante.tvkiosk.ui.utils.clickableWithSound
 fun TreatmentsScreen(
     unitName: String,
     treatments: List<Treatment>,
+    products: List<Product>,
     onBack: () -> Unit,
     onTreatmentSelected: (String) -> Unit,
+    onProductSelected: (Product) -> Unit,
 ) {
     val gridState = rememberLazyGridState()
     val context = LocalContext.current
@@ -134,14 +141,17 @@ fun TreatmentsScreen(
                             .weight(1f)
                             .widthIn(max = catalog.gridMaxWidth)
                             .fillMaxWidth()
-                            .padding(horizontal = catalog.horizontalPadding),
+                            .padding(horizontal = catalog.horizontalPadding)
+                            .zIndex(10f),
                     ) {
                         TreatmentsHeader(
                             unitName = unitName,
+                            products = products,
                             nav = catalog.nav,
                             header = header,
                             contentPadding = catalog.contentPadding,
                             onBack = onBack,
+                            onProductSelected = onProductSelected,
                         )
 
                         Spacer(modifier = Modifier.height(subtitleTopGap))
@@ -223,16 +233,19 @@ fun TreatmentsScreen(
 @Composable
 private fun TreatmentsHeader(
     unitName: String,
+    products: List<Product>,
     nav: SharedNavMetrics,
     header: CatalogHeaderMetrics,
     contentPadding: Dp = 0.dp,
     onBack: () -> Unit,
+    onProductSelected: (Product) -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = contentPadding)
-            .padding(top = if (header.usesSharedTvCatalogLayout) header.controlsTopGap else 0.dp),
+            .padding(top = if (header.usesSharedTvCatalogLayout) header.controlsTopGap else 0.dp)
+            .zIndex(10f),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         CatalogScreenTitle(
@@ -242,6 +255,24 @@ private fun TreatmentsHeader(
             // Shared TV: título en la misma línea que Back.
             titleTopGap = if (header.usesSharedTvCatalogLayout) 0.dp else header.titleTopGap,
         )
+        Spacer(modifier = Modifier.width(header.filterToSearchGap))
+        Box(
+            modifier = Modifier
+                .height(header.searchBarHeight)
+                .zIndex(2f),
+        ) {
+            SmartProductSearchBar(
+                products = products,
+                onProductSelected = onProductSelected,
+                metrics = ProductSearchBarMetrics(
+                    width = header.searchBarWidth,
+                    height = header.searchBarHeight,
+                    iconSize = header.searchIconSize,
+                    fontSize = header.searchFontSize,
+                    dropdownMaxHeight = 320.dp,
+                ),
+            )
+        }
         Spacer(modifier = Modifier.weight(1f))
         // Misma X que Productos: Back + hueco de Home (aunque Home no esté).
         Row(

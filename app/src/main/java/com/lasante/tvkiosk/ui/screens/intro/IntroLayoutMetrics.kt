@@ -614,7 +614,7 @@ data class IntroLayoutMetrics(
             else -> historiaBadgeHeight * 0.10f
         }
 
-    /** Redes Intro — TV42/TV42/tablet large unificados (LARGE). */
+    /** Redes Intro — TV42/TV42/tablet large unificados (LARGE). −2 % vs buscador Intro. */
     val socialIconSize: Dp
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 24.dp * 1.30f
@@ -623,15 +623,24 @@ data class IntroLayoutMetrics(
             "tv_66" -> 78.dp * 1.30f * 0.85f * 0.80f
             "tv_32" -> 46.dp
             else -> if (isCompactWidth) 30.dp else 37.dp
-        }
+        } * 0.98f
 
-    /** Espacio vertical entre iconos de redes sociales. */
+    /** Espacio vertical entre iconos de redes sociales (legacy; el rail actual es horizontal). */
     val socialIconSpacing: Dp
         get() = when (vitrinaProfileKey) {
             "tv_66" -> 42.dp
             // TV42 unificado (TV42/tablet large LARGE): mismo spacing.
             "tv_42", "tablet_landscape" -> 34.dp
             else -> 30.dp
+        }
+
+    /** Espacio horizontal entre iconos de redes (fila a la izquierda del cintillo). */
+    val socialIconRowSpacing: Dp
+        get() = when (vitrinaProfileKey) {
+            "tv_66" -> 14.dp
+            "tv_42", "tablet_landscape" -> 12.dp
+            "phone_landscape" -> 8.dp
+            else -> 10.dp
         }
 
     /**
@@ -655,9 +664,8 @@ data class IntroLayoutMetrics(
         }
 
     /**
-     * Inset izquierdo de redes.
-     * TV1080: un poco más a la derecha para alinear centro con PRODUCTOS ESTRELLAS
-     * (el badge sigue el mismo eje vía [bubblesBadgeCenterXInRow]).
+     * Inset izquierdo de PRODUCTOS ESTRELLAS (centro de la columna histórica de redes).
+     * El buscador y las redes usan [introLeftChromePadding], más pegado al borde.
      */
     val socialStartPadding: Dp
         get() = when {
@@ -665,24 +673,83 @@ data class IntroLayoutMetrics(
             else -> maxWidth * 0.10f
         }
 
+    /** Buscador + redes: más a la izquierda, cerca del borde. */
+    val introLeftChromePadding: Dp
+        get() = when (vitrinaProfileKey) {
+            "tv_66" -> maxWidth * 0.028f
+            "tv_42", "tablet_landscape" -> maxWidth * 0.032f
+            "phone_landscape" -> maxWidth * 0.024f
+            else -> maxWidth * 0.04f
+        }
+
+    /** 1 cm en panel (regla del proyecto: 1 cm ≈ 0.08H). */
+    val panelCentimeter: Dp
+        get() = maxHeight * 0.08f
+
     /**
-     * Desplazamiento vertical de redes (CenterStart). En TV66 se alinea con el botón Gira.
-     * (+ = abajo).
+     * Alto de la banda de color (cintillo) dentro de la caja visual de la vitrina.
+     * ~16 % de la altura visual: pie + anillo con el nombre de la unidad.
+     */
+    val vitrinaCintilloHeight: Dp
+        get() = vitrinaVisualHeight * 0.16f
+
+    /**
+     * Offset Y (CenterStart) del centro del cintillo, misma caja que el logo
+     * ([vitrinaCenterYOffset] + [vitrinaVisualHeight]).
+     */
+    val vitrinaCintilloCenterYOffset: Dp
+        get() = vitrinaCenterYOffset + vitrinaVisualHeight / 2f - vitrinaCintilloHeight / 2f
+
+    /**
+     * Redes a la izquierda, a media altura del cintillo, subidas 0,8 cm
+     * (0,5 cm originales + 0,3 cm).
      */
     val socialCenterYOffset: Dp
+        get() = vitrinaCintilloCenterYOffset - panelCentimeter * 0.8f
+
+    val introSearchBarWidth: Dp
         get() = when (vitrinaProfileKey) {
-            // Infinix: bajar ~10%H para centrar respecto a la vitrina (antes quedaban muy arriba).
-            "phone_landscape" -> maxHeight * 0.10f
-            "tv_66" -> {
-                val paddedCenterShift = -(maxHeight * vitrinaInsetBottomFraction * 0.5f)
-                paddedCenterShift +
-                    maxHeight * vitrinaVerticalBias +
-                    vitrinaVerticalOffsetAdjustment +
-                    vitrinaCylinderNudgeDown +
-                    rotateButtonCenterYOffset
-            }
-            else -> 0.dp
+            "tv_66" -> 228.dp
+            "tv_42", "tablet_landscape" -> 196.dp
+            "phone_landscape" -> 168.dp
+            else -> 184.dp
+        } * 1.05f
+
+    val introSearchBarHeight: Dp
+        get() = when (vitrinaProfileKey) {
+            "tv_66" -> 32.dp
+            "tv_42", "tablet_landscape" -> 28.dp
+            "phone_landscape" -> 24.dp
+            else -> 26.dp
+        } * 1.05f
+
+    val introSearchIconSize: Dp
+        get() = when (vitrinaProfileKey) {
+            "tv_66" -> 16.dp
+            "tv_42", "tablet_landscape" -> 14.dp
+            else -> 13.dp
+        } * 1.05f
+
+    val introSearchFontSize: TextUnit
+        get() = when (vitrinaProfileKey) {
+            "tv_66" -> 12.sp
+            "tv_42", "tablet_landscape" -> 11.sp
+            else -> 10.sp
         }
+
+    /**
+     * Centro del buscador a la altura de la base top, bajado 1,3 cm.
+     */
+    val introSearchCenterYOffset: Dp
+        get() = vitrinaCenterYOffset -
+            vitrinaVisualHeight / 2f +
+            introSearchBarHeight / 2f +
+            when (vitrinaProfileKey) {
+                "tv_66" -> 10.dp
+                "phone_landscape" -> 6.dp
+                else -> 8.dp
+            } +
+            panelCentimeter * 1.3f
 
     val vitrinaBlockWidthFraction: Float
         get() = when (vitrinaProfileKey) {

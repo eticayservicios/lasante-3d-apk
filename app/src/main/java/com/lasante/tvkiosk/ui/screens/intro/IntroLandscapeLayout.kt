@@ -5,7 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -34,6 +34,8 @@ import coil.compose.AsyncImage
 import com.lasante.tvkiosk.BuildConfig
 import com.lasante.tvkiosk.data.Product
 import com.lasante.tvkiosk.data.VitrinaUnit
+import com.lasante.tvkiosk.ui.components.ProductSearchBarMetrics
+import com.lasante.tvkiosk.ui.components.SmartProductSearchBar
 import com.lasante.tvkiosk.ui.layout.layoutForceOverlayLabel
 import com.lasante.tvkiosk.ui.utils.clickableWithSound
 import com.lasante.tvkiosk.ui.utils.UiSound
@@ -59,7 +61,9 @@ fun IntroResponsiveLayout(
     showVitrinaControls: Boolean = true,
     vitrinaRotationAnimationSpec: AnimationSpec<Float> = VitrinaConstants.manualRotationAnimationSpec,
     socialNetworks: List<SocialNetwork>,
+    catalogProducts: List<Product> = emptyList(),
     onProductClick: (Product) -> Unit,
+    onSearchProductSelected: (Product) -> Unit = {},
     onWakeFromIdle: () -> Unit,
     onRotationAnimationFinished: () -> Unit = {},
     onDragStart: () -> Unit,
@@ -177,14 +181,38 @@ fun IntroResponsiveLayout(
                 )
             }
 
-            // Redes sociales — centro izquierda (encima del SurfaceView de la vitrina)
+            // Buscador — izquierda, encima de las redes (encima del SurfaceView).
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = metrics.introLeftChromePadding)
+                    .offset(y = metrics.introSearchCenterYOffset)
+                    .width(metrics.introSearchBarWidth)
+                    .height(metrics.introSearchBarHeight)
+                    .zIndex(21f),
+            ) {
+                SmartProductSearchBar(
+                    products = catalogProducts,
+                    onProductSelected = onSearchProductSelected,
+                    metrics = ProductSearchBarMetrics(
+                        width = metrics.introSearchBarWidth,
+                        height = metrics.introSearchBarHeight,
+                        iconSize = metrics.introSearchIconSize,
+                        fontSize = metrics.introSearchFontSize,
+                    ),
+                    enabled = showVitrinaControls,
+                    onInteraction = onWakeFromIdle,
+                )
+            }
+
+            // Redes sociales — fila horizontal, izquierda del cintillo.
             SocialRail(
                 socialNetworks = socialNetworks,
                 metrics = metrics,
                 onSocialClick = onSocialClick,
                 modifier = Modifier
                     .align(Alignment.CenterStart)
-                    .padding(start = metrics.socialStartPadding)
+                    .padding(start = metrics.introLeftChromePadding)
                     .offset(y = metrics.socialCenterYOffset)
                     .zIndex(20f),
             )
@@ -298,10 +326,10 @@ fun SocialRail(
     onSocialClick: (String, String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    Row(
         modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(metrics.socialIconSpacing),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(metrics.socialIconRowSpacing),
     ) {
         socialNetworks.forEach { social ->
             SocialNetworkIconButton(

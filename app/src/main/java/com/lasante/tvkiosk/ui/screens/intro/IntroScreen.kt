@@ -37,6 +37,7 @@ fun IntroScreen(
     vitrinaConfig: VitrinaConfig,
     screenSaverVideos: List<ScreenSaverVideo>,
     institutionalVideoUrl: String?,
+    allProducts: List<Product>,
     windowSizeClass: WindowSizeClass,
     contentActive: Boolean = true,
     onStopAudio: () -> Unit,
@@ -199,11 +200,16 @@ fun IntroScreen(
                 vitrinaRotationAnimationSpec = vitrinaController.rotationAnimationSpec,
                 backdropBlurred = productModalBlur,
                 socialNetworks = socialNetworks,
+                catalogProducts = allProducts,
                 onProductClick = {
                     vitrinaController.registerInteraction()
                     if (it.isVitrinaModalEnabled()) {
                         selectedProduct = it
                     }
+                },
+                onSearchProductSelected = { product ->
+                    vitrinaController.registerInteraction()
+                    selectedProduct = product
                 },
                 onSocialClick = { label, url ->
                     vitrinaController.registerInteraction()
