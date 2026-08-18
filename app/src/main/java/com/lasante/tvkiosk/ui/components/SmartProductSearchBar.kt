@@ -155,6 +155,10 @@ fun SmartProductSearchBar(
     onInteraction: () -> Unit = {},
     /** true con teclado o lista abiertos; solo cambia al abrir/cerrar, no en cada letra. */
     onActiveChange: (Boolean) -> Unit = {},
+    /** true mientras el campo tiene foco / teclado. */
+    onEditingChange: (Boolean) -> Unit = {},
+    /** Incrementar para cerrar la lista (segundo toque fuera). */
+    dismissListTick: Int = 0,
 ) {
     var query by remember { mutableStateOf(TextFieldValue("")) }
     var focused by remember { mutableStateOf(false) }
@@ -183,9 +187,10 @@ fun SmartProductSearchBar(
         }
     }
 
-    fun dismissSearch() {
-        pinResultsOpen = false
-        retainResultsOnBlur = false
+    fun hideKeyboardKeepList() {
+        if (query.text.isNotBlank()) {
+            pinResultsOpen = true
+        }
         pendingFocus = false
         focusManager.clearFocus()
         keyboard?.hide()
@@ -247,8 +252,18 @@ fun SmartProductSearchBar(
 
     val searchSessionOpen = focused || showList
     val onActiveChangeState = rememberUpdatedState(onActiveChange)
+    val onEditingChangeState = rememberUpdatedState(onEditingChange)
     LaunchedEffect(searchSessionOpen) {
         onActiveChangeState.value(searchSessionOpen)
+    }
+    LaunchedEffect(focused) {
+        onEditingChangeState.value(focused)
+    }
+    LaunchedEffect(dismissListTick) {
+        if (dismissListTick > 0) {
+            pinResultsOpen = false
+            retainResultsOnBlur = false
+        }
     }
 
     Box(
@@ -298,7 +313,7 @@ fun SmartProductSearchBar(
                     cursorBrush = SolidColor(SearchBarGreen),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(
-                        onDone = { dismissSearch() },
+                        onDone = { hideKeyboardKeepList() },
                     ),
                     modifier = Modifier
                         .fillMaxSize()
@@ -310,11 +325,10 @@ fun SmartProductSearchBar(
                                 onInteraction()
                             } else {
                                 keyboard?.hide()
-                                if (retainResultsOnBlur) {
-                                    retainResultsOnBlur = false
-                                } else {
-                                    pinResultsOpen = false
+                                if (query.text.isNotBlank()) {
+                                    pinResultsOpen = true
                                 }
+                                retainResultsOnBlur = false
                             }
                         },
                     decorationBox = { innerTextField ->

@@ -87,19 +87,26 @@ fun TreatmentsScreen(
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
     var searchSessionOpen by remember { mutableStateOf(false) }
+    var searchEditing by remember { mutableStateOf(false) }
+    var dismissListTick by remember { mutableStateOf(0) }
     fun dismissSearchSession() {
-        searchSessionOpen = false
-        focusManager.clearFocus()
-        keyboard?.hide()
+        if (searchEditing) {
+            focusManager.clearFocus()
+            keyboard?.hide()
+        } else {
+            dismissListTick += 1
+        }
     }
     val gridState = rememberLazyGridState()
     val context = LocalContext.current
     BackHandler {
-        if (searchSessionOpen) {
-            dismissSearchSession()
-        } else {
-            SoundManager.playClickSound(context)
-            onBack()
+        when {
+            searchEditing -> dismissSearchSession()
+            searchSessionOpen -> dismissSearchSession()
+            else -> {
+                SoundManager.playClickSound(context)
+                onBack()
+            }
         }
     }
 
@@ -173,6 +180,8 @@ fun TreatmentsScreen(
                             onBack = onBack,
                             onProductSelected = onProductSelected,
                             onSearchActiveChange = { searchSessionOpen = it },
+                            onSearchEditingChange = { searchEditing = it },
+                            dismissListTick = dismissListTick,
                             modifier = Modifier.zIndex(2f),
                         )
 
@@ -284,6 +293,8 @@ private fun TreatmentsHeader(
     onBack: () -> Unit,
     onProductSelected: (Product) -> Unit,
     onSearchActiveChange: (Boolean) -> Unit = {},
+    onSearchEditingChange: (Boolean) -> Unit = {},
+    dismissListTick: Int = 0,
     modifier: Modifier = Modifier,
 ) {
     val searchMetrics = ProductSearchBarMetrics.kioskChrome(
@@ -318,6 +329,8 @@ private fun TreatmentsHeader(
                 onProductSelected = onProductSelected,
                 metrics = searchMetrics,
                 onActiveChange = onSearchActiveChange,
+                onEditingChange = onSearchEditingChange,
+                dismissListTick = dismissListTick,
             )
         }
         Spacer(modifier = Modifier.width(header.searchToNavGap))

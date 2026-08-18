@@ -150,12 +150,17 @@ fun IntroResponsiveLayout(
                 ),
         ) {
             var searchSessionOpen by remember { mutableStateOf(false) }
+            var searchEditing by remember { mutableStateOf(false) }
+            var dismissListTick by remember { mutableStateOf(0) }
             val focusManager = LocalFocusManager.current
             val keyboard = LocalSoftwareKeyboardController.current
             fun dismissSearchSession() {
-                searchSessionOpen = false
-                focusManager.clearFocus()
-                keyboard?.hide()
+                if (searchEditing) {
+                    focusManager.clearFocus()
+                    keyboard?.hide()
+                } else {
+                    dismissListTick += 1
+                }
             }
             Box(modifier = Modifier.fillMaxSize().then(vitrinaPadding)) {
                 BusinessUnitVitrina(
@@ -239,6 +244,8 @@ fun IntroResponsiveLayout(
                     screenActive = contentActive,
                     onInteraction = onWakeFromIdle,
                     onActiveChange = { searchSessionOpen = it },
+                    onEditingChange = { searchEditing = it },
+                    dismissListTick = dismissListTick,
                 )
             }
 
