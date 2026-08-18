@@ -79,6 +79,7 @@ fun LaSanteNavHost(
                 TreatmentsRoute(
                     catalogRepository = catalogRepository,
                     unitId = unitId,
+                    windowSizeClass = windowSizeClass,
                     onBack = { navController.popBackStack() },
                     onTreatmentSelected = { treatmentId ->
                         navController.navigate("${Routes.PRODUCTS}/$unitId/$treatmentId")

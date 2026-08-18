@@ -2,23 +2,29 @@ package com.lasante.tvkiosk.ui.screens.intro
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -26,6 +32,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -34,6 +42,8 @@ import coil.compose.AsyncImage
 import com.lasante.tvkiosk.BuildConfig
 import com.lasante.tvkiosk.data.Product
 import com.lasante.tvkiosk.data.VitrinaUnit
+import com.lasante.tvkiosk.ui.components.ProductSearchBarMetrics
+import com.lasante.tvkiosk.ui.components.SmartProductSearchBar
 import com.lasante.tvkiosk.ui.layout.layoutForceOverlayLabel
 import com.lasante.tvkiosk.ui.utils.clickableWithSound
 import com.lasante.tvkiosk.ui.utils.UiSound
@@ -57,9 +67,12 @@ fun IntroResponsiveLayout(
     backdropBlurred: Boolean = false,
     vitrinaInteractionEnabled: Boolean = true,
     showVitrinaControls: Boolean = true,
+    contentActive: Boolean = true,
     vitrinaRotationAnimationSpec: AnimationSpec<Float> = VitrinaConstants.manualRotationAnimationSpec,
     socialNetworks: List<SocialNetwork>,
+    catalogProducts: List<Product> = emptyList(),
     onProductClick: (Product) -> Unit,
+    onSearchProductSelected: (Product) -> Unit = {},
     onWakeFromIdle: () -> Unit,
     onRotationAnimationFinished: () -> Unit = {},
     onDragStart: () -> Unit,
@@ -177,14 +190,24 @@ fun IntroResponsiveLayout(
                 )
             }
 
-            // Redes sociales — centro izquierda (encima del SurfaceView de la vitrina)
+            IntroProductSearchLayer(
+                products = catalogProducts,
+                metrics = metrics,
+                enabled = showVitrinaControls,
+                screenActive = contentActive,
+                backdropBlurred = backdropBlurred,
+                onProductSelected = onSearchProductSelected,
+                onInteraction = onWakeFromIdle,
+            )
+
+            // Redes sociales — fila horizontal, izquierda del cintillo.
             SocialRail(
                 socialNetworks = socialNetworks,
                 metrics = metrics,
                 onSocialClick = onSocialClick,
                 modifier = Modifier
                     .align(Alignment.CenterStart)
-                    .padding(start = metrics.socialStartPadding)
+                    .padding(start = metrics.introLeftChromePadding)
                     .offset(y = metrics.socialCenterYOffset)
                     .zIndex(20f),
             )
@@ -226,6 +249,85 @@ fun IntroResponsiveLayout(
                     .zIndex(16f),
             )
         }
+    }
+}
+
+/**
+ * Scrim + buscador en su propio estado Compose.
+ * Abrir la lista no recompone la vitrina (el estado vive aquí, no en el padre).
+ */
+@Composable
+private fun BoxScope.IntroProductSearchLayer(
+    products: List<Product>,
+    metrics: IntroLayoutMetrics,
+    enabled: Boolean,
+    screenActive: Boolean,
+    backdropBlurred: Boolean,
+    onProductSelected: (Product) -> Unit,
+    onInteraction: () -> Unit,
+) {
+    var searchSessionOpen by remember { mutableStateOf(false) }
+    var searchEditing by remember { mutableStateOf(false) }
+    var dismissListTick by remember { mutableStateOf(0) }
+    val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    fun dismissSearchSession() {
+        if (searchEditing) {
+            focusManager.clearFocus()
+            keyboard?.hide()
+        } else {
+            dismissListTick += 1
+        }
+    }
+
+    if (searchSessionOpen && enabled && !backdropBlurred) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .zIndex(20.5f)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = { dismissSearchSession() },
+                ),
+        )
+    }
+
+    // Buscador — izquierda, encima de las redes (encima del SurfaceView).
+    val searchMetrics = remember(metrics.maxHeight, metrics.vitrinaProfileKey) {
+        val base = ProductSearchBarMetrics.scaledForCanvas(metrics.maxHeight)
+        if (metrics.vitrinaProfileKey != "tv_42") {
+            base
+        } else {
+            // 0,3 cm más estrecha en TV42/TV1080 para no pegar en la vitrina.
+            val nudge = metrics.maxHeight * 0.024f
+            base.copy(width = (base.width - nudge).coerceAtLeast(120.dp))
+        }
+    }
+    Box(
+        modifier = Modifier
+            .align(Alignment.TopStart)
+            .padding(start = metrics.introLeftChromePadding)
+            .offset(
+                y = metrics.maxHeight / 2 +
+                    metrics.introSearchCenterYOffset -
+                    searchMetrics.height / 2,
+            )
+            .width(searchMetrics.width)
+            .wrapContentHeight(unbounded = true, align = Alignment.Top)
+            .zIndex(21f),
+    ) {
+        SmartProductSearchBar(
+            products = products,
+            onProductSelected = onProductSelected,
+            metrics = searchMetrics,
+            enabled = enabled,
+            screenActive = screenActive,
+            onInteraction = onInteraction,
+            onActiveChange = { searchSessionOpen = it },
+            onEditingChange = { searchEditing = it },
+            dismissListTick = dismissListTick,
+        )
     }
 }
 
@@ -298,10 +400,10 @@ fun SocialRail(
     onSocialClick: (String, String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    Row(
         modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(metrics.socialIconSpacing),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(metrics.socialIconRowSpacing),
     ) {
         socialNetworks.forEach { social ->
             SocialNetworkIconButton(

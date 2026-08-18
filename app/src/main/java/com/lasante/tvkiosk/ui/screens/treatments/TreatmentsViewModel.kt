@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lasante.tvkiosk.data.CatalogRepository
 import com.lasante.tvkiosk.data.DisplayTitles
+import com.lasante.tvkiosk.data.Product
 import com.lasante.tvkiosk.data.Treatment
 import com.lasante.tvkiosk.ui.components.UiState
 import kotlinx.coroutines.Dispatchers
@@ -16,6 +17,7 @@ import kotlinx.coroutines.withContext
 data class TreatmentsData(
     val unitName: String,
     val treatments: List<Treatment>,
+    val products: List<Product>,
 )
 
 /** Cache de clases terapéuticas por unidad (misma Activity que Intro). */
@@ -75,9 +77,11 @@ class TreatmentsViewModel(
         val unit = units.firstOrNull { it.id == unitId }
         val treatments = catalogRepository.getTreatments(unitId)
             .filterNot { it.id.endsWith("-vitrina") }
+        val products = catalogRepository.getProductsForUnit(unitId)
         return TreatmentsData(
             unitName = DisplayTitles.resolve(unit?.name, unitId),
             treatments = treatments,
+            products = products,
         )
     }
 }

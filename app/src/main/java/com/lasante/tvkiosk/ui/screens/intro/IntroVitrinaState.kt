@@ -22,6 +22,10 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.abs
 import kotlinx.coroutines.delay
 
+private class IdleInteractionClock {
+    var lastMs: Long = System.currentTimeMillis()
+}
+
 private const val DEFAULT_AUTO_ROTATE_TIMEOUT_MS = 2 * 60 * 1000L
 private const val DEFAULT_SCREEN_SAVER_TIMEOUT_MS = 3 * 60 * 1000L
 private const val AUTO_ROTATE_STEP_MS = 4_000L
@@ -73,7 +77,8 @@ fun rememberVitrinaInteractionController(
         mutableStateOf<AnimationSpec<Float>>(VitrinaConstants.manualRotationAnimationSpec)
     }
     var isUserActive by remember { mutableStateOf(true) }
-    var lastUserInteraction by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    /** Reloj de idle: no es Compose state. Si lo fuera, cada toque/tecla recompone Filament y crashea. */
+    val idleClock = remember { IdleInteractionClock() }
     var dragAccumulatedX by remember { mutableFloatStateOf(0f) }
     var dragStartTimeMs by remember { mutableLongStateOf(0L) }
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -155,7 +160,7 @@ fun rememberVitrinaInteractionController(
         baseRotationHandle?.clearDragOffset()
         baseRotationHandle?.setBaseDegrees(displayRotationDegrees)
         mode = if (hasModalOpen) VitrinaMode.ModalOpen else VitrinaMode.Interactive
-        lastUserInteraction = System.currentTimeMillis()
+        idleClock.lastMs = System.currentTimeMillis()
     }
 
     // Productos siempre visibles salvo screen saver.
@@ -182,19 +187,19 @@ fun rememberVitrinaInteractionController(
     fun settleInteractive() {
         mode = VitrinaMode.Interactive
         isUserActive = true
-        lastUserInteraction = System.currentTimeMillis()
+        idleClock.lastMs = System.currentTimeMillis()
     }
 
     fun registerInteraction() {
-        lastUserInteraction = System.currentTimeMillis()
-        isUserActive = true
-        if (!hasModalOpen && mode != VitrinaMode.Dragging) {
+        idleClock.lastMs = System.currentTimeMillis()
+        if (!isUserActive) isUserActive = true
+        if (!hasModalOpen && mode != VitrinaMode.Dragging && mode != VitrinaMode.Interactive) {
             mode = VitrinaMode.Interactive
         }
     }
 
     fun dismissScreenSaver() {
-        lastUserInteraction = System.currentTimeMillis()
+        idleClock.lastMs = System.currentTimeMillis()
         isUserActive = true
         if (mode == VitrinaMode.ScreenSaver) {
             mode = VitrinaMode.Interactive
@@ -223,7 +228,7 @@ fun rememberVitrinaInteractionController(
                     "drag" -> VitrinaConstants.dragSnapAnimationSpec
                     else -> VitrinaConstants.manualRotationAnimationSpec
                 }
-                lastUserInteraction = System.currentTimeMillis()
+                idleClock.lastMs = System.currentTimeMillis()
                 isUserActive = true // corta idle continuo antes del snap
                 mode = VitrinaMode.AutoRotating
             }
@@ -245,7 +250,7 @@ fun rememberVitrinaInteractionController(
 
     fun handleDragStart() {
         if (itemCount <= 0 || hasModalOpen || mode == VitrinaMode.Dragging) return
-        lastUserInteraction = System.currentTimeMillis()
+        idleClock.lastMs = System.currentTimeMillis()
         dragStartTimeMs = System.currentTimeMillis()
         dragAccumulatedX = 0f
         baseRotationHandle?.clearDragOffset()
@@ -314,13 +319,13 @@ fun rememberVitrinaInteractionController(
             if (!isActive) return@LaunchedEffect
             if (mode == VitrinaMode.Dragging || mode == VitrinaMode.ModalOpen) return@LaunchedEffect
             // Si el usuario tocó en esos 1.2s, no forzar idle.
-            if (System.currentTimeMillis() - lastUserInteraction < 1_000L) return@LaunchedEffect
-            lastUserInteraction = System.currentTimeMillis() - autoRotateAfterMs - 1_000L
+            if (System.currentTimeMillis() - idleClock.lastMs < 1_000L) return@LaunchedEffect
+            idleClock.lastMs = System.currentTimeMillis() - autoRotateAfterMs - 1_000L
             mode = VitrinaMode.AutoRotating
             isUserActive = false
         } else {
             // Fuera de Intro: parar idle/screensaver “invisible”.
-            lastUserInteraction = System.currentTimeMillis()
+            idleClock.lastMs = System.currentTimeMillis()
             if (mode == VitrinaMode.ScreenSaver || mode == VitrinaMode.AutoRotating) {
                 mode = VitrinaMode.Interactive
             }
@@ -335,7 +340,7 @@ fun rememberVitrinaInteractionController(
                     mode = VitrinaMode.Interactive
                 }
                 // No acumular idle fuera de Intro.
-                lastUserInteraction = System.currentTimeMillis()
+                idleClock.lastMs = System.currentTimeMillis()
                 delay(500L)
                 continue
             }
@@ -351,7 +356,7 @@ fun rememberVitrinaInteractionController(
                 continue
             }
 
-            val idleFor = now - lastUserInteraction
+            val idleFor = now - idleClock.lastMs
             when {
                 screenSaverEnabled && idleFor >= screenSaverAfterMs -> {
                     if (mode != VitrinaMode.ScreenSaver) {

@@ -44,6 +44,7 @@ fun IntroRoute(
                 vitrinaConfig = state.data.vitrinaConfig,
                 screenSaverVideos = state.data.screenSaverVideos,
                 institutionalVideoUrl = state.data.institutionalVideoUrl,
+                allProducts = state.data.allProducts,
                 windowSizeClass = windowSizeClass,
                 contentActive = contentActive,
                 onStopAudio = { audioPlayer.stop() },

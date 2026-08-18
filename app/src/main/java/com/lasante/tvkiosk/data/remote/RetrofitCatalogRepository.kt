@@ -392,6 +392,9 @@ class RetrofitCatalogRepository(
             vitrinaConfig = snapshot.vitrinaConfig,
             screenSaverVideos = snapshot.screenSaverVideos,
             institutionalVideoUrl = snapshot.institutionalVideoUrl,
+            allProducts = snapshot.catalogEntries
+                .map { (unitId, treatmentId, product) -> product.toProduct(unitId, treatmentId) }
+                .distinctBy { it.productoId },
         )
     }
 

@@ -6,6 +6,8 @@ data class IntroCatalogData(
     val vitrinaConfig: VitrinaConfig,
     val screenSaverVideos: List<ScreenSaverVideo>,
     val institutionalVideoUrl: String?,
+    /** Catálogo completo (todas las unidades) para el buscador de Intro. */
+    val allProducts: List<Product> = emptyList(),
 )
 
 interface CatalogRepository {

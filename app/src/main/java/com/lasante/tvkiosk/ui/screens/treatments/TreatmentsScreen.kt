@@ -2,6 +2,8 @@ package com.lasante.tvkiosk.ui.screens.treatments
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -12,9 +14,12 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -23,16 +28,25 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -40,13 +54,17 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.lasante.tvkiosk.BuildConfig
 import com.lasante.tvkiosk.data.DisplayTitles
+import com.lasante.tvkiosk.data.Product
 import com.lasante.tvkiosk.data.Treatment
 import com.lasante.tvkiosk.ui.components.GreenNavButton
 import com.lasante.tvkiosk.ui.components.LaSanteBackground
+import com.lasante.tvkiosk.ui.components.ProductSearchBarMetrics
+import com.lasante.tvkiosk.ui.components.SmartProductSearchBar
 import com.lasante.tvkiosk.ui.components.TreatmentIconAssets
 import com.lasante.tvkiosk.ui.components.TrimTransparentTransformation
 import com.lasante.tvkiosk.ui.layout.CatalogHeaderMetrics
@@ -61,19 +79,41 @@ import com.lasante.tvkiosk.ui.theme.LaSanteText
 import com.lasante.tvkiosk.ui.utils.SoundManager
 import com.lasante.tvkiosk.ui.utils.UiSound
 import com.lasante.tvkiosk.ui.utils.clickableWithSound
+import kotlin.math.roundToInt
 
 @Composable
 fun TreatmentsScreen(
     unitName: String,
     treatments: List<Treatment>,
+    products: List<Product>,
     onBack: () -> Unit,
     onTreatmentSelected: (String) -> Unit,
+    onProductSelected: (Product) -> Unit,
 ) {
+    val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    var searchSessionOpen by remember { mutableStateOf(false) }
+    var searchEditing by remember { mutableStateOf(false) }
+    var dismissListTick by remember { mutableStateOf(0) }
+    fun dismissSearchSession() {
+        if (searchEditing) {
+            focusManager.clearFocus()
+            keyboard?.hide()
+        } else {
+            dismissListTick += 1
+        }
+    }
     val gridState = rememberLazyGridState()
     val context = LocalContext.current
     BackHandler {
-        SoundManager.playClickSound(context)
-        onBack()
+        when {
+            searchEditing -> dismissSearchSession()
+            searchSessionOpen -> dismissSearchSession()
+            else -> {
+                SoundManager.playClickSound(context)
+                onBack()
+            }
+        }
     }
 
     LaSanteBackground {
@@ -106,8 +146,16 @@ fun TreatmentsScreen(
             )
             val canvasW = maxWidth
             val canvasH = maxHeight
+            val searchMetrics = ProductSearchBarMetrics.scaledForCanvas(canvasH)
+            var overlayRootCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
+            var searchBarOffset by remember { mutableStateOf(IntOffset.Zero) }
+            var searchBarPlaced by remember { mutableStateOf(false) }
 
-            Box(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .onGloballyPositioned { overlayRootCoordinates = it },
+            ) {
                 if (BuildConfig.DEBUG) {
                     Text(
                         text = "${canvasW.value.toInt()}×${canvasH.value.toInt()} · ${profile.tier} · " +
@@ -134,19 +182,41 @@ fun TreatmentsScreen(
                             .weight(1f)
                             .widthIn(max = catalog.gridMaxWidth)
                             .fillMaxWidth()
-                            .padding(horizontal = catalog.horizontalPadding),
+                            .padding(horizontal = catalog.horizontalPadding)
+                            .zIndex(10f),
                     ) {
                         TreatmentsHeader(
                             unitName = unitName,
                             nav = catalog.nav,
                             header = header,
+                            searchMetrics = searchMetrics,
                             contentPadding = catalog.contentPadding,
                             onBack = onBack,
+                            onSearchBarPositioned = { coords ->
+                                val root = overlayRootCoordinates
+                                if (root == null || !root.isAttached || !coords.isAttached) return@TreatmentsHeader
+                                val pos = root.localPositionOf(coords, Offset.Zero)
+                                val next = IntOffset(pos.x.roundToInt(), pos.y.roundToInt())
+                                if (next != searchBarOffset) {
+                                    searchBarOffset = next
+                                }
+                                if (!searchBarPlaced) {
+                                    searchBarPlaced = true
+                                }
+                            },
+                            modifier = Modifier.zIndex(2f),
                         )
 
-                        Spacer(modifier = Modifier.height(subtitleTopGap))
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .zIndex(0f),
+                        ) {
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                Spacer(modifier = Modifier.height(subtitleTopGap))
 
-                        Text(
+                                Text(
                             text = "Clase terapéutica",
                             fontSize = catalog.titleSp.sp,
                             fontWeight = FontWeight.Medium,
@@ -161,8 +231,6 @@ fun TreatmentsScreen(
                                 .fillMaxWidth()
                                 .padding(
                                     start = catalog.contentPadding,
-                                    // Shared TV: borde derecho del subtítulo = borde derecho del Back
-                                    // (el header reserva un hueco Home a la derecha del Back).
                                     end = catalog.contentPadding + if (header.usesSharedTvCatalogLayout) {
                                         header.navButtonSize + header.navPairSpacing
                                     } else {
@@ -208,11 +276,48 @@ fun TreatmentsScreen(
                                         cardPaddingBottom = ui.cardPaddingBottom,
                                         cardIconPaddingH = ui.cardIconPaddingH,
                                         cardIconPaddingV = ui.cardIconPaddingV,
-                                        onClick = { onTreatmentSelected(treatment.id) },
+                                        onClick = {
+                                            focusManager.clearFocus()
+                                            onTreatmentSelected(treatment.id)
+                                        },
                                     )
                                 }
                             }
                         }
+                            }
+                        }
+                    }
+                }
+
+                if (searchSessionOpen) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .zIndex(20.5f)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = { dismissSearchSession() },
+                            ),
+                    )
+                }
+
+                if (searchBarPlaced) {
+                    Box(
+                        modifier = Modifier
+                            .offset { searchBarOffset }
+                            .width(searchMetrics.width)
+                            .wrapContentHeight(unbounded = true, align = Alignment.Top)
+                            .zIndex(21f),
+                    ) {
+                        SmartProductSearchBar(
+                            products = products,
+                            onProductSelected = onProductSelected,
+                            metrics = searchMetrics,
+                            onActiveChange = { searchSessionOpen = it },
+                            onEditingChange = { searchEditing = it },
+                            dismissListTick = dismissListTick,
+                        )
                     }
                 }
             }
@@ -225,11 +330,14 @@ private fun TreatmentsHeader(
     unitName: String,
     nav: SharedNavMetrics,
     header: CatalogHeaderMetrics,
+    searchMetrics: ProductSearchBarMetrics,
     contentPadding: Dp = 0.dp,
     onBack: () -> Unit,
+    onSearchBarPositioned: (LayoutCoordinates) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = contentPadding)
             .padding(top = if (header.usesSharedTvCatalogLayout) header.controlsTopGap else 0.dp),
@@ -243,26 +351,33 @@ private fun TreatmentsHeader(
             titleTopGap = if (header.usesSharedTvCatalogLayout) 0.dp else header.titleTopGap,
         )
         Spacer(modifier = Modifier.weight(1f))
+        Box(
+            modifier = Modifier
+                .width(searchMetrics.width)
+                .height(searchMetrics.height)
+                .onGloballyPositioned(onSearchBarPositioned),
+        )
+        Spacer(modifier = Modifier.width(header.searchToNavGap))
         // Misma X que Productos: Back + hueco de Home (aunque Home no esté).
         Row(
-            horizontalArrangement = Arrangement.spacedBy(
-                if (header.usesSharedTvCatalogLayout) {
-                    header.navPairSpacing
-                } else {
-                    nav.buttonSpacing
-                },
-            ),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            GreenNavButton(
-                assetPath = "svg/ui/Before.svg",
-                contentDescription = "Volver",
-                onClick = onBack,
-                size = header.navButtonSize,
-                playSound = true,
-            )
-            Spacer(modifier = Modifier.size(header.navButtonSize))
-        }
+                horizontalArrangement = Arrangement.spacedBy(
+                    if (header.usesSharedTvCatalogLayout) {
+                        header.navPairSpacing
+                    } else {
+                        nav.buttonSpacing
+                    },
+                ),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                GreenNavButton(
+                    assetPath = "svg/ui/Before.svg",
+                    contentDescription = "Volver",
+                    onClick = onBack,
+                    size = header.navButtonSize,
+                    playSound = true,
+                )
+                Spacer(modifier = Modifier.size(header.navButtonSize))
+            }
     }
 }
 
