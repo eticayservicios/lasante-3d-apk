@@ -103,6 +103,8 @@ private val FilterSubtitleBrush = Brush.horizontalGradient(
 
 private enum class SortOrder { NONE, AZ, ZA }
 
+private const val DEFAULT_STAR_BADGE_ASSET = "file:///android_asset/vitrina/ui/estrella.png"
+
 /** Alcance del catálogo en Productos (sustituye Con/Sin imagen). */
 private enum class ProductFilter {
     BUSINESS_UNIT,
@@ -143,6 +145,20 @@ private fun resolveScopeProducts(
     ProductFilter.STAR_PRODUCTS ->
         if (emptyWhileLoading && scopeLoading && starProducts.isEmpty()) emptyList()
         else starProducts
+}
+
+/** Por defecto estrellas primero. A-Z / Z-A ordenan todo el catálogo, estrellas incluidas. */
+private fun List<Product>.sortedForProductGrid(
+    sortOrder: SortOrder,
+    starIds: Set<String>,
+): List<Product> {
+    return when (sortOrder) {
+        SortOrder.AZ -> sortedBy { it.name }
+        SortOrder.ZA -> sortedByDescending { it.name }
+        SortOrder.NONE ->
+            if (starIds.isEmpty()) this
+            else sortedByDescending { it.productoId in starIds }
+    }
 }
 
 private sealed class ProductGridVisual {
@@ -274,6 +290,13 @@ fun ProductsScreen(
             val starProductIds = remember(starProducts) {
                 starProducts.map { it.productoId }.toSet()
             }
+            var starBadgeUrl by remember { mutableStateOf(DEFAULT_STAR_BADGE_ASSET) }
+            LaunchedEffect(Unit) {
+                val remote = catalogRepository.getVitrinaConfig().starProductIconUrl
+                if (!remote.isNullOrBlank()) {
+                    starBadgeUrl = remote
+                }
+            }
 
             LaunchedEffect(searchQuery, products, unitProducts, starProducts, productFilter, ctCatalogFilter, starProductIds) {
                 if (searchQuery.length < 3) {
@@ -381,14 +404,14 @@ fun ProductsScreen(
                             it.description.contains(searchQuery, ignoreCase = true)
                     }
                 }
-                when (sortOrder) {
-                    SortOrder.AZ -> displayProducts.sortedBy { it.name }
-                    SortOrder.ZA -> displayProducts.sortedByDescending { it.name }
-                    SortOrder.NONE -> displayProducts
-                }
+                displayProducts.sortedForProductGrid(sortOrder, starProductIds)
             }
 
             val gridState = rememberLazyGridState()
+            // Al reordenar, LazyGrid conserva el key visible y puede saltar al medio/final.
+            LaunchedEffect(unitId, productFilter, starProductIds, sortOrder) {
+                gridState.scrollToItem(0)
+            }
 
             val scrollInfo = remember(columns) {
                 derivedStateOf { computeProductsGridScrollbar(gridState, columns) }
@@ -805,6 +828,9 @@ fun ProductsScreen(
                                 ) { index ->
                                     ProductGridItem(
                                         product = filteredProducts[index],
+                                        isStarProduct = isStarProductsMode ||
+                                            filteredProducts[index].productoId in starProductIds,
+                                        starBadgeUrl = starBadgeUrl,
                                         isLandscape = isLandscape,
                                         isPhone = isPhone,
                                         isTv42 = isTv42,
@@ -1243,6 +1269,8 @@ private fun TreatmentIconBadge(
 @Composable
 private fun ProductGridItem(
     product: Product,
+    isStarProduct: Boolean,
+    starBadgeUrl: String,
     isLandscape: Boolean,
     isPhone: Boolean = false,
     isTv42: Boolean = false,
@@ -1322,34 +1350,77 @@ private fun ProductGridItem(
                             colors = listOf(Color(0xFFE7E7E7), Color(0xFFF7F7F7)),
                         ),
                     )
-                    .clickableWithSound(sound = UiSound.Product) { onClick() }
-                    .padding(innerPad),
-                contentAlignment = Alignment.Center,
+                    .clickableWithSound(sound = UiSound.Product) { onClick() },
             ) {
-                when (gridVisual) {
-                    is ProductGridVisual.Photo -> {
-                        AsyncImage(
-                            model = ImageRequest.Builder(context)
-                                .data(gridVisual.url)
-                                .size(gridImageSizePx.coerceAtLeast(1))
-                                .crossfade(true)
-                                .build(),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .fillMaxSize(imageFillFraction)
-                                .align(Alignment.Center),
-                            contentScale = ContentScale.Fit,
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPad),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    when (gridVisual) {
+                        is ProductGridVisual.Photo -> {
+                            AsyncImage(
+                                model = ImageRequest.Builder(context)
+                                    .data(gridVisual.url)
+                                    .size(gridImageSizePx.coerceAtLeast(1))
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .fillMaxSize(imageFillFraction)
+                                    .align(Alignment.Center),
+                                contentScale = ContentScale.Fit,
+                            )
+                        }
+                        ProductGridVisual.Placeholder -> Text(
+                            "📦",
+                            fontSize = when {
+                                isPhone -> if (isLandscape) 22.sp else 18.sp
+                                isTv66 -> 56.sp
+                                isLandscape -> 42.sp
+                                else -> 36.sp
+                            },
+                            color = Color.Gray,
                         )
                     }
-                    ProductGridVisual.Placeholder -> Text(
-                        "📦",
-                        fontSize = when {
-                            isPhone -> if (isLandscape) 22.sp else 18.sp
-                            isTv66 -> 56.sp
-                            isLandscape -> 42.sp
-                            else -> 36.sp
-                        },
-                        color = Color.Gray,
+                }
+            }
+            if (isStarProduct) {
+                // TV66 ~20.dp @ card ~244.dp; el resto escala con el cuadrado gris.
+                val starSize = (side * 0.085f).coerceIn(
+                    when {
+                        isTv42LargeUp -> 16.dp
+                        isTv66 -> 16.dp
+                        isTv42 -> 14.dp
+                        isPhone -> 10.dp
+                        else -> 12.dp
+                    },
+                    when {
+                        isTv42LargeUp -> 32.dp
+                        isTv66 -> 20.dp
+                        isTv42 -> 26.dp
+                        isPhone -> 16.dp
+                        else -> 22.dp
+                    },
+                )
+                val starTopInset = (side * 0.07f).coerceIn(8.dp, 16.dp)
+                val starEndInset = (side * 0.07f).coerceIn(8.dp, 16.dp)
+                val starPx = with(density) { starSize.roundToPx().coerceIn(20, 96) }
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = starTopInset, end = starEndInset),
+                ) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(starBadgeUrl)
+                            .size(starPx)
+                            .crossfade(false)
+                            .build(),
+                        contentDescription = "Producto estrella",
+                        modifier = Modifier.size(starSize),
+                        contentScale = ContentScale.Fit,
                     )
                 }
             }

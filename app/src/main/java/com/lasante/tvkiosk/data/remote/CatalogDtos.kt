@@ -19,6 +19,7 @@ data class VitrinaDto(
     @SerializedName("slotsPerUnit")        val slotsPerUnit: Int = 4,
     @SerializedName("autoRotateAfterMs")   val autoRotateAfterMs: Long? = null,
     @SerializedName("screenSaverAfterMs")  val screenSaverAfterMs: Long? = null,
+    @SerializedName("starProductIconUrl")  val starProductIconUrl: String? = null,
     @SerializedName("videos")              val videos: VitrinaVideosDto? = null,
     @SerializedName("units")               val units: List<VitrinaUnitDto> = emptyList()
 )

@@ -369,6 +369,7 @@ class RetrofitCatalogRepository(
             autoRotateAfterMs = vitrinaMeta?.autoRotateAfterMs ?: 120_000L,
             screenSaverAfterMs = vitrinaMeta?.screenSaverAfterMs ?: 180_000L,
             screenSaverPlaylistEnabled = vitrinaMeta?.videos?.screenSaver?.enabled == true,
+            starProductIconUrl = vitrinaMeta?.starProductIconUrl?.trim()?.takeIf { it.isNotEmpty() },
         )
     }
 
