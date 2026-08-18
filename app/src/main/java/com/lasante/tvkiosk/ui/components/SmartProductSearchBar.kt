@@ -2,19 +2,19 @@ package com.lasante.tvkiosk.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -34,6 +34,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,22 +46,21 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
+import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import com.lasante.tvkiosk.data.Product
 import com.lasante.tvkiosk.ui.theme.LaSanteText
@@ -70,7 +70,6 @@ import com.lasante.tvkiosk.ui.utils.UiSound
 import com.lasante.tvkiosk.ui.utils.clickableWithSound
 import java.text.Normalizer
 import java.util.Locale
-import kotlin.math.roundToInt
 
 @Immutable
 data class ProductSearchBarMetrics(
@@ -140,8 +139,8 @@ private val SuggestionRowHeight = 40.dp
 private val SuggestionListPadding = 4.dp
 
 /**
- * Buscador inteligente reutilizable: desde la primera letra muestra coincidencias.
- * Al elegir un producto se notifica [onProductSelected] (el caller abre el modal).
+ * Buscador inteligente: coincide solo en **nombre** (y dosis como fallback), nunca en descripción.
+ * Prioridad: empieza por la búsqueda → palabra que empieza por → contiene en cualquier parte del nombre.
  */
 @Composable
 fun SmartProductSearchBar(
@@ -154,39 +153,69 @@ fun SmartProductSearchBar(
     /** Si la pantalla permanece montada al navegar (Intro), pasar false al salir para vaciar la búsqueda. */
     screenActive: Boolean = true,
     onInteraction: () -> Unit = {},
+    /** true con teclado o lista abiertos; solo cambia al abrir/cerrar, no en cada letra. */
+    onActiveChange: (Boolean) -> Unit = {},
 ) {
-    var query by remember { mutableStateOf("") }
-    var dropdownOpen by remember { mutableStateOf(false) }
+    var query by remember { mutableStateOf(TextFieldValue("")) }
+    var focused by remember { mutableStateOf(false) }
     var pendingFocus by remember { mutableStateOf(false) }
+    /** Mantiene la lista visible tras abrir un producto (desenfoque del modal). */
+    var pinResultsOpen by remember { mutableStateOf(false) }
+    var retainResultsOnBlur by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
-    val density = LocalDensity.current
-    val textAreaClickSource = remember { MutableInteractionSource() }
-    val popupOffset = remember(metrics.height, density) {
-        IntOffset(x = 0, y = with(density) { (metrics.height + 6.dp).roundToPx() })
-    }
 
-    val suggestions = remember(query, products) {
-        rankSmartProductMatches(products, query, metrics.suggestionLimit)
+    val queryText = query.text
+    val suggestions = remember(queryText, products) {
+        rankSmartProductMatches(products, queryText, metrics.suggestionLimit)
     }
-    val showDropdown = enabled && dropdownOpen && query.isNotBlank() && suggestions.isNotEmpty()
-    val showEmpty = enabled && dropdownOpen && query.isNotBlank() && suggestions.isEmpty()
+    val showList = queryText.isNotBlank() && (focused || pinResultsOpen)
+    val showDropdown = showList && suggestions.isNotEmpty()
+    val showEmpty = showList && suggestions.isEmpty()
     val barShape = RoundedCornerShape(metrics.cornerRadius)
     val greenShape = RoundedCornerShape(metrics.cornerRadius)
 
-    fun openDropdownIfNeeded() {
-        dropdownOpen = query.isNotBlank() && suggestions.isNotEmpty()
+    fun moveCursorToEnd() {
+        val end = query.text.length
+        if (query.selection.start != end || query.selection.end != end) {
+            query = query.copy(selection = TextRange(end))
+        }
+    }
+
+    fun dismissSearch() {
+        pinResultsOpen = false
+        retainResultsOnBlur = false
+        pendingFocus = false
+        focusManager.clearFocus()
+        keyboard?.hide()
     }
 
     fun focusSearchField() {
+        if (!enabled) return
         onInteraction()
-        pendingFocus = true
-        openDropdownIfNeeded()
+        moveCursorToEnd()
+        if (focused) {
+            keyboard?.show()
+        } else {
+            pendingFocus = true
+        }
     }
 
-    LaunchedEffect(pendingFocus) {
-        if (pendingFocus) {
+    fun closeEditing(clearQuery: Boolean) {
+        if (clearQuery) {
+            query = TextFieldValue("")
+            pinResultsOpen = false
+        }
+        retainResultsOnBlur = false
+        pendingFocus = false
+        focused = false
+        focusManager.clearFocus()
+        keyboard?.hide()
+    }
+
+    LaunchedEffect(pendingFocus, enabled) {
+        if (pendingFocus && enabled) {
             focusRequester.requestFocus()
             keyboard?.show()
             pendingFocus = false
@@ -195,30 +224,39 @@ fun SmartProductSearchBar(
 
     LaunchedEffect(screenActive) {
         if (!screenActive) {
-            query = ""
-            dropdownOpen = false
+            closeEditing(clearQuery = true)
+        }
+    }
+
+    LaunchedEffect(enabled) {
+        if (!enabled) {
             pendingFocus = false
             focusManager.clearFocus()
             keyboard?.hide()
         }
     }
 
-    /** Cierra la lista y libera la vitrina; conserva el texto buscado. */
-    fun collapseDropdown() {
-        dropdownOpen = false
-        keyboard?.hide()
-        focusManager.clearFocus()
-    }
-
     fun openProduct(product: Product) {
+        pinResultsOpen = query.text.isNotBlank()
+        retainResultsOnBlur = true
+        pendingFocus = false
+        focusManager.clearFocus()
         keyboard?.hide()
         onProductSelected(product)
+    }
+
+    val searchSessionOpen = focused || showList
+    val onActiveChangeState = rememberUpdatedState(onActiveChange)
+    LaunchedEffect(searchSessionOpen) {
+        onActiveChangeState.value(searchSessionOpen)
     }
 
     Box(
         modifier = modifier
             .width(metrics.width)
-            .height(metrics.height),
+            .height(metrics.height)
+            .wrapContentHeight(unbounded = true, align = Alignment.Top)
+            .zIndex(8f),
     ) {
         Box(
             modifier = Modifier
@@ -242,54 +280,49 @@ fun SmartProductSearchBar(
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
-                    .fillMaxWidth()
-                    .fillMaxHeight()
-                    .padding(start = metrics.greenWidth + 8.dp, end = 14.dp)
-                    .then(
-                        if (enabled) {
-                            Modifier.clickable(
-                                interactionSource = textAreaClickSource,
-                                indication = null,
-                                onClick = { focusSearchField() },
-                            )
-                        } else {
-                            Modifier
-                        },
-                    ),
+                    .fillMaxSize()
+                    .padding(start = metrics.greenWidth + 8.dp, end = 14.dp),
                 contentAlignment = Alignment.CenterStart,
             ) {
                 BasicTextField(
                     value = query,
                     onValueChange = { value ->
-                        onInteraction()
                         query = value
-                        dropdownOpen = value.isNotBlank()
+                        if (value.text.isBlank()) {
+                            pinResultsOpen = false
+                        }
                     },
                     enabled = enabled,
                     singleLine = true,
                     textStyle = fieldTextStyle,
                     cursorBrush = SolidColor(SearchBarGreen),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(
-                        onSearch = {
-                            suggestions.firstOrNull()?.let(::openProduct)
-                        },
+                        onDone = { dismissSearch() },
                     ),
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight()
+                        .fillMaxSize()
                         .focusRequester(focusRequester)
                         .onFocusChanged { state ->
-                            if (state.isFocused) {
-                                openDropdownIfNeeded()
+                            val nowFocused = state.isFocused
+                            focused = nowFocused
+                            if (nowFocused) {
+                                onInteraction()
+                            } else {
+                                keyboard?.hide()
+                                if (retainResultsOnBlur) {
+                                    retainResultsOnBlur = false
+                                } else {
+                                    pinResultsOpen = false
+                                }
                             }
                         },
                     decorationBox = { innerTextField ->
                         Box(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.CenterStart,
                         ) {
-                            if (query.isEmpty()) {
+                            if (query.text.isEmpty()) {
                                 Text(
                                     text = placeholder,
                                     color = Color(0xFFB0B0B0),
@@ -313,7 +346,6 @@ fun SmartProductSearchBar(
                 )
             }
 
-            // Verde encima del campo blanco, a tope: sin halo blanco alrededor.
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
@@ -334,27 +366,21 @@ fun SmartProductSearchBar(
         }
 
         if (showDropdown || showEmpty) {
-            Popup(
-                alignment = Alignment.TopStart,
-                offset = popupOffset,
-                onDismissRequest = { collapseDropdown() },
-                properties = PopupProperties(
-                    focusable = false,
-                    dismissOnClickOutside = true,
-                    dismissOnBackPress = true,
-                    clippingEnabled = false,
-                ),
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .offset(y = metrics.height + 6.dp)
+                    .width(metrics.width)
+                    .zIndex(9f),
             ) {
-                Box(modifier = Modifier.width(metrics.width)) {
-                    if (showDropdown) {
-                        SuggestionDropdown(
-                            suggestions = suggestions,
-                            metrics = metrics,
-                            onSelect = ::openProduct,
-                        )
-                    } else {
-                        EmptySuggestionsCard(fontSize = metrics.fontSize)
-                    }
+                if (showDropdown) {
+                    SuggestionDropdown(
+                        suggestions = suggestions,
+                        metrics = metrics,
+                        onSelect = ::openProduct,
+                    )
+                } else {
+                    EmptySuggestionsCard(fontSize = metrics.fontSize)
                 }
             }
         }
@@ -550,7 +576,6 @@ internal fun rankSmartProductMatches(
 ): List<Product> {
     val normalizedQuery = query.normalizeForSearch()
     if (normalizedQuery.isEmpty()) return emptyList()
-    val minContainsLength = 3
     return products.asSequence()
         .filter { it.nombre.isNotBlank() }
         .mapNotNull { product ->
@@ -559,10 +584,10 @@ internal fun rankSmartProductMatches(
             val nameWords = name.split(NAME_WORD_DELIMITER)
             val score = when {
                 name.startsWith(normalizedQuery) -> 0
-                nameWords.any { it.startsWith(normalizedQuery) } -> 0
-                normalizedQuery.length >= minContainsLength && name.contains(normalizedQuery) -> 1
-                normalizedQuery.length >= minContainsLength &&
-                    (dose.startsWith(normalizedQuery) || dose.contains(normalizedQuery)) -> 2
+                nameWords.any { it.startsWith(normalizedQuery) } -> 1
+                name.contains(normalizedQuery) -> 2
+                normalizedQuery.length >= 2 &&
+                    (dose.startsWith(normalizedQuery) || dose.contains(normalizedQuery)) -> 3
                 else -> return@mapNotNull null
             }
             Triple(score, name, product)

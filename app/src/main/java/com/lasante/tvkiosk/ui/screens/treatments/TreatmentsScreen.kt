@@ -2,6 +2,8 @@ package com.lasante.tvkiosk.ui.screens.treatments
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -24,7 +27,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -76,11 +84,23 @@ fun TreatmentsScreen(
     onTreatmentSelected: (String) -> Unit,
     onProductSelected: (Product) -> Unit,
 ) {
+    val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    var searchSessionOpen by remember { mutableStateOf(false) }
+    fun dismissSearchSession() {
+        searchSessionOpen = false
+        focusManager.clearFocus()
+        keyboard?.hide()
+    }
     val gridState = rememberLazyGridState()
     val context = LocalContext.current
     BackHandler {
-        SoundManager.playClickSound(context)
-        onBack()
+        if (searchSessionOpen) {
+            dismissSearchSession()
+        } else {
+            SoundManager.playClickSound(context)
+            onBack()
+        }
     }
 
     LaSanteBackground {
@@ -152,11 +172,20 @@ fun TreatmentsScreen(
                             contentPadding = catalog.contentPadding,
                             onBack = onBack,
                             onProductSelected = onProductSelected,
+                            onSearchActiveChange = { searchSessionOpen = it },
+                            modifier = Modifier.zIndex(2f),
                         )
 
-                        Spacer(modifier = Modifier.height(subtitleTopGap))
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .zIndex(0f),
+                        ) {
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                Spacer(modifier = Modifier.height(subtitleTopGap))
 
-                        Text(
+                                Text(
                             text = "Clase terapéutica",
                             fontSize = catalog.titleSp.sp,
                             fontWeight = FontWeight.Medium,
@@ -171,8 +200,6 @@ fun TreatmentsScreen(
                                 .fillMaxWidth()
                                 .padding(
                                     start = catalog.contentPadding,
-                                    // Shared TV: borde derecho del subtítulo = borde derecho del Back
-                                    // (el header reserva un hueco Home a la derecha del Back).
                                     end = catalog.contentPadding + if (header.usesSharedTvCatalogLayout) {
                                         header.navButtonSize + header.navPairSpacing
                                     } else {
@@ -218,9 +245,26 @@ fun TreatmentsScreen(
                                         cardPaddingBottom = ui.cardPaddingBottom,
                                         cardIconPaddingH = ui.cardIconPaddingH,
                                         cardIconPaddingV = ui.cardIconPaddingV,
-                                        onClick = { onTreatmentSelected(treatment.id) },
+                                        onClick = {
+                                            focusManager.clearFocus()
+                                            onTreatmentSelected(treatment.id)
+                                        },
                                     )
                                 }
+                            }
+                        }
+                            }
+
+                            if (searchSessionOpen) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null,
+                                            onClick = { dismissSearchSession() },
+                                        ),
+                                )
                             }
                         }
                     }
@@ -239,13 +283,21 @@ private fun TreatmentsHeader(
     contentPadding: Dp = 0.dp,
     onBack: () -> Unit,
     onProductSelected: (Product) -> Unit,
+    onSearchActiveChange: (Boolean) -> Unit = {},
+    modifier: Modifier = Modifier,
 ) {
+    val searchMetrics = ProductSearchBarMetrics.kioskChrome(
+        isTv66 = header.isTv66,
+        isTv42OrLarge = header.isTv42 || header.isLargeCanvas,
+        isPhoneLandscape = header.isPhoneLandscape,
+        suggestionLimit = 24,
+        dropdownVisibleRows = 10,
+    )
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = contentPadding)
-            .padding(top = if (header.usesSharedTvCatalogLayout) header.controlsTopGap else 0.dp)
-            .zIndex(10f),
+            .padding(top = if (header.usesSharedTvCatalogLayout) header.controlsTopGap else 0.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         CatalogScreenTitle(
@@ -256,45 +308,39 @@ private fun TreatmentsHeader(
             titleTopGap = if (header.usesSharedTvCatalogLayout) 0.dp else header.titleTopGap,
         )
         Spacer(modifier = Modifier.weight(1f))
-        val searchMetrics = ProductSearchBarMetrics.kioskChrome(
-            isTv66 = header.isTv66,
-            isTv42OrLarge = header.isTv42 || header.isLargeCanvas,
-            isPhoneLandscape = header.isPhoneLandscape,
-            suggestionLimit = 24,
-            dropdownVisibleRows = 10,
-        )
         Box(
             modifier = Modifier
                 .height(searchMetrics.height)
-                .zIndex(2f),
+                .wrapContentHeight(unbounded = true, align = Alignment.Top),
         ) {
             SmartProductSearchBar(
                 products = products,
                 onProductSelected = onProductSelected,
                 metrics = searchMetrics,
+                onActiveChange = onSearchActiveChange,
             )
         }
         Spacer(modifier = Modifier.width(header.searchToNavGap))
         // Misma X que Productos: Back + hueco de Home (aunque Home no esté).
         Row(
-            horizontalArrangement = Arrangement.spacedBy(
-                if (header.usesSharedTvCatalogLayout) {
-                    header.navPairSpacing
-                } else {
-                    nav.buttonSpacing
-                },
-            ),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            GreenNavButton(
-                assetPath = "svg/ui/Before.svg",
-                contentDescription = "Volver",
-                onClick = onBack,
-                size = header.navButtonSize,
-                playSound = true,
-            )
-            Spacer(modifier = Modifier.size(header.navButtonSize))
-        }
+                horizontalArrangement = Arrangement.spacedBy(
+                    if (header.usesSharedTvCatalogLayout) {
+                        header.navPairSpacing
+                    } else {
+                        nav.buttonSpacing
+                    },
+                ),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                GreenNavButton(
+                    assetPath = "svg/ui/Before.svg",
+                    contentDescription = "Volver",
+                    onClick = onBack,
+                    size = header.navButtonSize,
+                    playSound = true,
+                )
+                Spacer(modifier = Modifier.size(header.navButtonSize))
+            }
     }
 }
 
