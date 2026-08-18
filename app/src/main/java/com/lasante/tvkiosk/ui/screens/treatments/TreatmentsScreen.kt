@@ -255,25 +255,26 @@ private fun TreatmentsHeader(
             // Shared TV: título en la misma línea que Back.
             titleTopGap = if (header.usesSharedTvCatalogLayout) 0.dp else header.titleTopGap,
         )
-        Spacer(modifier = Modifier.width(header.filterToSearchGap))
+        Spacer(modifier = Modifier.weight(1f))
+        val searchMetrics = ProductSearchBarMetrics.kioskChrome(
+            isTv66 = header.isTv66,
+            isTv42OrLarge = header.isTv42 || header.isLargeCanvas,
+            isPhoneLandscape = header.isPhoneLandscape,
+            suggestionLimit = 24,
+            dropdownVisibleRows = 10,
+        )
         Box(
             modifier = Modifier
-                .height(header.searchBarHeight)
+                .height(searchMetrics.height)
                 .zIndex(2f),
         ) {
             SmartProductSearchBar(
                 products = products,
                 onProductSelected = onProductSelected,
-                metrics = ProductSearchBarMetrics(
-                    width = header.searchBarWidth,
-                    height = header.searchBarHeight,
-                    iconSize = header.searchIconSize,
-                    fontSize = header.searchFontSize,
-                    dropdownMaxHeight = 320.dp,
-                ),
+                metrics = searchMetrics,
             )
         }
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.width(header.searchToNavGap))
         // Misma X que Productos: Back + hueco de Home (aunque Home no esté).
         Row(
             horizontalArrangement = Arrangement.spacedBy(

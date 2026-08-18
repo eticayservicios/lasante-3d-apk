@@ -59,6 +59,7 @@ fun IntroResponsiveLayout(
     backdropBlurred: Boolean = false,
     vitrinaInteractionEnabled: Boolean = true,
     showVitrinaControls: Boolean = true,
+    contentActive: Boolean = true,
     vitrinaRotationAnimationSpec: AnimationSpec<Float> = VitrinaConstants.manualRotationAnimationSpec,
     socialNetworks: List<SocialNetwork>,
     catalogProducts: List<Product> = emptyList(),
@@ -199,8 +200,11 @@ fun IntroResponsiveLayout(
                         height = metrics.introSearchBarHeight,
                         iconSize = metrics.introSearchIconSize,
                         fontSize = metrics.introSearchFontSize,
+                        suggestionLimit = 24,
+                        dropdownVisibleRows = 10,
                     ),
                     enabled = showVitrinaControls,
+                    screenActive = contentActive,
                     onInteraction = onWakeFromIdle,
                 )
             }

@@ -197,6 +197,7 @@ fun IntroScreen(
                 vitrinaFilamentRendering = vitrinaFilamentRendering,
                 vitrinaInteractionEnabled = vitrinaInteractionEnabled,
                 showVitrinaControls = showVitrinaControls,
+                contentActive = contentActive,
                 vitrinaRotationAnimationSpec = vitrinaController.rotationAnimationSpec,
                 backdropBlurred = productModalBlur,
                 socialNetworks = socialNetworks,
