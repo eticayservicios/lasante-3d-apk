@@ -614,11 +614,17 @@ private fun SuggestionRow(
 private fun Product.searchSuggestionLine(): String {
     val title = nombre.trim()
     val dose = dosisDisplay?.trim().orEmpty()
-    val forma = when (formaFarmaceutica?.trim()?.lowercase()) {
+    val rawForma = formaFarmaceutica?.trim().orEmpty()
+    val forma = when (rawForma.lowercase()) {
         "comprimidos" -> "Comprimidos"
         "capsulas" -> "Cápsulas"
         "suspension" -> "Suspensión"
-        else -> ""
+        "solucion" -> "Solución"
+        "polvo" -> "Polvo"
+        "otros" -> "Otros"
+        else -> rawForma.replaceFirstChar { ch ->
+            if (ch.isLowerCase()) ch.titlecase() else ch.toString()
+        }
     }
     val details = listOf(dose, forma).filter { it.isNotEmpty() }.joinToString(" ")
     return if (details.isEmpty()) title else "$title - $details"
