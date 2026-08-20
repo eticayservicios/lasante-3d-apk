@@ -68,6 +68,8 @@ fun rememberVitrinaInteractionController(
     screenSaverEnabled: Boolean = true,
     autoRotateAfterMs: Long = DEFAULT_AUTO_ROTATE_TIMEOUT_MS,
     screenSaverAfterMs: Long = DEFAULT_SCREEN_SAVER_TIMEOUT_MS,
+    /** Menor = más sensible. Ver [VitrinaConstants.dragTrackWidthScreenFraction]. */
+    dragTrackWidthScreenFraction: Float = VitrinaConstants.DRAG_TRACK_WIDTH_SCREEN_FRACTION,
 ): VitrinaInteractionController {
     var activeIndex by rememberSaveable { mutableIntStateOf(0) }
     var displayRotationDegrees by rememberSaveable { mutableFloatStateOf(0f) }
@@ -84,10 +86,10 @@ fun rememberVitrinaInteractionController(
     val lifecycleOwner = LocalLifecycleOwner.current
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current
-    // Arrastre directo: ~25% del ancho de pantalla ≈ 1 unidad (72°).
-    val dragDegreesPerPx = remember(configuration.screenWidthDp, density) {
+    // Arrastre directo: fracción de ancho ≈ 1 unidad (72°). Menor fracción = más sensible.
+    val dragDegreesPerPx = remember(configuration.screenWidthDp, density, dragTrackWidthScreenFraction) {
         val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
-        val trackWidthPx = (screenWidthPx * VitrinaConstants.DRAG_TRACK_WIDTH_SCREEN_FRACTION)
+        val trackWidthPx = (screenWidthPx * dragTrackWidthScreenFraction)
             .coerceAtLeast(1f)
         VitrinaConstants.ROTATION_STEP_DEGREES / trackWidthPx
     }
