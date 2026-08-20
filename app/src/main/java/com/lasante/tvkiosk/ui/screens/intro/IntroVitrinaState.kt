@@ -94,21 +94,28 @@ fun rememberVitrinaInteractionController(
         VitrinaConstants.ROTATION_STEP_DEGREES / trackWidthPx
     }
     var isForeground by remember {
-        mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
+        mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))
     }
     val isActive = isForeground && contentActive
+    /** true si ya pasamos por pause/stop — al volver no hay que “adelantar” el idle. */
+    var resumedFromInactive by remember { mutableStateOf(false) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_START -> {
+                // START/RESUME: visible e interactiva. PAUSE/STOP: pantalla apagada o app al fondo.
+                Lifecycle.Event.ON_START,
+                Lifecycle.Event.ON_RESUME,
+                -> {
                     isForeground = true
+                    // Reiniciar idle al encender / volver: el usuario no debe ver el screen saver al instante.
+                    idleClock.lastMs = System.currentTimeMillis()
                 }
-                Lifecycle.Event.ON_STOP -> {
+                Lifecycle.Event.ON_PAUSE,
+                Lifecycle.Event.ON_STOP,
+                -> {
                     isForeground = false
-                    if (mode == VitrinaMode.ScreenSaver) {
-                        mode = VitrinaMode.Interactive
-                    }
+                    idleClock.lastMs = System.currentTimeMillis()
                 }
                 else -> Unit
             }
@@ -316,17 +323,29 @@ fun rememberVitrinaInteractionController(
 
     LaunchedEffect(isActive) {
         if (isActive) {
-            // Esperar a que cargue la escena: girar de entrada crasheaba Filament.
+            if (resumedFromInactive) {
+                // Pantalla encendida / vuelta de background: contador idle desde cero.
+                resumedFromInactive = false
+                idleClock.lastMs = System.currentTimeMillis()
+                if (mode == VitrinaMode.ScreenSaver || mode == VitrinaMode.AutoRotating) {
+                    mode = VitrinaMode.Interactive
+                }
+                isUserActive = true
+                return@LaunchedEffect
+            }
+            // Primer arranque en Intro: esperar a Filament y pasar a rotación idle.
+            // No adelantar el reloj de idle: si rotación ≈ screen saver (p. ej. ambos 3 min),
+            // eso disparaba el video a los ~1–2 s.
             delay(1_200L)
             if (!isActive) return@LaunchedEffect
             if (mode == VitrinaMode.Dragging || mode == VitrinaMode.ModalOpen) return@LaunchedEffect
-            // Si el usuario tocó en esos 1.2s, no forzar idle.
             if (System.currentTimeMillis() - idleClock.lastMs < 1_000L) return@LaunchedEffect
-            idleClock.lastMs = System.currentTimeMillis() - autoRotateAfterMs - 1_000L
+            idleClock.lastMs = System.currentTimeMillis()
             mode = VitrinaMode.AutoRotating
             isUserActive = false
         } else {
-            // Fuera de Intro: parar idle/screensaver “invisible”.
+            // Fuera de Intro / pantalla apagada: parar idle/screensaver y marcar resume.
+            resumedFromInactive = true
             idleClock.lastMs = System.currentTimeMillis()
             if (mode == VitrinaMode.ScreenSaver || mode == VitrinaMode.AutoRotating) {
                 mode = VitrinaMode.Interactive
@@ -381,10 +400,12 @@ fun rememberVitrinaInteractionController(
                     delay(1000L)
                 }
                 else -> {
-                    if (mode != VitrinaMode.Interactive) {
+                    // Mantener AutoRotating de warm-up: no bajar a Interactive solo porque
+                    // el reloj de idle aún no llegó al umbral de rotación.
+                    if (mode != VitrinaMode.AutoRotating && mode != VitrinaMode.Interactive) {
                         mode = VitrinaMode.Interactive
                     }
-                    isUserActive = true
+                    isUserActive = mode == VitrinaMode.Interactive
                     delay(1000L)
                 }
             }

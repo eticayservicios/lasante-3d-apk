@@ -130,8 +130,12 @@ fun IntroScreen(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_START -> appInForeground = true
-                Lifecycle.Event.ON_STOP -> {
+                Lifecycle.Event.ON_START,
+                Lifecycle.Event.ON_RESUME,
+                -> appInForeground = true
+                Lifecycle.Event.ON_PAUSE,
+                Lifecycle.Event.ON_STOP,
+                -> {
                     appInForeground = false
                     isVideoPlaying = false
                 }
@@ -163,6 +167,7 @@ fun IntroScreen(
     )
 
     val shouldPlayScreenSaver = contentActive &&
+        appInForeground &&
         vitrinaController.isScreenSaverActive &&
         screenSaverVideos.isNotEmpty() &&
         !hasModalOpen
