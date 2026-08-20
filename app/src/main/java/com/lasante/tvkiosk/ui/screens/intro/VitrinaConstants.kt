@@ -13,16 +13,29 @@ object VitrinaConstants {
     const val ROTATION_STEP_DEGREES = 72f
     /**
      * Fracción del ancho de pantalla ≈ 1 unidad (72°) mientras arrastras.
-     * Menor = más sensible (sigue mejor el dedo). TV66 ref.: 1280×720.
+     * Menor = más sensible (sigue mejor el dedo).
+     * Baseline phone; pantallas grandes usan [dragTrackWidthScreenFraction].
      */
-    const val DRAG_TRACK_WIDTH_SCREEN_FRACTION = 0.20f
+    const val DRAG_TRACK_WIDTH_SCREEN_FRACTION = 0.18f
     /**
      * Fracción de un paso (72°) para comprometer snap al soltar.
      * Por debajo vuelve a la unidad actual; al superarla avanza al menos ±1 unidad.
      */
     const val DRAG_SNAP_COMMIT_FRACTION = 0.10f
     /** Flick rápido (px/ms) que compromete ±1 aunque el arrastre sea corto. */
-    const val DRAG_FLICK_VELOCITY_PX_PER_MS = 1.2f
+    const val DRAG_FLICK_VELOCITY_PX_PER_MS = 1.0f
+
+    /**
+     * Sensibilidad de arrastre por perfil. En TV/tablet el mismo % de pantalla
+     * es un swipe físico más largo → se reduce la fracción para que el dedo responda.
+     */
+    fun dragTrackWidthScreenFraction(profileKey: String): Float = when (profileKey) {
+        "phone_landscape", "phone_portrait" -> DRAG_TRACK_WIDTH_SCREEN_FRACTION
+        "tv_32" -> 0.12f
+        "tv_42", "tablet_landscape" -> 0.10f
+        "tv_66", "expanded" -> 0.08f
+        else -> 0.12f
+    }
 
     /** Asset local del GLB de vitrina (Draco). */
     const val BASE_GLB_ASSET = "vitrina/models/mobile_draco.glb"

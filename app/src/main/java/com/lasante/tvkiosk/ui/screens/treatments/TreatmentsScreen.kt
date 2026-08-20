@@ -420,14 +420,17 @@ private fun TherapeuticClassCard(
                 .fillMaxWidth(blockWidthFraction)
                 .aspectRatio(aspectRatio)
                 .shadow(
-                    elevation = 3.dp,
+                    elevation = 1.dp,
                     shape = RoundedCornerShape(18.dp),
                     clip = false,
+                    ambientColor = Color(0x14000000),
+                    spotColor = Color(0x0F000000),
                 )
                 .clip(RoundedCornerShape(18.dp))
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color(0xFFF4F4F4), Color(0xFFE1E1E1)),
+                        // Mockup CT: gris suave arriba → más claro abajo (sin borde duro)
+                        colors = listOf(Color(0xFFE8E8E8), Color(0xFFF7F7F7)),
                     ),
                 )
                 .clickableWithSound(sound = UiSound.Click, onClick = onClick)

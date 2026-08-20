@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import coil.imageLoader
 import com.lasante.tvkiosk.ui.utils.ModalFrostScrim
@@ -28,6 +29,8 @@ import com.lasante.tvkiosk.data.Product
 import com.lasante.tvkiosk.data.ScreenSaverVideo
 import com.lasante.tvkiosk.data.VitrinaConfig
 import com.lasante.tvkiosk.data.VitrinaUnit
+import com.lasante.tvkiosk.ui.layout.DeviceProfileResolver
+import com.lasante.tvkiosk.ui.layout.TvProfileDetector
 import com.lasante.tvkiosk.ui.theme.LaSanteBackground
 
 @Composable
@@ -47,9 +50,40 @@ fun IntroScreen(
     val widthClass = windowSizeClass.widthSizeClass
     val configuration = LocalConfiguration.current
     val context = LocalContext.current
+    val density = LocalDensity.current
     val isTabletLandscape = configuration.screenWidthDp > configuration.screenHeightDp &&
         configuration.screenWidthDp >= 640 &&
         configuration.screenHeightDp >= 400
+
+    val dragTrackWidthScreenFraction = remember(
+        configuration.screenWidthDp,
+        configuration.screenHeightDp,
+        widthClass,
+        density,
+        context,
+    ) {
+        val maxWidth = configuration.screenWidthDp.dp
+        val maxHeight = configuration.screenHeightDp.dp
+        val preferTv66 = TvProfileDetector.isTv66Candidate(
+            maxWidth = maxWidth,
+            maxHeight = maxHeight,
+            density = density,
+            context = context,
+        )
+        val profile = DeviceProfileResolver.resolve(
+            maxWidth = maxWidth,
+            maxHeight = maxHeight,
+            widthClass = widthClass,
+            preferTv66 = preferTv66,
+        )
+        IntroLayoutMetrics(
+            maxWidth = maxWidth,
+            maxHeight = maxHeight,
+            widthClass = widthClass,
+            profile = profile,
+            preferTv66 = preferTv66,
+        ).dragTrackWidthScreenFraction
+    }
 
     // Precarga GIFs de Intro una vez: al volver ya están en cache Coil.
     LaunchedEffect(Unit) {
@@ -96,8 +130,12 @@ fun IntroScreen(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_START -> appInForeground = true
-                Lifecycle.Event.ON_STOP -> {
+                Lifecycle.Event.ON_START,
+                Lifecycle.Event.ON_RESUME,
+                -> appInForeground = true
+                Lifecycle.Event.ON_PAUSE,
+                Lifecycle.Event.ON_STOP,
+                -> {
                     appInForeground = false
                     isVideoPlaying = false
                 }
@@ -125,9 +163,11 @@ fun IntroScreen(
         screenSaverEnabled = vitrinaConfig.screenSaverPlaylistEnabled && screenSaverVideos.isNotEmpty(),
         autoRotateAfterMs = vitrinaConfig.autoRotateAfterMs,
         screenSaverAfterMs = vitrinaConfig.screenSaverAfterMs,
+        dragTrackWidthScreenFraction = dragTrackWidthScreenFraction,
     )
 
     val shouldPlayScreenSaver = contentActive &&
+        appInForeground &&
         vitrinaController.isScreenSaverActive &&
         screenSaverVideos.isNotEmpty() &&
         !hasModalOpen

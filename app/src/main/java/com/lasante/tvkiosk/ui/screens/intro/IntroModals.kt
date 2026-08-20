@@ -346,10 +346,14 @@ private fun ExoVideoPlayer(
     DisposableEffect(lifecycleOwner, exoPlayer) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_START -> {
+                Lifecycle.Event.ON_START,
+                Lifecycle.Event.ON_RESUME,
+                -> {
                     exoPlayer.playWhenReady = true
                 }
-                Lifecycle.Event.ON_STOP -> {
+                Lifecycle.Event.ON_PAUSE,
+                Lifecycle.Event.ON_STOP,
+                -> {
                     exoPlayer.playWhenReady = false
                     exoPlayer.pause()
                 }
@@ -357,8 +361,11 @@ private fun ExoVideoPlayer(
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
             exoPlayer.playWhenReady = true
+        } else {
+            exoPlayer.playWhenReady = false
+            exoPlayer.pause()
         }
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)

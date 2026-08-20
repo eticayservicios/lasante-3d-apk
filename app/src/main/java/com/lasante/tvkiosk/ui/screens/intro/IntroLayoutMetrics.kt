@@ -146,6 +146,13 @@ data class IntroLayoutMetrics(
     fun dragPointerSlopPx(density: androidx.compose.ui.unit.Density): Float =
         with(density) { 3.dp.toPx() }
 
+    /**
+     * Fracción de ancho ≈ 1 unidad (72°) al arrastrar.
+     * Menor en pantallas grandes → más sensible al dedo.
+     */
+    val dragTrackWidthScreenFraction: Float
+        get() = VitrinaConstants.dragTrackWidthScreenFraction(vitrinaProfileKey)
+
     val titleFontSize: TextUnit
         get() = when (vitrinaProfileKey) {
             "phone_landscape" -> 18.sp
