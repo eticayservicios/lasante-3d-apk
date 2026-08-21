@@ -11,12 +11,16 @@ import androidx.compose.ui.platform.LocalContext
 import com.lasante.tvkiosk.ui.theme.LaSanteGreen
 import io.github.sceneview.SceneView
 import io.github.sceneview.math.Position
+import io.github.sceneview.math.Rotation
 import io.github.sceneview.rememberCameraNode
 import io.github.sceneview.rememberEngine
 import io.github.sceneview.rememberMainLightNode
 import io.github.sceneview.rememberModelInstance
 import io.github.sceneview.rememberModelLoader
 import io.github.sceneview.node.ModelNode
+
+/** Ángulo Y inicial del producto en el modal (3/4 / medio lado, no frontal). */
+private const val PRODUCT_MODAL_INITIAL_YAW_DEG = 35f
 
 /**
  * Visualizador 3D de producto (assets locales o URLs remotas CloudFront).
@@ -65,6 +69,7 @@ fun ModelViewerStub(
                     modelInstance = instance,
                     centerOrigin = Position(x = 0f, y = -1f, z = 0f),
                     scaleToUnits = scaleToUnits,
+                    rotation = Rotation(y = PRODUCT_MODAL_INITIAL_YAW_DEG),
                     isEditable = false,
                 )
             }
