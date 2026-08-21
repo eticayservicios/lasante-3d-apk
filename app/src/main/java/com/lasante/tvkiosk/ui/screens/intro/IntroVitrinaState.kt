@@ -233,13 +233,16 @@ fun rememberVitrinaInteractionController(
                 mode = VitrinaMode.AutoRotating
             }
             else -> {
+                // button / drag / select: snap manual. Debe quedarse Interactive;
+                // si usamos AutoRotating el loop de idle pone isUserActive=false
+                // (~1s) → se apagan luces y arranca el giro continuo.
                 rotationAnimationSpec = when (source) {
                     "drag" -> VitrinaConstants.dragSnapAnimationSpec
                     else -> VitrinaConstants.manualRotationAnimationSpec
                 }
                 idleClock.lastMs = System.currentTimeMillis()
-                isUserActive = true // corta idle continuo antes del snap
-                mode = VitrinaMode.AutoRotating
+                isUserActive = true
+                mode = VitrinaMode.Interactive
             }
         }
     }
@@ -400,12 +403,15 @@ fun rememberVitrinaInteractionController(
                     delay(1000L)
                 }
                 else -> {
-                    // Mantener AutoRotating de warm-up: no bajar a Interactive solo porque
-                    // el reloj de idle aún no llegó al umbral de rotación.
+                    // Idle bajo el umbral de rotación: usuario aún “activo”.
+                    // No forzar isUserActive=false si mode es AutoRotating (warm-up /
+                    // idle continuo); solo reactivar luces en Interactive.
                     if (mode != VitrinaMode.AutoRotating && mode != VitrinaMode.Interactive) {
                         mode = VitrinaMode.Interactive
                     }
-                    isUserActive = mode == VitrinaMode.Interactive
+                    if (mode == VitrinaMode.Interactive) {
+                        isUserActive = true
+                    }
                     delay(1000L)
                 }
             }
