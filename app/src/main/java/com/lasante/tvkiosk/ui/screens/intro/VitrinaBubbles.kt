@@ -192,7 +192,16 @@ fun VitrinaBubblesRow(
                 val startX = with(density) { lowerLineStartX.toPx() }
                 val diagX = with(density) { diagStartX.toPx() }
                 val endRampX = with(density) { rampEndX.toPx() }
-                val endX = with(density) { bubblesEnd.toPx() }
+                val endX = with(density) {
+                    // Round cap sobresale ~½ stroke; en TV66 un pelín más para que
+                    // no se vea la línea saliendo de la última burbuja (Hikvision).
+                    val roundCap = stroke * 0.5f
+                    val extraInset = when (metrics.vitrinaProfileKey) {
+                        "tv_66" -> 1.25.dp.toPx()
+                        else -> 0.5.dp.toPx()
+                    }
+                    bubblesEnd.toPx() - roundCap - extraInset
+                }
                 val lowY = with(density) { placedLowerY.toPx() }
                 val highY = with(density) { placedUpperY.toPx() }
 

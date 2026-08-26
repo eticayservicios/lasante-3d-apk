@@ -898,8 +898,10 @@ fun ProductsScreen(
                 val topBadgeModifier = Modifier
                     .align(Alignment.TopStart)
                     .offset {
+                        // Lift suave en TV66: 7 espacios sacaba casi medio badge
+                        // fuera de pantalla en Hikvision y el icono CT se veía cortado.
                         val (dx, lift) = when {
-                            isTv66 -> 0.dp to Tv42Spacing.spaces(7)
+                            isTv66 -> 0.dp to Tv42Spacing.spaces(3)
                             isTv42 || catalog.largeCanvas ->
                                 (-Tv42Spacing.spaces(9)) to Tv42Spacing.spaces(4)
                             else -> 0.dp to 0.dp
@@ -1256,10 +1258,11 @@ private fun TreatmentIconBadge(
                     .crossfade(false)
                     .build(),
                 contentDescription = null,
-                // −2.dp respecto al centro del fondo.
+                // Subir 2.dp: el comentario histórico decía −2 pero el código
+                // empujaba +2 y en Hikvision el icono se cortaba abajo del badge.
                 modifier = Modifier
                     .size(iconSize)
-                    .offset(y = 2.dp),
+                    .offset(y = (-2).dp),
                 contentScale = ContentScale.Fit,
             )
         }
