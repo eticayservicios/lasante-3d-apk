@@ -298,7 +298,7 @@ fun ProductsScreen(
                 }
             }
 
-            LaunchedEffect(searchQuery, products, unitProducts, starProducts, productFilter, ctCatalogFilter, starProductIds) {
+            LaunchedEffect(searchQuery, unitId, products, unitProducts, starProducts, productFilter, ctCatalogFilter, starProductIds) {
                 if (searchQuery.length < 3) {
                     globalSearchResults = emptyList()
                     isSearching = false
@@ -333,24 +333,41 @@ fun ProductsScreen(
                     globalSearchResults = if (localResults.isNotEmpty()) {
                         localResults
                     } else {
-                        val result = catalogRepository.search(query, "productos")
-                        result.items.map { item ->
-                            Product(
-                                productoId = item.id,
-                                unidadId = "",
-                                tratamientoId = "",
-                                nombre = item.nombre,
-                                descripcion = item.descripcion ?: "",
-                                estado = "ACTIVO",
-                                orden = 0,
-                                media = com.lasante.tvkiosk.data.ProductMedia(
-                                    imagenes2d = com.lasante.tvkiosk.data.Images2D(null, null, emptyList()),
-                                    modelo3d = com.lasante.tvkiosk.data.Model3D(null, null, null),
-                                ),
-                                atributos = emptyMap(),
-                                dosisValor = item.dosisValor,
-                                dosisUnidad = item.dosisUnidad,
-                            )
+                        // Fallback API: solo productos de ESTA unidad (el /search es global).
+                        val allowedIds = withContext(Dispatchers.IO) {
+                            val cached = unitProducts.map { it.productoId }.toSet()
+                            if (cached.isNotEmpty()) {
+                                cached
+                            } else {
+                                catalogRepository.getProductsForUnit(unitId)
+                                    .map { it.productoId }
+                                    .toSet()
+                            }
+                        }
+                        if (allowedIds.isEmpty()) {
+                            emptyList()
+                        } else {
+                            val result = catalogRepository.search(query, "productos")
+                            result.items
+                                .filter { it.id in allowedIds }
+                                .map { item ->
+                                    Product(
+                                        productoId = item.id,
+                                        unidadId = unitId,
+                                        tratamientoId = "",
+                                        nombre = item.nombre,
+                                        descripcion = item.descripcion ?: "",
+                                        estado = "ACTIVO",
+                                        orden = 0,
+                                        media = com.lasante.tvkiosk.data.ProductMedia(
+                                            imagenes2d = com.lasante.tvkiosk.data.Images2D(null, null, emptyList()),
+                                            modelo3d = com.lasante.tvkiosk.data.Model3D(null, null, null),
+                                        ),
+                                        atributos = emptyMap(),
+                                        dosisValor = item.dosisValor,
+                                        dosisUnidad = item.dosisUnidad,
+                                    )
+                                }
                         }
                     }
                 } catch (_: Exception) {
