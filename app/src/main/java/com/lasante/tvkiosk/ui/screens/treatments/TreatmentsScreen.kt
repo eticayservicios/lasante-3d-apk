@@ -36,7 +36,6 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -411,27 +410,30 @@ private fun TherapeuticClassCard(
             .build()
     }
 
+    val cardShape = RoundedCornerShape(18.dp)
     Box(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.TopCenter,
     ) {
-        Column(
+        // Fondo redondo con shape en background (sin clip en el contenedor):
+        // en Hikvision las cards son más estrechas en dp y el clip del radio
+        // cortaba la parte de arriba de los iconos. Tablet+force 1280×720 no lo notaba.
+        Box(
             modifier = Modifier
                 .fillMaxWidth(blockWidthFraction)
                 .aspectRatio(aspectRatio)
                 .shadow(
                     elevation = 1.dp,
-                    shape = RoundedCornerShape(18.dp),
+                    shape = cardShape,
                     clip = false,
                     ambientColor = Color(0x14000000),
                     spotColor = Color(0x0F000000),
                 )
-                .clip(RoundedCornerShape(18.dp))
                 .background(
-                    Brush.verticalGradient(
-                        // Mockup CT: gris suave arriba → más claro abajo (sin borde duro)
+                    brush = Brush.verticalGradient(
                         colors = listOf(Color(0xFFE8E8E8), Color(0xFFF7F7F7)),
                     ),
+                    shape = cardShape,
                 )
                 .clickableWithSound(sound = UiSound.Click, onClick = onClick)
                 .padding(
@@ -440,44 +442,48 @@ private fun TherapeuticClassCard(
                     top = cardPaddingTop,
                     bottom = cardPaddingBottom,
                 ),
-            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f, fill = true)
-                    .fillMaxWidth()
-                    .padding(horizontal = cardIconPaddingH, vertical = cardIconPaddingV),
-                contentAlignment = Alignment.Center,
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                if (imageRequest != null) {
-                    AsyncImage(
-                        model = imageRequest,
-                        contentDescription = treatment.name,
-                        modifier = Modifier.fillMaxSize(iconFill),
-                        contentScale = ContentScale.Fit,
+                Box(
+                    modifier = Modifier
+                        .weight(1f, fill = true)
+                        .fillMaxWidth()
+                        .padding(horizontal = cardIconPaddingH, vertical = cardIconPaddingV),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (imageRequest != null) {
+                        AsyncImage(
+                            model = imageRequest,
+                            contentDescription = treatment.name,
+                            modifier = Modifier.fillMaxSize(iconFill),
+                            contentScale = ContentScale.Fit,
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(labelHeight),
+                    contentAlignment = Alignment.TopCenter,
+                ) {
+                    Text(
+                        text = treatment.name,
+                        color = LaSanteText,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = labelFontSize,
+                            fontWeight = FontWeight.Normal,
+                            lineHeight = labelLineHeight,
+                            textAlign = TextAlign.Center,
+                        ),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(labelHeight),
-                contentAlignment = Alignment.TopCenter,
-            ) {
-                Text(
-                    text = treatment.name,
-                    color = LaSanteText,
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontSize = labelFontSize,
-                        fontWeight = FontWeight.Normal,
-                        lineHeight = labelLineHeight,
-                        textAlign = TextAlign.Center,
-                    ),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.fillMaxWidth(),
-                )
             }
         }
     }

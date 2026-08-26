@@ -92,21 +92,23 @@ object TreatmentUiMetrics {
     )
 
     val tv66 = ProfileMetrics(
-        // Fondo +4 espacios; icono 38 − 2 espacios.
+        // Fondo +4 espacios; icono más chico: el PNG del badge tiene letterbox y
+        // en Hikvision el lift lo sube fuera de pantalla (se veía cortado abajo).
         badgeHeight = 104.dp + Tv42Spacing.spaces(4),
-        badgeIconSize = 38.dp - Tv42Spacing.spaces(2),
+        badgeIconSize = 32.dp - Tv42Spacing.spaces(2),
         cardIconSize = 420.dp * 0.95f,
         navButtonSize = 52.dp,
         cardLabelFontSize = scaledSp(18.sp),
         cardLabelLineHeight = scaledSp(21.sp),
-        // −5% extra vs fill 0.49 + padding interno: el icono escala con el card y no se recorta.
-        cardIconFill = 0.70f * 0.70f * 0.95f,
+        // Fill conservador + más padding: canvas real Hikvision suele ser más
+        // estrecho en dp que el force 1280×720 de tablet.
+        cardIconFill = 0.70f * 0.70f * 0.90f,
         cardAspectRatio = 1.08f,
-        cardPaddingH = 2.dp,
-        cardPaddingTop = 2.dp,
-        cardPaddingBottom = 2.dp,
-        cardIconPaddingH = 4.dp,
-        cardIconPaddingV = 2.dp,
+        cardPaddingH = 4.dp,
+        cardPaddingTop = 4.dp,
+        cardPaddingBottom = 3.dp,
+        cardIconPaddingH = 6.dp,
+        cardIconPaddingV = 4.dp,
     )
 
     fun forProfile(
