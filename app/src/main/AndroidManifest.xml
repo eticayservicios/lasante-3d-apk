@@ -11,8 +11,8 @@
         android:largeHeap="true"
         android:hardwareAccelerated="true"
         android:allowBackup="true"
-        android:icon="@drawable/logo_la_sante_22"
-        android:roundIcon="@drawable/logo_la_sante_22"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:label="LaSanté Kiosk"
         android:supportsRtl="true"
         android:theme="@style/Theme.LaSante">

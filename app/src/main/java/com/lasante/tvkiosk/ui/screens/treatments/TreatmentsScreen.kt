@@ -50,6 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -71,7 +72,12 @@ import com.lasante.tvkiosk.ui.layout.CatalogScreenTitle
 import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
 import com.lasante.tvkiosk.ui.layout.LogCatalogHeaderProfile
 import com.lasante.tvkiosk.ui.layout.SharedNavMetrics
+import com.lasante.tvkiosk.ui.layout.CatalogIconDebugColors
+import com.lasante.tvkiosk.ui.layout.CatalogIconDebugPanel
+import com.lasante.tvkiosk.ui.layout.CatalogIconDebugSizes
+import com.lasante.tvkiosk.ui.layout.catalogIconDebugBorder
 import com.lasante.tvkiosk.ui.layout.layoutForceOverlayLabel
+import com.lasante.tvkiosk.ui.layout.toDebugLabel
 import com.lasante.tvkiosk.ui.layout.rememberCatalogLayout
 import com.lasante.tvkiosk.ui.theme.LaSanteGreen
 import com.lasante.tvkiosk.ui.theme.LaSanteText
@@ -149,27 +155,14 @@ fun TreatmentsScreen(
             var overlayRootCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
             var searchBarOffset by remember { mutableStateOf(IntOffset.Zero) }
             var searchBarPlaced by remember { mutableStateOf(false) }
+            var iconDebugSizes by remember { mutableStateOf(CatalogIconDebugSizes()) }
+            val iconDebugDensity = LocalDensity.current
 
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .onGloballyPositioned { overlayRootCoordinates = it },
             ) {
-                if (BuildConfig.DEBUG) {
-                    Text(
-                        text = "${canvasW.value.toInt()}×${canvasH.value.toInt()} · ${profile.tier} · " +
-                            "large=${header.isLargeCanvas} · btn=${header.navButtonSize.value}dp · " +
-                            "tv66=${header.isTv66} · fill=${"%.2f".format(ui.cardIconFill)} · " +
-                            layoutForceOverlayLabel(),
-                        color = Color.White,
-                        fontSize = 11.sp,
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(8.dp)
-                            .background(Color(0xCC000000), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                    )
-                }
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -259,9 +252,10 @@ fun TreatmentsScreen(
                                 horizontalArrangement = Arrangement.spacedBy(cardSpacing),
                             ) {
                                 items(
-                                    items = treatments,
-                                    key = { treatment -> treatment.id },
-                                ) { treatment ->
+                                    count = treatments.size,
+                                    key = { treatments[it].id },
+                                ) { index ->
+                                    val treatment = treatments[index]
                                     TherapeuticClassCard(
                                         treatment = treatment,
                                         iconSize = ui.cardIconSize,
@@ -275,6 +269,12 @@ fun TreatmentsScreen(
                                         cardPaddingBottom = ui.cardPaddingBottom,
                                         cardIconPaddingH = ui.cardIconPaddingH,
                                         cardIconPaddingV = ui.cardIconPaddingV,
+                                        showIconDebug = BuildConfig.DEBUG && index == 0,
+                                        onIconDebugMeasure = if (BuildConfig.DEBUG && index == 0) {
+                                            { iconDebugSizes = it }
+                                        } else {
+                                            null
+                                        },
                                         onClick = {
                                             focusManager.clearFocus()
                                             onTreatmentSelected(treatment.id)
@@ -318,6 +318,34 @@ fun TreatmentsScreen(
                             dismissListTick = dismissListTick,
                         )
                     }
+                }
+
+                if (BuildConfig.DEBUG) {
+                    CatalogIconDebugPanel(
+                        title = "CT · ${canvasW.value.toInt()}×${canvasH.value.toInt()} · ${profile.tier} · tv66=${header.isTv66}",
+                        staticLines = listOf(
+                            "verde=card · azul=slot · rojo=image (1.er card)",
+                            "large=${header.isLargeCanvas} cols=$columns block=${"%.2f".format(ctCardWidthFraction)}",
+                            "decode=${ui.cardIconSize.value.toInt()}dp · fill=${"%.3f".format(ui.cardIconFill)} · aspect=${"%.2f".format(ui.cardAspectRatio)}",
+                            "pad card ${ui.cardPaddingH.value}/${ui.cardPaddingTop.value} · icon ${ui.cardIconPaddingH.value}/${ui.cardIconPaddingV.value}",
+                            "dpi=${(iconDebugDensity.density * 160f).toInt()} · ${layoutForceOverlayLabel()}",
+                        ),
+                        measuredLines = buildList {
+                            if (iconDebugSizes.card != IntSize.Zero) {
+                                add("card ${iconDebugSizes.card.toDebugLabel(iconDebugDensity)}")
+                            }
+                            if (iconDebugSizes.slot != IntSize.Zero) {
+                                add("slot ${iconDebugSizes.slot.toDebugLabel(iconDebugDensity)}")
+                            }
+                            if (iconDebugSizes.image != IntSize.Zero) {
+                                add("image ${iconDebugSizes.image.toDebugLabel(iconDebugDensity)}")
+                            }
+                        },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .zIndex(100f)
+                            .padding(top = 8.dp, end = 8.dp),
+                    )
                 }
             }
         }
@@ -394,12 +422,21 @@ private fun TherapeuticClassCard(
     cardPaddingBottom: Dp = 2.dp,
     cardIconPaddingH: Dp = 6.dp,
     cardIconPaddingV: Dp = 4.dp,
+    showIconDebug: Boolean = false,
+    onIconDebugMeasure: ((CatalogIconDebugSizes) -> Unit)? = null,
     onClick: () -> Unit,
 ) {
     val iconModel = TreatmentIconAssets.resolve(iconUrl = treatment.media.icono)
     val context = LocalContext.current
     val iconSizePx = with(LocalDensity.current) { iconSize.roundToPx() }
     val labelHeight = therapeuticClassLabelHeight(labelLineHeight)
+    val debugEnabled = BuildConfig.DEBUG && showIconDebug
+    var debugSizes by remember(debugEnabled) { mutableStateOf(CatalogIconDebugSizes()) }
+    fun publishDebugSizes(update: CatalogIconDebugSizes.() -> CatalogIconDebugSizes) {
+        if (!debugEnabled) return
+        debugSizes = debugSizes.update()
+        onIconDebugMeasure?.invoke(debugSizes)
+    }
     val imageRequest = remember(iconModel, iconSizePx) {
         if (iconModel.isNullOrBlank()) null
         else ImageRequest.Builder(context)
@@ -422,6 +459,9 @@ private fun TherapeuticClassCard(
             modifier = Modifier
                 .fillMaxWidth(blockWidthFraction)
                 .aspectRatio(aspectRatio)
+                .catalogIconDebugBorder(debugEnabled, CatalogIconDebugColors.Card) {
+                    publishDebugSizes { copy(card = it) }
+                }
                 .shadow(
                     elevation = 1.dp,
                     shape = cardShape,
@@ -451,14 +491,21 @@ private fun TherapeuticClassCard(
                     modifier = Modifier
                         .weight(1f, fill = true)
                         .fillMaxWidth()
-                        .padding(horizontal = cardIconPaddingH, vertical = cardIconPaddingV),
+                        .padding(horizontal = cardIconPaddingH, vertical = cardIconPaddingV)
+                        .catalogIconDebugBorder(debugEnabled, CatalogIconDebugColors.Slot) {
+                            publishDebugSizes { copy(slot = it) }
+                        },
                     contentAlignment = Alignment.Center,
                 ) {
                     if (imageRequest != null) {
                         AsyncImage(
                             model = imageRequest,
                             contentDescription = treatment.name,
-                            modifier = Modifier.fillMaxSize(iconFill),
+                            modifier = Modifier
+                                .fillMaxSize(iconFill)
+                                .catalogIconDebugBorder(debugEnabled, CatalogIconDebugColors.Image) {
+                                    publishDebugSizes { copy(image = it) }
+                                },
                             contentScale = ContentScale.Fit,
                         )
                     }

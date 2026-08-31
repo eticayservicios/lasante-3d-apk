@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -53,6 +54,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -71,7 +73,12 @@ import com.lasante.tvkiosk.ui.components.RealGreenScrollBar
 import com.lasante.tvkiosk.ui.components.TreatmentIconAssets
 import com.lasante.tvkiosk.ui.components.TrimTransparentTransformation
 import com.lasante.tvkiosk.ui.layout.CatalogHeaderMetrics
+import com.lasante.tvkiosk.ui.layout.CatalogIconDebugColors
+import com.lasante.tvkiosk.ui.layout.CatalogIconDebugPanel
+import com.lasante.tvkiosk.ui.layout.CatalogIconDebugSizes
 import com.lasante.tvkiosk.ui.layout.CatalogScreenTitle
+import com.lasante.tvkiosk.ui.layout.catalogIconDebugBorder
+import com.lasante.tvkiosk.ui.layout.toDebugLabel
 import com.lasante.tvkiosk.ui.layout.DeviceProfile
 import com.lasante.tvkiosk.ui.layout.DeviceProfileResolver
 import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
@@ -438,6 +445,17 @@ fun ProductsScreen(
             val horizontalPadding = catalog.horizontalPadding
             val contentPadding = catalog.contentPadding
             val gridMaxWidth = catalog.gridMaxWidth
+            var iconDebugSizes by remember { mutableStateOf(CatalogIconDebugSizes()) }
+            val iconDebugDensity = LocalDensity.current
+            val productImageFill = when {
+                isPhone -> 0.5436f
+                isTv42LargeUp -> 0.738f
+                isTv42 -> 0.702f
+                isTv66 -> 0.792f
+                else -> 0.765f
+            }
+            val badgeIconDp = catalog.ui.badgeIconSize * 0.95f
+            val badgeHeightDp = catalog.ui.badgeHeight
 
             Box(modifier = Modifier.fillMaxSize()) {
                 Column(
@@ -854,6 +872,18 @@ fun ProductsScreen(
                                         isTv66 = isTv66,
                                         isTv42LargeUp = isTv42LargeUp,
                                         blockWidthFraction = header.productBlockWidthFraction,
+                                        showIconDebug = BuildConfig.DEBUG && index == 0,
+                                        onIconDebugMeasure = if (BuildConfig.DEBUG && index == 0) {
+                                            { sizes ->
+                                                iconDebugSizes = iconDebugSizes.copy(
+                                                    card = sizes.card,
+                                                    slot = sizes.slot,
+                                                    image = sizes.image,
+                                                )
+                                            }
+                                        } else {
+                                            null
+                                        },
                                         onClick = { onProductSelected(filteredProducts[index]) },
                                     )
                                 }
@@ -944,31 +974,48 @@ fun ProductsScreen(
                     TreatmentIconBadge(
                         iconUrl = treatmentIconUrl,
                         metrics = catalog.ui,
+                        showIconDebug = BuildConfig.DEBUG,
+                        onIconDebugMeasure = if (BuildConfig.DEBUG) {
+                            { sizes ->
+                                iconDebugSizes = iconDebugSizes.copy(
+                                    badge = sizes.badge,
+                                    badgeIcon = sizes.badgeIcon,
+                                )
+                            }
+                        } else {
+                            null
+                        },
                         modifier = topBadgeModifier,
                     )
                 }
 
-                // DEBUG arriba: abajo tapaba la 2.ª fila (parecía que los cards “se montaban”).
                 if (BuildConfig.DEBUG) {
-                    Text(
-                        text = "${canvasWidth.value.toInt()}×${canvasHeight.value.toInt()} · ${profile.tier} · " +
-                            "large=${header.isLargeCanvas} · btn=${buttonSize.value}dp · " +
-                            "filter=${header.filterIconSize.value}dp · " +
-                            layoutForceOverlayLabel() +
-                            if (header.isTv66 || profile.tier.name.contains("LARGE")) {
-                                " · TV66-ref=1280×720"
-                            } else if (header.isTv42) {
-                                " · TV1080-ref=1137×711"
-                            } else {
-                                ""
-                            },
-                        color = Color.White,
-                        fontSize = 11.sp,
+                    CatalogIconDebugPanel(
+                        title = "Productos · ${canvasWidth.value.toInt()}×${canvasHeight.value.toInt()} · ${profile.tier} · tv66=$isTv66",
+                        staticLines = listOf(
+                            "verde=cell · azul=slot · rojo=image · morado=badge · naranja=badgeIcon",
+                            "cols=$columns block=${"%.2f".format(header.productBlockWidthFraction)} · imgFill=${"%.3f".format(productImageFill)}",
+                            "badge ${badgeHeightDp.value.toInt()}dp · icon ${badgeIconDp.value.toInt()}dp · offsetY=-2dp",
+                            "dpi=${(iconDebugDensity.density * 160f).toInt()} · ${layoutForceOverlayLabel()}",
+                        ),
+                        measuredLines = buildList {
+                            if (iconDebugSizes.badge != IntSize.Zero) {
+                                add("badge ${iconDebugSizes.badge.toDebugLabel(iconDebugDensity)}")
+                            }
+                            if (iconDebugSizes.badgeIcon != IntSize.Zero) {
+                                add("badgeIcon ${iconDebugSizes.badgeIcon.toDebugLabel(iconDebugDensity)}")
+                            }
+                            if (iconDebugSizes.card != IntSize.Zero) {
+                                add("cell ${iconDebugSizes.card.toDebugLabel(iconDebugDensity)}")
+                            }
+                            if (iconDebugSizes.image != IntSize.Zero) {
+                                add("image ${iconDebugSizes.image.toDebugLabel(iconDebugDensity)}")
+                            }
+                        },
                         modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(top = 4.dp)
-                            .background(Color(0xCC000000), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                            .align(Alignment.TopEnd)
+                            .zIndex(100f)
+                            .padding(top = 8.dp, end = 8.dp),
                     )
                 }
             }
@@ -1230,6 +1277,8 @@ private fun ProductsSortButton(
 private fun TreatmentIconBadge(
     iconUrl: String?,
     metrics: TreatmentUiMetrics.ProfileMetrics,
+    showIconDebug: Boolean = false,
+    onIconDebugMeasure: ((CatalogIconDebugSizes) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -1239,6 +1288,13 @@ private fun TreatmentIconBadge(
     val badgeWidth =
         (badgeHeight * TreatmentUiMetrics.BADGE_WIDTH_TO_HEIGHT).coerceAtLeast(24.dp)
     val iconSize = metrics.badgeIconSize * 0.95f
+    val debugEnabled = BuildConfig.DEBUG && showIconDebug
+    var debugSizes by remember(debugEnabled) { mutableStateOf(CatalogIconDebugSizes()) }
+    fun publishDebug(update: CatalogIconDebugSizes.() -> CatalogIconDebugSizes) {
+        if (!debugEnabled) return
+        debugSizes = debugSizes.update()
+        onIconDebugMeasure?.invoke(debugSizes)
+    }
     // Badge PNG es pequeño; el icono CT del CDN es ~1080² — no usar ORIGINAL (OOM + Trim).
     val badgeDecodePx = with(density) {
         maxOf(badgeWidth, badgeHeight).times(2f).roundToPx().coerceIn(64, 256)
@@ -1257,7 +1313,10 @@ private fun TreatmentIconBadge(
     Box(
         modifier = modifier
             .width(badgeWidth)
-            .height(badgeHeight),
+            .height(badgeHeight)
+            .catalogIconDebugBorder(debugEnabled, CatalogIconDebugColors.Badge) {
+                publishDebug { copy(badge = it) }
+            },
         contentAlignment = Alignment.Center,
     ) {
         AsyncImage(
@@ -1279,7 +1338,10 @@ private fun TreatmentIconBadge(
                 // empujaba +2 y en Hikvision el icono se cortaba abajo del badge.
                 modifier = Modifier
                     .size(iconSize)
-                    .offset(y = (-2).dp),
+                    .offset(y = (-2).dp)
+                    .catalogIconDebugBorder(debugEnabled, CatalogIconDebugColors.BadgeIcon) {
+                        publishDebug { copy(badgeIcon = it) }
+                    },
                 contentScale = ContentScale.Fit,
             )
         }
@@ -1297,10 +1359,19 @@ private fun ProductGridItem(
     isTv66: Boolean = false,
     isTv42LargeUp: Boolean = false,
     blockWidthFraction: Float = 1f,
+    showIconDebug: Boolean = false,
+    onIconDebugMeasure: ((CatalogIconDebugSizes) -> Unit)? = null,
     onClick: () -> Unit,
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
+    val debugEnabled = BuildConfig.DEBUG && showIconDebug
+    var debugSizes by remember(debugEnabled) { mutableStateOf(CatalogIconDebugSizes()) }
+    fun publishDebug(update: CatalogIconDebugSizes.() -> CatalogIconDebugSizes) {
+        if (!debugEnabled) return
+        debugSizes = debugSizes.update()
+        onIconDebugMeasure?.invoke(debugSizes)
+    }
     // Imagen dentro del cuadrado gris (−10%).
     val imageFillFraction = when {
         isPhone -> 0.5436f
@@ -1364,6 +1435,9 @@ private fun ProductGridItem(
             Box(
                 modifier = Modifier
                     .size(side)
+                    .catalogIconDebugBorder(debugEnabled, CatalogIconDebugColors.Card) {
+                        publishDebug { copy(card = it) }
+                    }
                     .clip(RoundedCornerShape(20.dp))
                     .background(
                         Brush.verticalGradient(
@@ -1375,7 +1449,10 @@ private fun ProductGridItem(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPad),
+                        .padding(innerPad)
+                        .catalogIconDebugBorder(debugEnabled, CatalogIconDebugColors.Slot) {
+                            publishDebug { copy(slot = it) }
+                        },
                     contentAlignment = Alignment.Center,
                 ) {
                     when (gridVisual) {
@@ -1389,7 +1466,10 @@ private fun ProductGridItem(
                                 contentDescription = null,
                                 modifier = Modifier
                                     .fillMaxSize(imageFillFraction)
-                                    .align(Alignment.Center),
+                                    .align(Alignment.Center)
+                                    .catalogIconDebugBorder(debugEnabled, CatalogIconDebugColors.Image) {
+                                        publishDebug { copy(image = it) }
+                                    },
                                 contentScale = ContentScale.Fit,
                             )
                         }
