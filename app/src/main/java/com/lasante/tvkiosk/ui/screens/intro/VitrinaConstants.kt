@@ -33,8 +33,8 @@ object VitrinaConstants {
         "phone_landscape", "phone_portrait" -> DRAG_TRACK_WIDTH_SCREEN_FRACTION
         "tv_32" -> 0.12f
         "tv_42", "tablet_landscape" -> 0.10f
-        // TV66/Hikvision: +20% sensibilidad vs 0.09 previo (menor fracción = menos swipe).
-        "tv_66", "expanded" -> 0.075f
+        // TV66/Hikvision: +15% sensibilidad vs 0.075 (menor fracción = menos swipe).
+        "tv_66", "expanded" -> 0.065f
         else -> 0.12f
     }
 
@@ -79,13 +79,13 @@ object VitrinaConstants {
 
     /** Umbral de ángulo al soltar para cambiar de unidad (fracción de 72°). Menor = más sensible. */
     fun dragSnapCommitFraction(profileKey: String): Float = when (profileKey) {
-        "tv_66" -> 0.083f
+        "tv_66" -> 0.072f
         else -> DRAG_SNAP_COMMIT_FRACTION
     }
 
     /** Flick rápido al soltar; menor = más fácil de disparar. */
     fun dragFlickVelocityPxPerMs(profileKey: String): Float = when (profileKey) {
-        "tv_66" -> 0.85f
+        "tv_66" -> 0.74f
         else -> DRAG_FLICK_VELOCITY_PX_PER_MS
     }
 

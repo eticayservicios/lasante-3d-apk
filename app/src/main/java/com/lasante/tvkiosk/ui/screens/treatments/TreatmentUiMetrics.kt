@@ -95,7 +95,8 @@ object TreatmentUiMetrics {
         // Fondo +4 espacios; icono más chico: el PNG del badge tiene letterbox y
         // en Hikvision el lift lo sube fuera de pantalla (se veía cortado abajo).
         badgeHeight = 104.dp + Tv42Spacing.spaces(4),
-        badgeIconSize = 32.dp - Tv42Spacing.spaces(2),
+        // Productos badge (naranja): 23dp (+20% vs 18dp) · sin trim (mismo fix que CT).
+        badgeIconSize = 23.dp,
         cardIconSize = 420.dp * 0.95f,
         navButtonSize = 52.dp,
         cardLabelFontSize = scaledSp(18.sp),
