@@ -431,7 +431,7 @@ fun VitrinaModelViewer(
             )
             // Umbral un poco amplio: en specialty/phq el settle a veces quedaba a ~1–2°
             // y la cara se quedaba apagada.
-            val close = abs(rotationAnim.value - alignedTarget) < 2.5f
+            val close = abs(rotationAnim.value - alignedTarget) < layoutMetrics.lampSettleThresholdDegrees
             // Luz = misma cara que rotación/nav (activeIndex). No usar front-by-bearing:
             // ese fallback reintroducía el cruce specialty↔phq.
             val activeNode = if (close && isUserActive) activeIndex else -1

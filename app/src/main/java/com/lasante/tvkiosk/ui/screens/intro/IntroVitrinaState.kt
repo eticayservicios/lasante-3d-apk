@@ -70,13 +70,14 @@ fun rememberVitrinaInteractionController(
     screenSaverAfterMs: Long = DEFAULT_SCREEN_SAVER_TIMEOUT_MS,
     /** Menor = más sensible. Ver [VitrinaConstants.dragTrackWidthScreenFraction]. */
     dragTrackWidthScreenFraction: Float = VitrinaConstants.DRAG_TRACK_WIDTH_SCREEN_FRACTION,
+    vitrinaProfileKey: String = "phone_landscape",
 ): VitrinaInteractionController {
     var activeIndex by rememberSaveable { mutableIntStateOf(0) }
     var displayRotationDegrees by rememberSaveable { mutableFloatStateOf(0f) }
     // Arranque quieto (luces ok) hasta que Filament cargue; luego idle gira sola.
     var mode by remember { mutableStateOf(VitrinaMode.Interactive) }
-    var rotationAnimationSpec by remember {
-        mutableStateOf<AnimationSpec<Float>>(VitrinaConstants.manualRotationAnimationSpec)
+    var rotationAnimationSpec by remember(vitrinaProfileKey) {
+        mutableStateOf(VitrinaConstants.manualRotationAnimationSpecFor(vitrinaProfileKey))
     }
     var isUserActive by remember { mutableStateOf(true) }
     /** Reloj de idle: no es Compose state. Si lo fuera, cada toque/tecla recompone Filament y crashea. */
@@ -145,11 +146,11 @@ fun rememberVitrinaInteractionController(
     fun dragStepsFromOffset(offsetDegrees: Float, velocityPxPerMs: Float = 0f): Int {
         val step = VitrinaConstants.ROTATION_STEP_DEGREES
         val indexSpaceDegrees = -offsetDegrees
-        val threshold = step * VitrinaConstants.DRAG_SNAP_COMMIT_FRACTION
+        val threshold = step * VitrinaConstants.dragSnapCommitFraction(vitrinaProfileKey)
         val maxSteps = (itemCount - 1).coerceAtLeast(1)
 
         val flick =
-            abs(velocityPxPerMs) >= VitrinaConstants.DRAG_FLICK_VELOCITY_PX_PER_MS &&
+            abs(velocityPxPerMs) >= VitrinaConstants.dragFlickVelocityPxPerMs(vitrinaProfileKey) &&
                 abs(indexSpaceDegrees) >= threshold * 0.5f
         if (flick) {
             return (if (indexSpaceDegrees > 0) 1 else -1).coerceIn(-maxSteps, maxSteps)
@@ -237,8 +238,8 @@ fun rememberVitrinaInteractionController(
                 // si usamos AutoRotating el loop de idle pone isUserActive=false
                 // (~1s) → se apagan luces y arranca el giro continuo.
                 rotationAnimationSpec = when (source) {
-                    "drag" -> VitrinaConstants.dragSnapAnimationSpec
-                    else -> VitrinaConstants.manualRotationAnimationSpec
+                    "drag" -> VitrinaConstants.dragSnapAnimationSpecFor(vitrinaProfileKey)
+                    else -> VitrinaConstants.manualRotationAnimationSpecFor(vitrinaProfileKey)
                 }
                 idleClock.lastMs = System.currentTimeMillis()
                 isUserActive = true

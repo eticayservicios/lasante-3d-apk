@@ -33,7 +33,8 @@ object VitrinaConstants {
         "phone_landscape", "phone_portrait" -> DRAG_TRACK_WIDTH_SCREEN_FRACTION
         "tv_32" -> 0.12f
         "tv_42", "tablet_landscape" -> 0.10f
-        "tv_66", "expanded" -> 0.08f
+        // TV66/Hikvision: +20% sensibilidad vs 0.09 previo (menor fracción = menos swipe).
+        "tv_66", "expanded" -> 0.075f
         else -> 0.12f
     }
 
@@ -58,6 +59,41 @@ object VitrinaConstants {
     const val IDLE_FULL_ROTATION_MS = 60_000
 
     private val snappyRotationEasing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
+
+    private fun rotationTween(durationMillis: Int): AnimationSpec<Float> = tween(
+        durationMillis = durationMillis,
+        easing = snappyRotationEasing,
+    )
+
+    /** Duración snap manual (botón / select). TV66 ~20% más rápido que baseline TV. */
+    fun manualRotationDurationMs(profileKey: String): Int = when (profileKey) {
+        "tv_66" -> 115
+        else -> 180
+    }
+
+    /** Duración snap al soltar drag. */
+    fun dragSnapDurationMs(profileKey: String): Int = when (profileKey) {
+        "tv_66" -> 75
+        else -> 120
+    }
+
+    /** Umbral de ángulo al soltar para cambiar de unidad (fracción de 72°). Menor = más sensible. */
+    fun dragSnapCommitFraction(profileKey: String): Float = when (profileKey) {
+        "tv_66" -> 0.083f
+        else -> DRAG_SNAP_COMMIT_FRACTION
+    }
+
+    /** Flick rápido al soltar; menor = más fácil de disparar. */
+    fun dragFlickVelocityPxPerMs(profileKey: String): Float = when (profileKey) {
+        "tv_66" -> 0.85f
+        else -> DRAG_FLICK_VELOCITY_PX_PER_MS
+    }
+
+    fun manualRotationAnimationSpecFor(profileKey: String): AnimationSpec<Float> =
+        rotationTween(manualRotationDurationMs(profileKey))
+
+    fun dragSnapAnimationSpecFor(profileKey: String): AnimationSpec<Float> =
+        rotationTween(dragSnapDurationMs(profileKey))
 
     /**
      * Bbox Filament del GLB mobile (incluye “palo” invisible hasta Y≈-72).
@@ -127,15 +163,9 @@ object VitrinaConstants {
     val LAMP_INTERIOR_EMISSIVE_FACTOR = floatArrayOf(1f, 1f, 1f)
 
     val fadeAnimationSpec: AnimationSpec<Float> = tween(durationMillis = 280)
-    val manualRotationAnimationSpec: AnimationSpec<Float> = tween(
-        durationMillis = 180,
-        easing = snappyRotationEasing,
-    )
+    val manualRotationAnimationSpec: AnimationSpec<Float> = rotationTween(180)
     /** Snap al soltar drag (más corto que rotación manual genérica). */
-    val dragSnapAnimationSpec: AnimationSpec<Float> = tween(
-        durationMillis = 120,
-        easing = snappyRotationEasing,
-    )
+    val dragSnapAnimationSpec: AnimationSpec<Float> = rotationTween(120)
     val autoRotationAnimationSpec: AnimationSpec<Float> = tween(
         durationMillis = 4000,
         easing = LinearEasing,
