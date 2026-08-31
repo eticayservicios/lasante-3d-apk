@@ -11,15 +11,19 @@ import kotlin.math.min
 /**
  * Recorta padding transparente de iconos PNG del CDN (CloudFront).
  * Muchos assets 1080×1080 solo usan ~25–55% del canvas.
+ *
+ * [alphaThreshold] bajo (1–2) incluye anti-alias del arte; 8+ cortaba bordes en Hikvision.
+ * [edgeExpandFraction] expande el recorte tras detectar bounds (margen de seguridad).
  */
 class TrimTransparentTransformation(
-    private val alphaThreshold: Int = 8,
-    private val marginFraction: Float = 0.02f,
+    private val alphaThreshold: Int = 1,
+    private val marginFraction: Float = 0.06f,
+    private val edgeExpandFraction: Float = 0.05f,
     private val makeSquare: Boolean = true,
 ) : Transformation {
 
     override val cacheKey: String =
-        "trim_transparent_a${alphaThreshold}_m${marginFraction}_sq$makeSquare"
+        "trim_v2_a${alphaThreshold}_m${marginFraction}_e${edgeExpandFraction}_sq$makeSquare"
 
     override suspend fun transform(input: Bitmap, size: Size): Bitmap {
         val w = input.width
@@ -48,11 +52,12 @@ class TrimTransparentTransformation(
 
         val contentW = maxX - minX + 1
         val contentH = maxY - minY + 1
-        val margin = max(2, (max(contentW, contentH) * marginFraction).toInt())
-        val left = max(0, minX - margin)
-        val top = max(0, minY - margin)
-        val right = min(w, maxX + 1 + margin)
-        val bottom = min(h, maxY + 1 + margin)
+        val margin = max(4, (max(contentW, contentH) * marginFraction).toInt())
+        val edgeExpand = max(4, (max(contentW, contentH) * edgeExpandFraction).toInt())
+        val left = max(0, minX - margin - edgeExpand)
+        val top = max(0, minY - margin - edgeExpand)
+        val right = min(w, maxX + 1 + margin + edgeExpand)
+        val bottom = min(h, maxY + 1 + margin + edgeExpand)
         val cropped = Bitmap.createBitmap(input, left, top, right - left, bottom - top)
         if (!makeSquare) return cropped
 

@@ -57,6 +57,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import coil.request.CachePolicy
+import coil.size.Precision
+import coil.size.Scale
 import com.lasante.tvkiosk.BuildConfig
 import com.lasante.tvkiosk.data.DisplayTitles
 import com.lasante.tvkiosk.data.Product
@@ -66,7 +69,6 @@ import com.lasante.tvkiosk.ui.components.LaSanteBackground
 import com.lasante.tvkiosk.ui.components.ProductSearchBarMetrics
 import com.lasante.tvkiosk.ui.components.SmartProductSearchBar
 import com.lasante.tvkiosk.ui.components.TreatmentIconAssets
-import com.lasante.tvkiosk.ui.components.TrimTransparentTransformation
 import com.lasante.tvkiosk.ui.layout.CatalogHeaderMetrics
 import com.lasante.tvkiosk.ui.layout.CatalogScreenTitle
 import com.lasante.tvkiosk.ui.layout.DeviceProfileTier
@@ -326,7 +328,7 @@ fun TreatmentsScreen(
                         staticLines = listOf(
                             "verde=card · azul=slot · rojo=image (1.er card)",
                             "large=${header.isLargeCanvas} cols=$columns block=${"%.2f".format(ctCardWidthFraction)}",
-                            "decode=${ui.cardIconSize.value.toInt()}dp · fill=${"%.3f".format(ui.cardIconFill)} · aspect=${"%.2f".format(ui.cardAspectRatio)}",
+                            "trim=OFF · fill=${"%.2f".format(ui.cardIconFill)} · aspect=${"%.2f".format(ui.cardAspectRatio)} · image=slot×fill",
                             "pad card ${ui.cardPaddingH.value}/${ui.cardPaddingTop.value} · icon ${ui.cardIconPaddingH.value}/${ui.cardIconPaddingV.value}",
                             "dpi=${(iconDebugDensity.density * 160f).toInt()} · ${layoutForceOverlayLabel()}",
                         ),
@@ -426,9 +428,8 @@ private fun TherapeuticClassCard(
     onIconDebugMeasure: ((CatalogIconDebugSizes) -> Unit)? = null,
     onClick: () -> Unit,
 ) {
-    val iconModel = TreatmentIconAssets.resolve(iconUrl = treatment.media.icono)
     val context = LocalContext.current
-    val iconSizePx = with(LocalDensity.current) { iconSize.roundToPx() }
+    val density = LocalDensity.current
     val labelHeight = therapeuticClassLabelHeight(labelLineHeight)
     val debugEnabled = BuildConfig.DEBUG && showIconDebug
     var debugSizes by remember(debugEnabled) { mutableStateOf(CatalogIconDebugSizes()) }
@@ -437,15 +438,7 @@ private fun TherapeuticClassCard(
         debugSizes = debugSizes.update()
         onIconDebugMeasure?.invoke(debugSizes)
     }
-    val imageRequest = remember(iconModel, iconSizePx) {
-        if (iconModel.isNullOrBlank()) null
-        else ImageRequest.Builder(context)
-            .data(iconModel)
-            .size(iconSizePx)
-            .transformations(TrimTransparentTransformation())
-            .crossfade(true)
-            .build()
-    }
+    val iconModel = TreatmentIconAssets.resolve(iconUrl = treatment.media.icono)
 
     val cardShape = RoundedCornerShape(18.dp)
     Box(
@@ -487,7 +480,7 @@ private fun TherapeuticClassCard(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Box(
+                BoxWithConstraints(
                     modifier = Modifier
                         .weight(1f, fill = true)
                         .fillMaxWidth()
@@ -497,16 +490,40 @@ private fun TherapeuticClassCard(
                         },
                     contentAlignment = Alignment.Center,
                 ) {
+                    // Sin TrimTransparentTransformation: el recorte del PNG era la causa del
+                    // icono “cortado con aire debajo” en Hikvision. Fit escala el 1080² entero.
+                    val iconW = maxWidth * iconFill
+                    val iconH = maxHeight * iconFill
+                    val decodeMaxPx = remember(iconW, iconH, density) {
+                        with(density) {
+                            (maxOf(iconW, iconH).toPx() * 2.5f).roundToInt().coerceIn(192, 768)
+                        }
+                    }
+                    val imageRequest = remember(iconModel, decodeMaxPx) {
+                        if (iconModel.isNullOrBlank()) null
+                        else ImageRequest.Builder(context)
+                            .data(iconModel)
+                            .size(decodeMaxPx)
+                            .scale(Scale.FIT)
+                            .precision(Precision.INEXACT)
+                            .allowHardware(false)
+                            .memoryCacheKey("$iconModel#ct-notrim-v1")
+                            .diskCacheKey("$iconModel#ct-notrim-v1")
+                            .diskCachePolicy(CachePolicy.ENABLED)
+                            .crossfade(false)
+                            .build()
+                    }
                     if (imageRequest != null) {
                         AsyncImage(
                             model = imageRequest,
                             contentDescription = treatment.name,
                             modifier = Modifier
-                                .fillMaxSize(iconFill)
+                                .size(width = iconW, height = iconH)
                                 .catalogIconDebugBorder(debugEnabled, CatalogIconDebugColors.Image) {
                                     publishDebugSizes { copy(image = it) }
                                 },
                             contentScale = ContentScale.Fit,
+                            alignment = Alignment.Center,
                         )
                     }
                 }

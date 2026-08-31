@@ -61,6 +61,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import coil.request.CachePolicy
+import coil.size.Precision
+import coil.size.Scale
 import com.lasante.tvkiosk.BuildConfig
 import com.lasante.tvkiosk.data.CatalogRepository
 import com.lasante.tvkiosk.data.DisplayTitles
@@ -71,7 +74,6 @@ import com.lasante.tvkiosk.ui.components.LaSanteScreenTitle
 import com.lasante.tvkiosk.ui.components.ProductosEstrellasBadge
 import com.lasante.tvkiosk.ui.components.RealGreenScrollBar
 import com.lasante.tvkiosk.ui.components.TreatmentIconAssets
-import com.lasante.tvkiosk.ui.components.TrimTransparentTransformation
 import com.lasante.tvkiosk.ui.layout.CatalogHeaderMetrics
 import com.lasante.tvkiosk.ui.layout.CatalogIconDebugColors
 import com.lasante.tvkiosk.ui.layout.CatalogIconDebugPanel
@@ -454,7 +456,7 @@ fun ProductsScreen(
                 isTv66 -> 0.792f
                 else -> 0.765f
             }
-            val badgeIconDp = catalog.ui.badgeIconSize * 0.95f
+            val badgeIconDp = catalog.ui.badgeIconSize
             val badgeHeightDp = catalog.ui.badgeHeight
 
             Box(modifier = Modifier.fillMaxSize()) {
@@ -995,7 +997,7 @@ fun ProductsScreen(
                         staticLines = listOf(
                             "verde=cell · azul=slot · rojo=image · morado=badge · naranja=badgeIcon",
                             "cols=$columns block=${"%.2f".format(header.productBlockWidthFraction)} · imgFill=${"%.3f".format(productImageFill)}",
-                            "badge ${badgeHeightDp.value.toInt()}dp · icon ${badgeIconDp.value.toInt()}dp · offsetY=-2dp",
+                            "badge ${badgeHeightDp.value.toInt()}dp · icon ${badgeIconDp.value.toInt()}dp · trim=OFF",
                             "dpi=${(iconDebugDensity.density * 160f).toInt()} · ${layoutForceOverlayLabel()}",
                         ),
                         measuredLines = buildList {
@@ -1287,7 +1289,7 @@ private fun TreatmentIconBadge(
     val badgeHeight = metrics.badgeHeight
     val badgeWidth =
         (badgeHeight * TreatmentUiMetrics.BADGE_WIDTH_TO_HEIGHT).coerceAtLeast(24.dp)
-    val iconSize = metrics.badgeIconSize * 0.95f
+    val iconSize = metrics.badgeIconSize
     val debugEnabled = BuildConfig.DEBUG && showIconDebug
     var debugSizes by remember(debugEnabled) { mutableStateOf(CatalogIconDebugSizes()) }
     fun publishDebug(update: CatalogIconDebugSizes.() -> CatalogIconDebugSizes) {
@@ -1295,7 +1297,6 @@ private fun TreatmentIconBadge(
         debugSizes = debugSizes.update()
         onIconDebugMeasure?.invoke(debugSizes)
     }
-    // Badge PNG es pequeño; el icono CT del CDN es ~1080² — no usar ORIGINAL (OOM + Trim).
     val badgeDecodePx = with(density) {
         maxOf(badgeWidth, badgeHeight).times(2f).roundToPx().coerceIn(64, 256)
     }
@@ -1307,7 +1308,21 @@ private fun TreatmentIconBadge(
             .build()
     }
     val iconDecodePx = with(density) {
-        (iconSize * 3f).roundToPx().coerceIn(96, 256)
+        (iconSize * 2.5f).roundToPx().coerceIn(96, 384)
+    }
+    val iconRequest = remember(iconModel, iconDecodePx) {
+        if (iconModel.isNullOrBlank()) null
+        else ImageRequest.Builder(context)
+            .data(iconModel)
+            .size(iconDecodePx)
+            .scale(Scale.FIT)
+            .precision(Precision.INEXACT)
+            .allowHardware(false)
+            .memoryCacheKey("$iconModel#badge-notrim-v1")
+            .diskCacheKey("$iconModel#badge-notrim-v1")
+            .diskCachePolicy(CachePolicy.ENABLED)
+            .crossfade(false)
+            .build()
     }
 
     Box(
@@ -1325,24 +1340,17 @@ private fun TreatmentIconBadge(
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Fit,
         )
-        if (!iconModel.isNullOrBlank()) {
+        if (iconRequest != null) {
             AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(iconModel)
-                    .size(iconDecodePx)
-                    .transformations(TrimTransparentTransformation())
-                    .crossfade(false)
-                    .build(),
+                model = iconRequest,
                 contentDescription = null,
-                // Subir 2.dp: el comentario histórico decía −2 pero el código
-                // empujaba +2 y en Hikvision el icono se cortaba abajo del badge.
                 modifier = Modifier
                     .size(iconSize)
-                    .offset(y = (-2).dp)
                     .catalogIconDebugBorder(debugEnabled, CatalogIconDebugColors.BadgeIcon) {
                         publishDebug { copy(badgeIcon = it) }
                     },
                 contentScale = ContentScale.Fit,
+                alignment = Alignment.Center,
             )
         }
     }

@@ -95,20 +95,20 @@ object TreatmentUiMetrics {
         // Fondo +4 espacios; icono más chico: el PNG del badge tiene letterbox y
         // en Hikvision el lift lo sube fuera de pantalla (se veía cortado abajo).
         badgeHeight = 104.dp + Tv42Spacing.spaces(4),
-        badgeIconSize = 32.dp - Tv42Spacing.spaces(2),
+        // Productos badge CT (naranja): 51dp (+30% vs 39dp) · sin trim.
+        badgeIconSize = 51.dp,
         cardIconSize = 420.dp * 0.95f,
         navButtonSize = 52.dp,
         cardLabelFontSize = scaledSp(18.sp),
         cardLabelLineHeight = scaledSp(21.sp),
-        // Fill conservador + más padding: canvas real Hikvision suele ser más
-        // estrecho en dp que el force 1280×720 de tablet.
-        cardIconFill = 0.70f * 0.70f * 0.90f,
+        // TV66: usar todo el slot; el PNG 1080² ya trae aire — sin trim (evita cortar el arte).
+        cardIconFill = 1f,
         cardAspectRatio = 1.08f,
         cardPaddingH = 4.dp,
-        cardPaddingTop = 4.dp,
-        cardPaddingBottom = 3.dp,
-        cardIconPaddingH = 6.dp,
-        cardIconPaddingV = 4.dp,
+        cardPaddingTop = 6.dp,
+        cardPaddingBottom = 4.dp,
+        cardIconPaddingH = 4.dp,
+        cardIconPaddingV = 2.dp,
     )
 
     fun forProfile(

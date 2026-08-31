@@ -1043,8 +1043,16 @@ data class IntroLayoutMetrics(
             "phone_landscape", "phone_portrait" -> 60_000
             "tv_32" -> 85_000
             "tv_42", "tablet_landscape" -> 95_000
-            "tv_66" -> 110_000
+            // TV66: ~20% más rápido que 100s (sigue más lento que phone).
+            "tv_66" -> 83_000
             else -> 75_000
+        }
+
+    /** Grados de tolerancia para encender cintillo/lámparas tras el snap. */
+    val lampSettleThresholdDegrees: Float
+        get() = when (vitrinaProfileKey) {
+            "tv_66" -> 1.8f
+            else -> 2.5f
         }
 
     /** Desplazamiento vertical del botón girar hacia el estante medio (+ = abajo). */

@@ -55,7 +55,7 @@ fun IntroScreen(
         configuration.screenWidthDp >= 640 &&
         configuration.screenHeightDp >= 400
 
-    val dragTrackWidthScreenFraction = remember(
+    val vitrinaLayoutProfile = remember(
         configuration.screenWidthDp,
         configuration.screenHeightDp,
         widthClass,
@@ -82,8 +82,9 @@ fun IntroScreen(
             widthClass = widthClass,
             profile = profile,
             preferTv66 = preferTv66,
-        ).dragTrackWidthScreenFraction
+        )
     }
+    val dragTrackWidthScreenFraction = vitrinaLayoutProfile.dragTrackWidthScreenFraction
 
     // Precarga GIFs de Intro una vez: al volver ya están en cache Coil.
     LaunchedEffect(Unit) {
@@ -164,6 +165,7 @@ fun IntroScreen(
         autoRotateAfterMs = vitrinaConfig.autoRotateAfterMs,
         screenSaverAfterMs = vitrinaConfig.screenSaverAfterMs,
         dragTrackWidthScreenFraction = dragTrackWidthScreenFraction,
+        vitrinaProfileKey = vitrinaLayoutProfile.vitrinaProfileKey,
     )
 
     val shouldPlayScreenSaver = contentActive &&
