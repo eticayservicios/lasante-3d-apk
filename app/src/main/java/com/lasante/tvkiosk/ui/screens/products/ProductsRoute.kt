@@ -105,7 +105,7 @@ fun ProductsRoute(
                     UiState.Success(
                         ProductsData(
                             treatmentName = when {
-                                isViewAll -> "Ver todo"
+                                isViewAll -> "Todos los Productos"
                                 else -> DisplayTitles.resolve(
                                     treatment?.name,
                                     treatmentId.substringAfter("_").ifBlank { treatmentId },

@@ -46,6 +46,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
@@ -119,12 +120,6 @@ private enum class ProductFilter {
     BUSINESS_UNIT,
     THERAPEUTIC_CLASS,
     STAR_PRODUCTS,
-}
-
-private fun ProductFilter.label(): String = when (this) {
-    ProductFilter.BUSINESS_UNIT -> "Unidad de negocio"
-    ProductFilter.THERAPEUTIC_CLASS -> "Clase terapéutica"
-    ProductFilter.STAR_PRODUCTS -> "Productos estrellas"
 }
 
 /**
@@ -323,11 +318,7 @@ fun ProductsScreen(
                     starProducts = starProducts,
                     isStarProductsMode = isStarProductsMode,
                 )
-                val searchable = if (
-                    !isStarProductsMode &&
-                    !isViewAllTreatments &&
-                    productFilter == ProductFilter.THERAPEUTIC_CLASS
-                ) {
+                val searchable = if (!isStarProductsMode) {
                     applyTherapeuticClassCatalogFilter(scopeProducts, starProductIds, ctCatalogFilter)
                 } else {
                     scopeProducts
@@ -412,11 +403,7 @@ fun ProductsScreen(
                     scopeLoading = scopeLoading,
                     emptyWhileLoading = true,
                 )
-                val ctScopedProducts = if (
-                    !isStarProductsMode &&
-                    !isViewAllTreatments &&
-                    productFilter == ProductFilter.THERAPEUTIC_CLASS
-                ) {
+                val ctScopedProducts = if (!isStarProductsMode) {
                     applyTherapeuticClassCatalogFilter(scopeProducts, starProductIds, ctCatalogFilter)
                 } else {
                     scopeProducts
@@ -505,15 +492,58 @@ fun ProductsScreen(
                                         .fillMaxWidth()
                                         .padding(horizontal = contentPadding)
                                         .padding(top = header.controlsTopGap),
-                                    verticalAlignment = Alignment.CenterVertically,
+                                    verticalAlignment = Alignment.Top,
                                 ) {
-                                    CatalogScreenTitle(
-                                        text = DisplayTitles.resolve(treatmentName),
-                                        nav = nav,
-                                        titleStartGap = header.titleStartGap,
-                                        titleTopGap = 0.dp,
-                                    )
-                                    Spacer(modifier = Modifier.weight(1f))
+                                    if (isViewAllTreatments) {
+                                        val density = LocalDensity.current
+                                        var titleWidth by remember { mutableStateOf(0.dp) }
+                                        Column(
+                                            modifier = Modifier
+                                                .padding(
+                                                    start = header.titleStartGap,
+                                                    end = 12.dp,
+                                                ),
+                                        ) {
+                                            CatalogScreenTitle(
+                                                text = "Todos los Productos",
+                                                nav = nav,
+                                                titleStartGap = 0.dp,
+                                                titleTopGap = 0.dp,
+                                                modifier = Modifier.onSizeChanged { size ->
+                                                    titleWidth = with(density) { size.width.toDp() }
+                                                },
+                                            )
+                                            Text(
+                                                text = "Aquí encontrarás todos los productos correspondiente a todas nuestras unidades de negocios y clases terapeuticas.",
+                                                color = LaSanteTextSecondary,
+                                                style = MaterialTheme.typography.bodySmall.copy(
+                                                    fontSize = (nav.titleFontSize.value * 0.42f)
+                                                        .coerceIn(10f, 14f).sp,
+                                                    fontWeight = FontWeight.Normal,
+                                                    lineHeight = (nav.titleFontSize.value * 0.52f)
+                                                        .coerceIn(12f, 17f).sp,
+                                                ),
+                                                modifier = Modifier
+                                                    .padding(top = 6.dp)
+                                                    .then(
+                                                        if (titleWidth > 0.dp) {
+                                                            Modifier.width(titleWidth * 1.2f)
+                                                        } else {
+                                                            Modifier.widthIn(max = canvasWidth * 0.28f * 1.2f)
+                                                        },
+                                                    ),
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    } else {
+                                        CatalogScreenTitle(
+                                            text = DisplayTitles.resolve(treatmentName),
+                                            nav = nav,
+                                            titleStartGap = header.titleStartGap,
+                                            titleTopGap = 0.dp,
+                                        )
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
                                     val filterContext = LocalContext.current
                                     val filterSize = header.filterIconSize
                                     val filterModel = remember(filterContext) {
@@ -543,106 +573,111 @@ fun ProductsScreen(
                                         )
                                     }
                                     Spacer(modifier = Modifier.width(header.filterToSearchGap))
-                                    Box(
-                                        modifier = Modifier
-                                            .width(header.searchBarWidth)
-                                            .height(header.searchBarHeight)
-                                            .shadow(elevation = 2.dp, shape = RoundedCornerShape(50.dp))
-                                            .clip(RoundedCornerShape(50.dp))
-                                            .background(
-                                                Brush.horizontalGradient(
-                                                    colors = listOf(Color(0xFFF8F8F8), Color(0xFFD0D0D0)),
-                                                ),
-                                            )
-                                            .padding(horizontal = if (isLandscape) 10.dp else 8.dp),
-                                        contentAlignment = Alignment.CenterStart,
+                                    Column(
+                                        horizontalAlignment = Alignment.End,
                                     ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        ) {
-                                            AsyncImage(
-                                                model = "file:///android_asset/vitrina/ui/search_icon.png",
-                                                contentDescription = null,
-                                                modifier = Modifier.size(header.searchIconSize),
-                                                contentScale = ContentScale.Fit,
-                                            )
-                                            BasicTextField(
-                                                value = searchQuery,
-                                                onValueChange = { searchQuery = it },
-                                                textStyle = TextStyle(
-                                                    color = LaSanteText,
-                                                    fontSize = header.searchFontSize,
-                                                ),
-                                                cursorBrush = SolidColor(LaSanteGreen),
-                                                modifier = Modifier.weight(1f),
-                                                singleLine = true,
-                                                decorationBox = { innerTextField ->
-                                                    if (searchQuery.isEmpty()) {
-                                                        Text(
-                                                            "Buscar Producto",
-                                                            color = LaSanteTextSecondary.copy(alpha = 0.40f),
-                                                            fontSize = header.searchFontSize,
-                                                        )
-                                                    }
-                                                    innerTextField()
-                                                },
-                                            )
-                                            if (isSearching) {
-                                                CircularProgressIndicator(
-                                                    modifier = Modifier.size(16.dp),
-                                                    strokeWidth = 2.dp,
-                                                    color = LaSanteGreen,
+                                        Box(
+                                            modifier = Modifier
+                                                .width(header.searchBarWidth)
+                                                .height(header.searchBarHeight)
+                                                .shadow(elevation = 2.dp, shape = RoundedCornerShape(50.dp))
+                                                .clip(RoundedCornerShape(50.dp))
+                                                .background(
+                                                    Brush.horizontalGradient(
+                                                        colors = listOf(Color(0xFFF8F8F8), Color(0xFFD0D0D0)),
+                                                    ),
                                                 )
+                                                .padding(horizontal = if (isLandscape) 10.dp else 8.dp),
+                                            contentAlignment = Alignment.CenterStart,
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            ) {
+                                                AsyncImage(
+                                                    model = "file:///android_asset/vitrina/ui/search_icon.png",
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(header.searchIconSize),
+                                                    contentScale = ContentScale.Fit,
+                                                )
+                                                BasicTextField(
+                                                    value = searchQuery,
+                                                    onValueChange = { searchQuery = it },
+                                                    textStyle = TextStyle(
+                                                        color = LaSanteText,
+                                                        fontSize = header.searchFontSize,
+                                                    ),
+                                                    cursorBrush = SolidColor(LaSanteGreen),
+                                                    modifier = Modifier.weight(1f),
+                                                    singleLine = true,
+                                                    decorationBox = { innerTextField ->
+                                                        if (searchQuery.isEmpty()) {
+                                                            Text(
+                                                                "Buscar Producto",
+                                                                color = LaSanteTextSecondary.copy(alpha = 0.40f),
+                                                                fontSize = header.searchFontSize,
+                                                            )
+                                                        }
+                                                        innerTextField()
+                                                    },
+                                                )
+                                                if (isSearching) {
+                                                    CircularProgressIndicator(
+                                                        modifier = Modifier.size(16.dp),
+                                                        strokeWidth = 2.dp,
+                                                        color = LaSanteGreen,
+                                                    )
+                                                }
                                             }
                                         }
+                                        // Pegado bajo el buscador (igual CT); no debajo del subtítulo.
+                                        ProductsSortButton(
+                                            sortOrder = sortOrder,
+                                            onSortClick = {
+                                                sortOrder = when (sortOrder) {
+                                                    SortOrder.NONE -> SortOrder.AZ
+                                                    SortOrder.AZ -> SortOrder.ZA
+                                                    SortOrder.ZA -> SortOrder.NONE
+                                                }
+                                            },
+                                            isLandscape = isLandscape,
+                                            isTv66 = isTv66,
+                                            isTv42 = isTv42,
+                                            isTv42LargeUp = isTv42LargeUp,
+                                            sortScale = header.sortScale,
+                                            modifier = Modifier.padding(top = header.sortTopGap),
+                                        )
                                     }
                                     Spacer(modifier = Modifier.width(header.searchToNavGap))
                                     Row(
                                         horizontalArrangement = Arrangement.spacedBy(header.navPairSpacing),
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
-                                        GreenNavButton(
-                                            assetPath = "svg/ui/Before.svg",
-                                            contentDescription = "Volver",
-                                            onClick = onBack,
-                                            size = buttonSize,
-                                        )
-                                        GreenNavButton(
-                                            assetPath = "svg/ui/Home.svg",
-                                            contentDescription = "Inicio",
-                                            onClick = onHome,
-                                            size = buttonSize,
-                                            playSound = true,
-                                        )
+                                        if (isViewAllTreatments) {
+                                            GreenNavButton(
+                                                assetPath = "svg/ui/Before.svg",
+                                                contentDescription = "Volver",
+                                                onClick = onBack,
+                                                size = buttonSize,
+                                            )
+                                            // Sin Home: spacer mantiene Back en la misma X del par.
+                                            Spacer(modifier = Modifier.size(buttonSize))
+                                        } else {
+                                            GreenNavButton(
+                                                assetPath = "svg/ui/Before.svg",
+                                                contentDescription = "Volver",
+                                                onClick = onBack,
+                                                size = buttonSize,
+                                            )
+                                            GreenNavButton(
+                                                assetPath = "svg/ui/Home.svg",
+                                                contentDescription = "Inicio",
+                                                onClick = onHome,
+                                                size = buttonSize,
+                                                playSound = true,
+                                            )
+                                        }
                                     }
-                                }
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = contentPadding),
-                                    horizontalArrangement = Arrangement.End,
-                                ) {
-                                    // Ordenar bajo el buscador: end = nav + gaps + search width.
-                                    ProductsSortButton(
-                                        sortOrder = sortOrder,
-                                        onSortClick = {
-                                            sortOrder = when (sortOrder) {
-                                                SortOrder.NONE -> SortOrder.AZ
-                                                SortOrder.AZ -> SortOrder.ZA
-                                                SortOrder.ZA -> SortOrder.NONE
-                                            }
-                                        },
-                                        isLandscape = isLandscape,
-                                        isTv66 = isTv66,
-                                        isTv42 = isTv42,
-                                        isTv42LargeUp = isTv42LargeUp,
-                                        sortScale = header.sortScale,
-                                        modifier = Modifier.padding(
-                                            top = header.sortTopGap,
-                                            end = buttonSize * 2f + header.navPairSpacing + header.searchToNavGap,
-                                        ),
-                                    )
                                 }
                             }
                         } else {
@@ -786,19 +821,29 @@ fun ProductsScreen(
                                     horizontalArrangement = Arrangement.spacedBy(navSpacing),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    GreenNavButton(
-                                        assetPath = "svg/ui/Before.svg",
-                                        contentDescription = "Volver",
-                                        onClick = onBack,
-                                        size = buttonSize,
-                                    )
-                                    GreenNavButton(
-                                        assetPath = "svg/ui/Home.svg",
-                                        contentDescription = "Inicio",
-                                        onClick = onHome,
-                                        size = buttonSize,
-                                        playSound = true,
-                                    )
+                                    if (isViewAllTreatments) {
+                                        GreenNavButton(
+                                            assetPath = "svg/ui/Before.svg",
+                                            contentDescription = "Volver",
+                                            onClick = onBack,
+                                            size = buttonSize,
+                                        )
+                                        Spacer(modifier = Modifier.size(buttonSize))
+                                    } else {
+                                        GreenNavButton(
+                                            assetPath = "svg/ui/Before.svg",
+                                            contentDescription = "Volver",
+                                            onClick = onBack,
+                                            size = buttonSize,
+                                        )
+                                        GreenNavButton(
+                                            assetPath = "svg/ui/Home.svg",
+                                            contentDescription = "Inicio",
+                                            onClick = onHome,
+                                            size = buttonSize,
+                                            playSound = true,
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -874,7 +919,7 @@ fun ProductsScreen(
                                         isTv66 = isTv66,
                                         isTv42LargeUp = isTv42LargeUp,
                                         blockWidthFraction = header.productBlockWidthFraction,
-                                        showIconDebug = BuildConfig.DEBUG && index == 0,
+                                        showIconDebug = false,
                                         onIconDebugMeasure = if (BuildConfig.DEBUG && index == 0) {
                                             { sizes ->
                                                 iconDebugSizes = iconDebugSizes.copy(
@@ -972,11 +1017,11 @@ fun ProductsScreen(
                         height = catalog.ui.badgeHeight.coerceAtMost(header.searchBarHeight * 1.35f),
                         modifier = topBadgeModifier,
                     )
-                } else {
+                } else if (!isViewAllTreatments) {
                     TreatmentIconBadge(
                         iconUrl = treatmentIconUrl,
                         metrics = catalog.ui,
-                        showIconDebug = BuildConfig.DEBUG,
+                        showIconDebug = false,
                         onIconDebugMeasure = if (BuildConfig.DEBUG) {
                             { sizes ->
                                 iconDebugSizes = iconDebugSizes.copy(
@@ -991,89 +1036,30 @@ fun ProductsScreen(
                     )
                 }
 
-                if (BuildConfig.DEBUG) {
-                    CatalogIconDebugPanel(
-                        title = "Productos · ${canvasWidth.value.toInt()}×${canvasHeight.value.toInt()} · ${profile.tier} · tv66=$isTv66",
-                        staticLines = listOf(
-                            "verde=cell · azul=slot · rojo=image · morado=badge · naranja=badgeIcon",
-                            "cols=$columns block=${"%.2f".format(header.productBlockWidthFraction)} · imgFill=${"%.3f".format(productImageFill)}",
-                            "badge ${badgeHeightDp.value.toInt()}dp · icon ${badgeIconDp.value.toInt()}dp · trim=OFF",
-                            "dpi=${(iconDebugDensity.density * 160f).toInt()} · ${layoutForceOverlayLabel()}",
-                        ),
-                        measuredLines = buildList {
-                            if (iconDebugSizes.badge != IntSize.Zero) {
-                                add("badge ${iconDebugSizes.badge.toDebugLabel(iconDebugDensity)}")
-                            }
-                            if (iconDebugSizes.badgeIcon != IntSize.Zero) {
-                                add("badgeIcon ${iconDebugSizes.badgeIcon.toDebugLabel(iconDebugDensity)}")
-                            }
-                            if (iconDebugSizes.card != IntSize.Zero) {
-                                add("cell ${iconDebugSizes.card.toDebugLabel(iconDebugDensity)}")
-                            }
-                            if (iconDebugSizes.image != IntSize.Zero) {
-                                add("image ${iconDebugSizes.image.toDebugLabel(iconDebugDensity)}")
-                            }
-                        },
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .zIndex(100f)
-                            .padding(top = 8.dp, end = 8.dp),
-                    )
-                }
             }
 
             if (showFilterSheet) {
-                val useCtCatalogSheet =
-                    !isStarProductsMode &&
-                        !isViewAllTreatments &&
-                        productFilter == ProductFilter.THERAPEUTIC_CLASS
-                if (useCtCatalogSheet) {
-                    TherapeuticClassFilterSheet(
-                        initialFilter = ctCatalogFilter,
-                        profile = profile,
-                        onApply = { applied ->
-                            showFilterSheet = false
-                            coroutineScope.launch {
-                                yield()
-                                delay(48)
-                                ctCatalogFilter = applied
-                            }
-                        },
-                        onClear = {
-                            // Limpia sin cerrar el modal; el draft se resetea en el sheet.
-                            coroutineScope.launch {
-                                yield()
-                                delay(48)
-                                ctCatalogFilter = TherapeuticClassCatalogFilter()
-                            }
-                        },
-                        onDismiss = { showFilterSheet = false },
-                    )
-                } else {
-                    FilterBottomSheet(
-                        selectedFilter = productFilter,
-                        onFilterSelected = { selected ->
-                            showFilterSheet = false
-                            coroutineScope.launch {
-                                yield()
-                                delay(48)
-                                productFilter = selected
-                            }
-                        },
-                        onClearFilters = {
-                            showFilterSheet = false
-                            coroutineScope.launch {
-                                yield()
-                                delay(48)
-                                productFilter = defaultFilter
-                                ctCatalogFilter = TherapeuticClassCatalogFilter()
-                                searchQuery = ""
-                                sortOrder = SortOrder.NONE
-                            }
-                        },
-                        onDismiss = { showFilterSheet = false },
-                    )
-                }
+                // Mismo modal CT en Productos de clase y en Ver todos (formas + estrellas).
+                TherapeuticClassFilterSheet(
+                    initialFilter = ctCatalogFilter,
+                    profile = profile,
+                    onApply = { applied ->
+                        showFilterSheet = false
+                        coroutineScope.launch {
+                            yield()
+                            delay(48)
+                            ctCatalogFilter = applied
+                        }
+                    },
+                    onClear = {
+                        coroutineScope.launch {
+                            yield()
+                            delay(48)
+                            ctCatalogFilter = TherapeuticClassCatalogFilter()
+                        }
+                    },
+                    onDismiss = { showFilterSheet = false },
+                )
             }
         }
     }
@@ -2019,93 +2005,6 @@ private fun FilterSquareCheckbox(
                 modifier = Modifier.size(iconSize),
             )
         }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun FilterBottomSheet(
-    selectedFilter: ProductFilter,
-    onFilterSelected: (ProductFilter) -> Unit,
-    onClearFilters: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    // skipPartiallyExpanded: abre expandido para ver Limpiar/Cerrar sin deslizar.
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = Color.White,
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .padding(top = 4.dp, bottom = 28.dp),
-        ) {
-            Text("Filtros", style = MaterialTheme.typography.titleMedium, color = LaSanteGreen)
-            Spacer(modifier = Modifier.height(12.dp))
-
-            ProductFilter.entries.forEach { option ->
-                FilterOptionRow(
-                    text = option.label(),
-                    selected = selectedFilter == option,
-                    onClick = { onFilterSelected(option) },
-                )
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-            OutlinedButton(
-                onClick = onClearFilters,
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(50.dp),
-                border = BorderStroke(1.dp, LaSanteGreen)
-            ) {
-                Text("Limpiar filtros", color = LaSanteGreen, fontWeight = FontWeight.Bold)
-            }
-            Spacer(modifier = Modifier.height(10.dp))
-            Button(
-                onClick = onDismiss,
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = LaSanteGreen),
-                shape = RoundedCornerShape(50.dp)
-            ) {
-                Text("Cerrar", fontWeight = FontWeight.Bold)
-            }
-        }
-    }
-}
-
-@Composable
-private fun FilterOptionRow(
-    text: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .clickable { onClick() }
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        RadioButton(
-            selected = selected,
-            onClick = onClick,
-            colors = RadioButtonDefaults.colors(selectedColor = LaSanteGreen),
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = text,
-            color = LaSanteText,
-            fontSize = 17.sp,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-            softWrap = true,
-            maxLines = 2,
-            overflow = TextOverflow.Clip,
-            modifier = Modifier.weight(1f),
-        )
     }
 }
 

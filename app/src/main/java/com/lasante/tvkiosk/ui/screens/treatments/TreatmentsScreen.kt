@@ -271,7 +271,7 @@ fun TreatmentsScreen(
                                         cardPaddingBottom = ui.cardPaddingBottom,
                                         cardIconPaddingH = ui.cardIconPaddingH,
                                         cardIconPaddingV = ui.cardIconPaddingV,
-                                        showIconDebug = BuildConfig.DEBUG && index == 0,
+                                        showIconDebug = false,
                                         onIconDebugMeasure = if (BuildConfig.DEBUG && index == 0) {
                                             { iconDebugSizes = it }
                                         } else {
@@ -322,33 +322,6 @@ fun TreatmentsScreen(
                     }
                 }
 
-                if (BuildConfig.DEBUG) {
-                    CatalogIconDebugPanel(
-                        title = "CT · ${canvasW.value.toInt()}×${canvasH.value.toInt()} · ${profile.tier} · tv66=${header.isTv66}",
-                        staticLines = listOf(
-                            "verde=card · azul=slot · rojo=image (1.er card)",
-                            "large=${header.isLargeCanvas} cols=$columns block=${"%.2f".format(ctCardWidthFraction)}",
-                            "trim=OFF · fill=${"%.2f".format(ui.cardIconFill)} · aspect=${"%.2f".format(ui.cardAspectRatio)} · image=slot×fill",
-                            "pad card ${ui.cardPaddingH.value}/${ui.cardPaddingTop.value} · icon ${ui.cardIconPaddingH.value}/${ui.cardIconPaddingV.value}",
-                            "dpi=${(iconDebugDensity.density * 160f).toInt()} · ${layoutForceOverlayLabel()}",
-                        ),
-                        measuredLines = buildList {
-                            if (iconDebugSizes.card != IntSize.Zero) {
-                                add("card ${iconDebugSizes.card.toDebugLabel(iconDebugDensity)}")
-                            }
-                            if (iconDebugSizes.slot != IntSize.Zero) {
-                                add("slot ${iconDebugSizes.slot.toDebugLabel(iconDebugDensity)}")
-                            }
-                            if (iconDebugSizes.image != IntSize.Zero) {
-                                add("image ${iconDebugSizes.image.toDebugLabel(iconDebugDensity)}")
-                            }
-                        },
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .zIndex(100f)
-                            .padding(top = 8.dp, end = 8.dp),
-                    )
-                }
             }
         }
     }

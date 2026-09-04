@@ -14,6 +14,7 @@ object VitrinaUiImages {
     const val TOUCH_GIF = "file:///android_asset/vitrina/ui/touch.gif"
     const val BADGE_HISTORIA = "file:///android_asset/vitrina/ui/badge_historia.png"
     const val FILTER_BUTTON = "file:///android_asset/vitrina/ui/filter_button.png"
+    const val VER_TODOS_BUTTON = "file:///android_asset/vitrina/ui/ver_todos_button.png"
 
     fun request(
         context: Context,

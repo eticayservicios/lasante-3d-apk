@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,6 +17,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -323,13 +326,14 @@ private fun ProductPresentationModalContent(
                             modifier = Modifier
                                 .weight(layout.modelWeight)
                                 .fillMaxHeight()
-                                .clipToBounds(),
+                                .zIndex(2f),
                             scaleToUnits = layout.modelScaleToUnits,
                         )
                         Box(
                             modifier = Modifier
                                 .weight(layout.descriptionWeight)
                                 .fillMaxHeight(layout.descriptionHeightFraction)
+                                .zIndex(1f)
                                 .offset(
                                     x = layout.descriptionOffsetX,
                                     y = layout.descriptionOffsetY,
@@ -393,6 +397,12 @@ private fun Product.resolvePresentationImage(): String? {
         ?: media.modelo3d.vistaPrevia?.trim()?.takeIf { it.isNotBlank() }
 }
 
+/**
+ * SceneView más grande que el slot (margen para zoom/giro), pero la escala inicial
+ * se compensa para que al abrir se vea del mismo tamaño que el slot original.
+ */
+private const val MODEL_STAGE_OVERFLOW = 1.55f
+
 @Composable
 private fun ProductModelStage(
     modelUrl: String?,
@@ -413,16 +423,20 @@ private fun ProductModelStage(
         renderModel = true
     }
 
-    Box(
+    BoxWithConstraints(
         modifier = modifier,
         contentAlignment = Alignment.Center,
     ) {
         when {
             hasGlb && renderModel -> {
                 ModelViewerStub(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .requiredWidth(maxWidth * MODEL_STAGE_OVERFLOW)
+                        .requiredHeight(maxHeight * MODEL_STAGE_OVERFLOW)
+                        .zIndex(2f),
                     modelUrl = modelUrl,
-                    scaleToUnits = scaleToUnits,
+                    // Compensa el SceneView oversized: al abrir ≈ tamaño del slot; al zoom puede sobresalir.
+                    scaleToUnits = scaleToUnits / MODEL_STAGE_OVERFLOW,
                 )
             }
             hasGlb -> {
@@ -447,7 +461,8 @@ private fun ProductModelStage(
                 text = "ARRASTRA PARA GIRAR EL PRODUCTO",
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 8.dp),
+                    .padding(bottom = 8.dp)
+                    .zIndex(3f),
                 style = MaterialTheme.typography.labelSmall,
                 color = LaSanteText.copy(alpha = 0.35f),
                 fontWeight = FontWeight.Bold,

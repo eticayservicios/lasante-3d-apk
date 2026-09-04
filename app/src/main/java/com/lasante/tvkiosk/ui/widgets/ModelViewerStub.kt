@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,6 +22,8 @@ import io.github.sceneview.node.ModelNode
 
 /** Ángulo Y inicial del producto en el modal (3/4 / medio lado, no frontal). */
 private const val PRODUCT_MODAL_INITIAL_YAW_DEG = 35f
+/** Distancia de cámara por defecto (sin zoom forzado al abrir). */
+private const val PRODUCT_MODAL_CAMERA_Z = 2.8f
 
 /**
  * Visualizador 3D de producto (assets locales o URLs remotas CloudFront).
@@ -30,6 +33,7 @@ fun ModelViewerStub(
     modifier: Modifier = Modifier,
     modelUrl: String?,
     scaleToUnits: Float = 1.0f,
+    cameraZ: Float = PRODUCT_MODAL_CAMERA_Z,
 ) {
     if (modelUrl.isNullOrBlank()) return
 
@@ -46,8 +50,12 @@ fun ModelViewerStub(
     val modelLoader = rememberModelLoader(engine, context)
     val modelInstance = rememberProductModelInstance(modelLoader, cleanPath)
     val cameraNode = rememberCameraNode(engine) {
-        position = Position(x = 0f, y = 0f, z = 2.8f)
+        position = Position(x = 0f, y = 0f, z = cameraZ)
         lookAt(Position(x = 0f, y = 0f, z = 0f), smooth = false)
+    }
+    LaunchedEffect(cameraZ) {
+        cameraNode.position = Position(x = 0f, y = 0f, z = cameraZ)
+        cameraNode.lookAt(Position(x = 0f, y = 0f, z = 0f), smooth = false)
     }
     val mainLightNode = rememberMainLightNode(engine) {
         intensity = 100_000f
@@ -60,7 +68,8 @@ fun ModelViewerStub(
             modelLoader = modelLoader,
             isOpaque = false,
             autoCenterContent = true,
-            autoFitContent = true,
+            // Sin autoFit: al acercar la cámara el modelo no se reencaja en un marco.
+            autoFitContent = false,
             cameraNode = cameraNode,
             mainLightNode = mainLightNode,
         ) {

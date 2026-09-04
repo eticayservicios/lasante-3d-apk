@@ -257,25 +257,25 @@ object DeviceProfileResolver {
         return when (profile.tier) {
             /**
              * TV66 1280×720 — referencia visual validada.
-             * Gaps en “espacios” Poppins (misma unidad usada en el ajuste en tablet forzada).
+             * Columna GLB un poco más ancha (sin zoom extra al abrir).
+             * El stage no usa clip: el modelo puede “salirse” al girar/acercar.
              */
             DeviceProfileTier.TV_LARGE -> SharedModalMetrics(
-                // +5% ancho vs 0.70: más aire para la columna GLB sin achicar el modelo.
-                modalWidthFraction = 0.735f,
-                modalHeightFraction = 0.68f,
-                modelWeight = 1.25f,
-                descriptionWeight = 1.40f,
+                modalWidthFraction = 0.76f,
+                modalHeightFraction = 0.72f,
+                modelWeight = 1.48f,
+                descriptionWeight = 1.22f,
                 descriptionHeightFraction = 0.92f,
                 cardHeightFraction = 0.80f,
-                columnSpacing = Tv42Spacing.spaces(10),
+                columnSpacing = Tv42Spacing.spaces(7),
                 cardWidthTrim = Tv42Spacing.spaces(8),
                 closeSideGap = Tv42Spacing.spaces(2),
                 rowOffsetX = (-8).dp,
                 rowOffsetY = (-8).dp,
                 descriptionOffsetX = 0.dp,
                 descriptionOffsetY = Tv42Spacing.spaces(1),
-                descriptionHorizontalPadding = 30.dp,
-                // Base TV66 × +3% zoom GLB.
+                descriptionHorizontalPadding = 28.dp,
+                // Zoom original (sin el bump al abrir).
                 modelScaleToUnits = 1.72f * 1.03f,
                 descriptionAlignTop = true,
                 alignRowTop = false,
@@ -287,26 +287,23 @@ object DeviceProfileResolver {
             )
 
             /**
-             * TV1080 (TV_REGULAR).
-             * Misma intención de diseño; % un poco más alto (canvas distinto) y
-             * gaps en [Tv42Spacing] (unidad nativa de este perfil).
+             * TV1080 (TV_REGULAR) — misma intención que TV66, escalado.
              */
             DeviceProfileTier.TV_REGULAR -> SharedModalMetrics(
-                // +5% ancho / +0.10 peso GLB (misma proporción que TV66).
-                modalWidthFraction = 0.777f,
-                modalHeightFraction = 0.66f,
-                modelWeight = 1.30f,
-                descriptionWeight = 1.30f,
+                modalWidthFraction = 0.80f,
+                modalHeightFraction = 0.70f,
+                modelWeight = 1.45f,
+                descriptionWeight = 1.20f,
                 descriptionHeightFraction = 0.90f,
                 cardHeightFraction = 0.82f,
-                columnSpacing = Tv42Spacing.spaces(10),
+                columnSpacing = Tv42Spacing.spaces(8),
                 cardWidthTrim = Tv42Spacing.spaces(8),
                 closeSideGap = Tv42Spacing.spaces(2),
                 rowOffsetX = (-8).dp,
                 rowOffsetY = (-8).dp,
                 descriptionOffsetX = 0.dp,
                 descriptionOffsetY = Tv42Spacing.spaces(1),
-                descriptionHorizontalPadding = 28.dp,
+                descriptionHorizontalPadding = 26.dp,
                 modelScaleToUnits = 1.656f * 1.03f,
                 descriptionAlignTop = true,
                 alignRowTop = false,
@@ -319,23 +316,22 @@ object DeviceProfileResolver {
 
             /**
              * Tablets landscape: gaps relativos al ancho.
-             * Más % de modal porque el canvas físico es más chico.
              */
             DeviceProfileTier.TABLET_LANDSCAPE -> SharedModalMetrics(
-                modalWidthFraction = 0.819f,
-                modalHeightFraction = 0.70f,
-                modelWeight = 1.30f,
-                descriptionWeight = 1.25f,
+                modalWidthFraction = 0.84f,
+                modalHeightFraction = 0.72f,
+                modelWeight = 1.42f,
+                descriptionWeight = 1.18f,
                 descriptionHeightFraction = 0.90f,
                 cardHeightFraction = 0.82f,
-                columnSpacing = (w * 0.05f).coerceIn(28.dp, 64.dp),
+                columnSpacing = (w * 0.04f).coerceIn(24.dp, 56.dp),
                 cardWidthTrim = (w * 0.04f).coerceIn(20.dp, 52.dp),
                 closeSideGap = (w * 0.012f).coerceIn(8.dp, 16.dp),
                 rowOffsetX = (-6).dp,
                 rowOffsetY = (-6).dp,
                 descriptionOffsetX = 0.dp,
                 descriptionOffsetY = (w * 0.006f).coerceIn(4.dp, 10.dp),
-                descriptionHorizontalPadding = 24.dp,
+                descriptionHorizontalPadding = 22.dp,
                 modelScaleToUnits = 1.55f * 1.02f,
                 descriptionAlignTop = true,
                 alignRowTop = false,
@@ -346,12 +342,12 @@ object DeviceProfileResolver {
                 descriptionExpandable = true,
             )
 
-            /** Phone landscape: suele ir apilado (compact); métricas por si usa fila. */
+            /** Phone landscape: bump suave (compact suele ir apilado). */
             DeviceProfileTier.COMPACT_LANDSCAPE -> SharedModalMetrics(
                 modalWidthFraction = 0.945f,
-                modalHeightFraction = 0.78f,
-                modelWeight = 1.35f,
-                descriptionWeight = 1.10f,
+                modalHeightFraction = 0.80f,
+                modelWeight = 1.42f,
+                descriptionWeight = 1.05f,
                 descriptionHeightFraction = 0.96f,
                 cardHeightFraction = 0.88f,
                 columnSpacing = 12.dp,
@@ -374,9 +370,9 @@ object DeviceProfileResolver {
 
             DeviceProfileTier.COMPACT_PORTRAIT -> SharedModalMetrics(
                 modalWidthFraction = 0.987f,
-                modalHeightFraction = 0.82f,
-                modelWeight = 1.30f,
-                descriptionWeight = 1.10f,
+                modalHeightFraction = 0.84f,
+                modelWeight = 1.35f,
+                descriptionWeight = 1.05f,
                 descriptionHeightFraction = 0.96f,
                 cardHeightFraction = 0.90f,
                 columnSpacing = 10.dp,
@@ -397,22 +393,22 @@ object DeviceProfileResolver {
                 descriptionExpandable = true,
             )
 
-            /** Default / fallback: proporciones tipo tablet. */
+            /** Default / fallback. */
             else -> SharedModalMetrics(
-                modalWidthFraction = 0.798f,
-                modalHeightFraction = 0.68f,
-                modelWeight = 1.25f,
-                descriptionWeight = 1.25f,
+                modalWidthFraction = 0.82f,
+                modalHeightFraction = 0.70f,
+                modelWeight = 1.38f,
+                descriptionWeight = 1.18f,
                 descriptionHeightFraction = 0.88f,
                 cardHeightFraction = 0.82f,
-                columnSpacing = (w * 0.045f).coerceIn(24.dp, 56.dp),
+                columnSpacing = (w * 0.04f).coerceIn(22.dp, 52.dp),
                 cardWidthTrim = (w * 0.035f).coerceIn(16.dp, 48.dp),
                 closeSideGap = (w * 0.012f).coerceIn(8.dp, 14.dp),
                 rowOffsetX = (-6).dp,
                 rowOffsetY = (-6).dp,
                 descriptionOffsetX = 0.dp,
                 descriptionOffsetY = 6.dp,
-                descriptionHorizontalPadding = 24.dp,
+                descriptionHorizontalPadding = 22.dp,
                 modelScaleToUnits = 1.50f * 1.02f,
                 descriptionAlignTop = true,
                 alignRowTop = false,
