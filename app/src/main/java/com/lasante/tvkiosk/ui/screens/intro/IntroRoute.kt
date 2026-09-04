@@ -21,6 +21,7 @@ fun IntroRoute(
     contentActive: Boolean = true,
     onNavigateToTreatments: (String) -> Unit = {},
     onNavigateToStarProducts: (String) -> Unit = {},
+    onNavigateToViewAllProducts: (String) -> Unit = {},
 ) {
     val activity = LocalContext.current as androidx.activity.ComponentActivity
     val viewModel: IntroViewModel = viewModel(
@@ -50,6 +51,7 @@ fun IntroRoute(
                 onStopAudio = { audioPlayer.stop() },
                 onNavigateToTreatments = onNavigateToTreatments,
                 onNavigateToStarProducts = onNavigateToStarProducts,
+                onNavigateToViewAllProducts = onNavigateToViewAllProducts,
             )
         }
     }

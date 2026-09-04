@@ -728,6 +728,22 @@ data class IntroLayoutMetrics(
         get() = introSearchMetrics.height
 
     /**
+     * Botón píldora "VER TODOS" encima del buscador — todos los perfiles.
+     * Alto ~72% de la barra (escala con [introSearchMetrics]); gap vs mockup TV66.
+     */
+    val showIntroVerTodosButton: Boolean
+        get() = true
+
+    val introVerTodosButtonHeight: Dp
+        get() = (introSearchBarHeight * 0.72f).coerceAtLeast(16.dp)
+
+    val introVerTodosButtonWidth: Dp
+        get() = introVerTodosButtonHeight * (1004f / 292f)
+
+    val introVerTodosButtonGap: Dp
+        get() = 6.dp * introSearchMetrics.layoutScale
+
+    /**
      * Centro del buscador a la altura de la base top, bajado 1,3 cm.
      * El empujón extra (10 dp en TV66) escala con el alto del canvas.
      */

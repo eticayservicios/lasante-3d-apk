@@ -1,13 +1,14 @@
 package com.lasante.tvkiosk.ui.screens.intro
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -15,8 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.runtime.Composable
@@ -28,23 +27,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import android.util.Log
 import coil.compose.AsyncImage
-import com.lasante.tvkiosk.BuildConfig
 import com.lasante.tvkiosk.data.Product
 import com.lasante.tvkiosk.data.VitrinaUnit
 import com.lasante.tvkiosk.ui.components.ProductSearchBarMetrics
 import com.lasante.tvkiosk.ui.components.SmartProductSearchBar
-import com.lasante.tvkiosk.ui.layout.layoutForceOverlayLabel
 import com.lasante.tvkiosk.ui.utils.clickableWithSound
 import com.lasante.tvkiosk.ui.utils.UiSound
 
@@ -82,6 +77,7 @@ fun IntroResponsiveLayout(
     onRotateClick: () -> Unit,
     onNavigateToTreatments: (String) -> Unit,
     onNavigateToStarProducts: (String) -> Unit = {},
+    onNavigateToViewAllProducts: (String) -> Unit = {},
     onSocialClick: (String, String) -> Unit,
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -115,24 +111,6 @@ fun IntroResponsiveLayout(
                     "rotateX=${metrics.rotateButtonProtrudeOffset} " +
                     "vOffset=${metrics.vitrinaVerticalOffsetAdjustment} " +
                     "vBias=${metrics.vitrinaVerticalBias}",
-            )
-        }
-        if (BuildConfig.DEBUG) {
-            Text(
-                text = "${metrics.vitrinaProfileKey} · " +
-                    "${metrics.maxWidth.value.toInt()}×${metrics.maxHeight.value.toInt()} · " +
-                    "${layoutForceOverlayLabel()} · " +
-                    "manito=${"%.1f".format(metrics.rotateButtonSize.value)} · " +
-                    "burbuja=${"%.1f".format(metrics.bubbleSize.value)} · " +
-                    "red=${"%.1f".format(metrics.socialIconSize.value)}",
-                color = Color.White,
-                fontSize = 11.sp,
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(8.dp)
-                    .zIndex(100f)
-                    .background(Color(0xCC000000), RoundedCornerShape(4.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
             )
         }
         val vitrinaPadding = Modifier.padding(
@@ -198,6 +176,14 @@ fun IntroResponsiveLayout(
                 backdropBlurred = backdropBlurred,
                 onProductSelected = onSearchProductSelected,
                 onInteraction = onWakeFromIdle,
+                onViewAllClick = {
+                    onWakeFromIdle()
+                    val active = resolveActiveVitrinaUnit(vitrinaUnits, activeVitrinaIndex)
+                    val unitId = active?.second?.unit?.id
+                    if (!unitId.isNullOrBlank()) {
+                        onNavigateToViewAllProducts(unitId)
+                    }
+                },
             )
 
             // Redes sociales — fila horizontal, izquierda del cintillo.
@@ -265,6 +251,7 @@ private fun BoxScope.IntroProductSearchLayer(
     backdropBlurred: Boolean,
     onProductSelected: (Product) -> Unit,
     onInteraction: () -> Unit,
+    onViewAllClick: () -> Unit = {},
 ) {
     var searchSessionOpen by remember { mutableStateOf(false) }
     var searchEditing by remember { mutableStateOf(false) }
@@ -304,19 +291,42 @@ private fun BoxScope.IntroProductSearchLayer(
             base.copy(width = (base.width - nudge).coerceAtLeast(120.dp))
         }
     }
-    Box(
+    val showVerTodos = metrics.showIntroVerTodosButton
+    Column(
         modifier = Modifier
             .align(Alignment.TopStart)
             .padding(start = metrics.introLeftChromePadding)
             .offset(
                 y = metrics.maxHeight / 2 +
                     metrics.introSearchCenterYOffset -
-                    searchMetrics.height / 2,
+                    searchMetrics.height / 2 -
+                    if (showVerTodos) {
+                        metrics.introVerTodosButtonHeight + metrics.introVerTodosButtonGap
+                    } else {
+                        0.dp
+                    },
             )
             .width(searchMetrics.width)
             .wrapContentHeight(unbounded = true, align = Alignment.Top)
             .zIndex(21f),
+        horizontalAlignment = Alignment.Start,
     ) {
+        if (showVerTodos) {
+            AsyncImage(
+                model = VitrinaUiImages.VER_TODOS_BUTTON,
+                contentDescription = "Ver todos los productos",
+                modifier = Modifier
+                    .width(metrics.introVerTodosButtonWidth)
+                    .height(metrics.introVerTodosButtonHeight)
+                    .clickableWithSound(
+                        enabled = enabled,
+                        sound = UiSound.Click,
+                        onClick = onViewAllClick,
+                    ),
+                contentScale = ContentScale.Fit,
+            )
+            Spacer(modifier = Modifier.height(metrics.introVerTodosButtonGap))
+        }
         SmartProductSearchBar(
             products = products,
             onProductSelected = onProductSelected,

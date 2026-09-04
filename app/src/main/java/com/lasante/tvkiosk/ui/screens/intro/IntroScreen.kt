@@ -46,6 +46,7 @@ fun IntroScreen(
     onStopAudio: () -> Unit,
     onNavigateToTreatments: (String) -> Unit = {},
     onNavigateToStarProducts: (String) -> Unit = {},
+    onNavigateToViewAllProducts: (String) -> Unit = {},
 ) {
     val widthClass = windowSizeClass.widthSizeClass
     val configuration = LocalConfiguration.current
@@ -271,6 +272,10 @@ fun IntroScreen(
                 onNavigateToStarProducts = { unitId ->
                     vitrinaController.registerInteraction()
                     onNavigateToStarProducts(unitId)
+                },
+                onNavigateToViewAllProducts = { unitId ->
+                    vitrinaController.registerInteraction()
+                    onNavigateToViewAllProducts(unitId)
                 },
                 onWakeFromIdle = { vitrinaController.registerInteraction() },
                 onRotationAnimationFinished = { vitrinaController.onRotationAnimationFinished() },

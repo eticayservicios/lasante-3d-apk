@@ -58,6 +58,11 @@ fun LaSanteNavHost(
                     "${Routes.PRODUCTS}/$unitId/${Args.STAR_PRODUCTS_ID}",
                 )
             },
+            onNavigateToViewAllProducts = { unitId ->
+                navController.navigate(
+                    "${Routes.PRODUCTS}/$unitId/${Args.ALL_TREATMENTS_ID}",
+                )
+            },
         )
 
         NavHost(
