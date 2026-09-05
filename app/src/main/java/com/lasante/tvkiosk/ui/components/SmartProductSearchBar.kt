@@ -4,13 +4,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,13 +21,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -50,11 +49,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalTextInputService
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextOverflow
@@ -148,6 +147,8 @@ data class ProductSearchBarMetrics(
 }
 
 private const val DEFAULT_PLACEHOLDER = "¿Buscas algun producto?"
+/** Filas máximas de sugerencias mientras el teclado virtual está abierto. */
+private const val VISIBLE_ROWS_WITH_KEYBOARD = 4
 private val SuggestionRowHeightTv66 = 40.dp
 private val SuggestionListPaddingTv66 = 4.dp
 
@@ -176,6 +177,12 @@ fun SmartProductSearchBar(
     var query by remember { mutableStateOf(TextFieldValue("")) }
     var focused by remember { mutableStateOf(false) }
     var pendingFocus by remember { mutableStateOf(false) }
+    /**
+     * Teclado virtual independiente del foco del TextField: al tocar una tecla Compose
+     * a veces quita el foco; si dependiéramos solo de [focused], el teclado se desmontaría
+     * (parpadeos / estado raro / posibles ANR en OEM).
+     */
+    var customKeyboardOpen by remember { mutableStateOf(false) }
     /** Mantiene la lista visible tras abrir un producto (desenfoque del modal). */
     var pinResultsOpen by remember { mutableStateOf(false) }
     var retainResultsOnBlur by remember { mutableStateOf(false) }
@@ -188,7 +195,7 @@ fun SmartProductSearchBar(
     val suggestions = remember(queryText, searchIndex, metrics.suggestionLimit) {
         rankIndexedProductMatches(searchIndex, queryText, metrics.suggestionLimit)
     }
-    val showList = queryText.isNotBlank() && (focused || pinResultsOpen)
+    val showList = queryText.isNotBlank() && (focused || pinResultsOpen || customKeyboardOpen)
     val showDropdown = showList && suggestions.isNotEmpty()
     val showEmpty = showList && suggestions.isEmpty()
     val barShape = RoundedCornerShape(metrics.cornerRadius)
@@ -201,24 +208,30 @@ fun SmartProductSearchBar(
         }
     }
 
+    fun hideSystemIme() {
+        // Llamadas puntuales solamente (nunca en bucle): hide() bloqueante en algunos TV.
+        runCatching { keyboard?.hide() }
+    }
+
     fun hideKeyboardKeepList() {
         if (query.text.isNotBlank()) {
             pinResultsOpen = true
         }
         pendingFocus = false
+        customKeyboardOpen = false
         focusManager.clearFocus()
-        keyboard?.hide()
+        hideSystemIme()
     }
 
     fun focusSearchField() {
         if (!enabled) return
         onInteraction()
         moveCursorToEnd()
-        if (focused) {
-            keyboard?.show()
-        } else {
+        customKeyboardOpen = true
+        if (!focused) {
             pendingFocus = true
         }
+        hideSystemIme()
     }
 
     fun closeEditing(clearQuery: Boolean) {
@@ -229,25 +242,53 @@ fun SmartProductSearchBar(
         retainResultsOnBlur = false
         pendingFocus = false
         focused = false
+        customKeyboardOpen = false
         focusManager.clearFocus()
-        keyboard?.hide()
+        hideSystemIme()
+    }
+
+    fun insertText(chunk: String) {
+        if (!enabled || chunk.isEmpty()) return
+        // Mantener teclado aunque el TextField pierda foco al tocar la tecla.
+        customKeyboardOpen = true
+        val start = query.selection.min.coerceIn(0, query.text.length)
+        val end = query.selection.max.coerceIn(0, query.text.length)
+        val newText = query.text.replaceRange(start, end, chunk)
+        val cursor = (start + chunk.length).coerceIn(0, newText.length)
+        query = TextFieldValue(newText, TextRange(cursor))
+        if (newText.isBlank()) {
+            pinResultsOpen = false
+        }
+    }
+
+    fun backspaceText() {
+        if (!enabled) return
+        customKeyboardOpen = true
+        val start = query.selection.min.coerceIn(0, query.text.length)
+        val end = query.selection.max.coerceIn(0, query.text.length)
+        if (start != end) {
+            val newText = query.text.removeRange(start, end)
+            query = TextFieldValue(newText, TextRange(start.coerceIn(0, newText.length)))
+        } else if (start > 0) {
+            val newText = query.text.removeRange(start - 1, start)
+            query = TextFieldValue(newText, TextRange((start - 1).coerceAtLeast(0)))
+        }
+        if (query.text.isBlank()) {
+            pinResultsOpen = false
+        }
     }
 
     LaunchedEffect(pendingFocus, enabled) {
         if (!pendingFocus || !enabled) return@LaunchedEffect
-        var focusedOk = false
         for (attempt in 0 until 4) {
             try {
                 focusRequester.requestFocus()
-                focusedOk = true
                 break
             } catch (_: IllegalStateException) {
                 if (attempt < 3) delay(16)
             }
         }
-        if (focusedOk) {
-            keyboard?.show()
-        }
+        hideSystemIme()
         pendingFocus = false
     }
 
@@ -260,8 +301,9 @@ fun SmartProductSearchBar(
     LaunchedEffect(enabled) {
         if (!enabled) {
             pendingFocus = false
+            customKeyboardOpen = false
             focusManager.clearFocus()
-            keyboard?.hide()
+            hideSystemIme()
         }
     }
 
@@ -269,37 +311,59 @@ fun SmartProductSearchBar(
         pinResultsOpen = query.text.isNotBlank()
         retainResultsOnBlur = true
         pendingFocus = false
+        customKeyboardOpen = false
         focusManager.clearFocus()
-        keyboard?.hide()
+        hideSystemIme()
         onProductSelected(product)
     }
 
-    val searchSessionOpen = focused || showList
+    val searchSessionOpen = focused || showList || customKeyboardOpen
     val onActiveChangeState = rememberUpdatedState(onActiveChange)
     val onEditingChangeState = rememberUpdatedState(onEditingChange)
     LaunchedEffect(searchSessionOpen) {
         onActiveChangeState.value(searchSessionOpen)
     }
-    LaunchedEffect(focused) {
-        onEditingChangeState.value(focused)
+    // "Editing" = teclado virtual abierto (no solo foco del TextField).
+    LaunchedEffect(customKeyboardOpen) {
+        onEditingChangeState.value(customKeyboardOpen)
     }
     LaunchedEffect(dismissListTick) {
-        if (dismissListTick > 0) {
+        if (dismissListTick <= 0) return@LaunchedEffect
+        if (customKeyboardOpen) {
+            // 1.er toque fuera: cierra teclado, deja lista si hay query.
+            customKeyboardOpen = false
+            pendingFocus = false
+            if (query.text.isNotBlank()) {
+                pinResultsOpen = true
+            }
+            focusManager.clearFocus()
+            hideSystemIme()
+        } else {
+            // 2.º toque: cierra lista.
             pinResultsOpen = false
             retainResultsOnBlur = false
         }
     }
 
-    Box(
+    val showKeyboard = customKeyboardOpen && enabled
+    val listVisibleRows = if (showKeyboard) {
+        VISIBLE_ROWS_WITH_KEYBOARD
+    } else {
+        metrics.dropdownVisibleRows.coerceIn(4, 10)
+    }
+    val keyboardWidth = (metrics.width * 1.4f).coerceAtLeast(300.dp * metrics.layoutScale)
+
+    Column(
         modifier = modifier
-            .width(metrics.width)
-            .height(metrics.height)
+            .width(keyboardWidth.coerceAtLeast(metrics.width))
             .wrapContentHeight(unbounded = true, align = Alignment.Top)
             .zIndex(8f),
+        horizontalAlignment = Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(metrics.listGap),
     ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth()
+                .width(metrics.width)
                 .height(metrics.height)
                 .shadow(elevation = 2.dp, shape = barShape)
                 .clip(barShape)
@@ -326,65 +390,68 @@ fun SmartProductSearchBar(
                     ),
                 contentAlignment = Alignment.CenterStart,
             ) {
-                BasicTextField(
-                    value = query,
-                    onValueChange = { value ->
-                        query = value
-                        if (value.text.isBlank()) {
-                            pinResultsOpen = false
-                        }
-                    },
-                    enabled = enabled,
-                    singleLine = true,
-                    textStyle = fieldTextStyle,
-                    cursorBrush = SolidColor(LaSanteGreenDark),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(
-                        onDone = { hideKeyboardKeepList() },
-                    ),
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .focusRequester(focusRequester)
-                        .onFocusChanged { state ->
-                            val nowFocused = state.isFocused
-                            focused = nowFocused
-                            if (nowFocused) {
-                                onInteraction()
-                            } else {
-                                keyboard?.hide()
-                                if (query.text.isNotBlank()) {
-                                    pinResultsOpen = true
-                                }
-                                retainResultsOnBlur = false
+                // Bloquea el IME de Android (Compose 1.6: LocalTextInputService).
+                @Suppress("DEPRECATION")
+                CompositionLocalProvider(LocalTextInputService provides null) {
+                    BasicTextField(
+                        value = query,
+                        onValueChange = { value ->
+                            // Entrada solo vía teclado virtual; ignorar IME si algún OEM lo fuerza.
+                            query = value
+                            if (value.text.isBlank()) {
+                                pinResultsOpen = false
                             }
                         },
-                    decorationBox = { innerTextField ->
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.CenterStart,
-                        ) {
-                            if (query.text.isEmpty()) {
-                                Text(
-                                    text = placeholder,
-                                    color = Color(0xFFB0B0B0),
-                                    fontSize = metrics.fontSize,
-                                    fontWeight = FontWeight.Light,
-                                    lineHeight = metrics.fontSize,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    style = TextStyle(
-                                        platformStyle = PlatformTextStyle(includeFontPadding = false),
-                                        lineHeightStyle = LineHeightStyle(
-                                            alignment = LineHeightStyle.Alignment.Center,
-                                            trim = LineHeightStyle.Trim.Both,
+                        enabled = enabled,
+                        singleLine = true,
+                        // Evita que el IME intente enlazarse; el texto lo escribe el teclado virtual.
+                        readOnly = true,
+                        textStyle = fieldTextStyle,
+                        cursorBrush = SolidColor(LaSanteGreenDark),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .focusRequester(focusRequester)
+                            .onFocusChanged { state ->
+                                val nowFocused = state.isFocused
+                                focused = nowFocused
+                                if (nowFocused) {
+                                    onInteraction()
+                                    customKeyboardOpen = true
+                                    hideSystemIme()
+                                } else if (query.text.isNotBlank()) {
+                                    // No cerrar teclado aquí: un tap en tecla puede quitar el foco.
+                                    pinResultsOpen = true
+                                    retainResultsOnBlur = false
+                                }
+                            },
+                        decorationBox = { innerTextField ->
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.CenterStart,
+                            ) {
+                                if (query.text.isEmpty()) {
+                                    Text(
+                                        text = placeholder,
+                                        color = Color(0xFFB0B0B0),
+                                        fontSize = metrics.fontSize,
+                                        fontWeight = FontWeight.Light,
+                                        lineHeight = metrics.fontSize,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        style = TextStyle(
+                                            platformStyle = PlatformTextStyle(includeFontPadding = false),
+                                            lineHeightStyle = LineHeightStyle(
+                                                alignment = LineHeightStyle.Alignment.Center,
+                                                trim = LineHeightStyle.Trim.Both,
+                                            ),
                                         ),
-                                    ),
-                                )
+                                    )
+                                }
+                                innerTextField()
                             }
-                            innerTextField()
-                        }
-                    },
-                )
+                        },
+                    )
+                }
             }
 
             Box(
@@ -406,11 +473,10 @@ fun SmartProductSearchBar(
             }
         }
 
+        // Resultados entre buscador y teclado (altura acotada; no empujan el teclado fuera).
         if (showDropdown || showEmpty) {
             Box(
                 modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .offset(y = metrics.height + metrics.listGap)
                     .width(metrics.width)
                     .zIndex(9f),
             ) {
@@ -418,12 +484,25 @@ fun SmartProductSearchBar(
                     SuggestionDropdown(
                         suggestions = suggestions,
                         metrics = metrics,
+                        maxVisibleRows = listVisibleRows,
                         onSelect = ::openProduct,
                     )
                 } else {
                     EmptySuggestionsCard(metrics = metrics)
                 }
             }
+        }
+
+        if (showKeyboard) {
+            KioskQwertyKeyboard(
+                onChar = ::insertText,
+                onBackspace = ::backspaceText,
+                onDone = { hideKeyboardKeepList() },
+                layoutScale = metrics.layoutScale,
+                modifier = Modifier
+                    .width(keyboardWidth)
+                    .zIndex(10f),
+            )
         }
     }
 }
@@ -452,12 +531,13 @@ private fun SuggestionDropdown(
     suggestions: List<Product>,
     metrics: ProductSearchBarMetrics,
     onSelect: (Product) -> Unit,
+    maxVisibleRows: Int = metrics.dropdownVisibleRows,
 ) {
     val listState = rememberLazyListState()
     val scrollInfo by remember {
         derivedStateOf { computeLazyListScrollbar(listState) }
     }
-    val visibleRows = metrics.dropdownVisibleRows.coerceAtLeast(1)
+    val visibleRows = maxVisibleRows.coerceAtLeast(1)
     val viewportRows = suggestions.size.coerceAtMost(visibleRows).coerceAtLeast(1)
     val dropdownHeight =
         metrics.suggestionRowHeight * viewportRows + metrics.listContentPadding * 2

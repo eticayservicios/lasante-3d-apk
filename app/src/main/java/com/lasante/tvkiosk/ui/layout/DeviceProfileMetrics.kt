@@ -343,7 +343,7 @@ object DeviceProfileResolver {
             )
 
             /** Phone landscape: bump suave (compact suele ir apilado). */
-            DeviceProfileTier.COMPACT_LANDSCAPE -> SharedModalMetrics(
+        DeviceProfileTier.COMPACT_LANDSCAPE -> SharedModalMetrics(
                 modalWidthFraction = 0.945f,
                 modalHeightFraction = 0.80f,
                 modelWeight = 1.42f,
@@ -373,19 +373,19 @@ object DeviceProfileResolver {
                 modalHeightFraction = 0.84f,
                 modelWeight = 1.35f,
                 descriptionWeight = 1.05f,
-                descriptionHeightFraction = 0.96f,
+            descriptionHeightFraction = 0.96f,
                 cardHeightFraction = 0.90f,
-                columnSpacing = 10.dp,
+            columnSpacing = 10.dp,
                 cardWidthTrim = 6.dp,
                 closeSideGap = 8.dp,
                 rowOffsetX = 0.dp,
                 rowOffsetY = 0.dp,
                 descriptionOffsetX = 0.dp,
-                descriptionOffsetY = 0.dp,
+            descriptionOffsetY = 0.dp,
                 descriptionHorizontalPadding = 16.dp,
                 modelScaleToUnits = 1.38f,
-                descriptionAlignTop = true,
-                alignRowTop = true,
+            descriptionAlignTop = true,
+            alignRowTop = true,
                 closeButtonSize = modalCloseIconSize(DeviceProfileTier.COMPACT_PORTRAIT),
                 justifyDescription = true,
                 descriptionBodyScale = 0.92f,
@@ -411,7 +411,7 @@ object DeviceProfileResolver {
                 descriptionHorizontalPadding = 22.dp,
                 modelScaleToUnits = 1.50f * 1.02f,
                 descriptionAlignTop = true,
-                alignRowTop = false,
+            alignRowTop = false,
                 closeButtonSize = modalCloseIconSize(DeviceProfileTier.DEFAULT),
                 justifyDescription = true,
                 descriptionBodyScale = 0.90f,

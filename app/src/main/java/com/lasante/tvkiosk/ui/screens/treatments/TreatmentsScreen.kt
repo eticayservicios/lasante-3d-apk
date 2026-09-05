@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -103,12 +104,9 @@ fun TreatmentsScreen(
     var searchEditing by remember { mutableStateOf(false) }
     var dismissListTick by remember { mutableStateOf(0) }
     fun dismissSearchSession() {
-        if (searchEditing) {
-            focusManager.clearFocus()
-            keyboard?.hide()
-        } else {
-            dismissListTick += 1
-        }
+        dismissListTick += 1
+        focusManager.clearFocus()
+        keyboard?.hide()
     }
     val gridState = rememberLazyGridState()
     val context = LocalContext.current
@@ -307,7 +305,7 @@ fun TreatmentsScreen(
                     Box(
                         modifier = Modifier
                             .offset { searchBarOffset }
-                            .width(searchMetrics.width)
+                            .wrapContentWidth(align = Alignment.Start)
                             .wrapContentHeight(unbounded = true, align = Alignment.Top)
                             .zIndex(21f),
                     ) {
