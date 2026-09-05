@@ -134,6 +134,7 @@ fun KioskQwertyKeyboard(
                 corner = corner,
                 containerColor = LaSanteGreenDark,
                 contentColor = LaSanteWhite,
+                playSound = true,
                 onClick = onDone,
             )
         }
@@ -175,15 +176,26 @@ private fun KeyboardKey(
     corner: Dp,
     containerColor: Color = LaSanteWhite,
     contentColor: Color = LaSanteText,
+    playSound: Boolean = false,
     onClick: () -> Unit,
 ) {
     val shape = RoundedCornerShape(corner)
+    val clickModifier = if (playSound) {
+        Modifier.clickableWithSound(sound = UiSound.Click, onClick = onClick)
+    } else {
+        // Sin SFX por tecla: menos carga en el hilo principal al escribir rápido.
+        Modifier.clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = null,
+            onClick = onClick,
+        )
+    }
     Box(
         modifier = modifier
             .shadow(elevation = 1.dp, shape = shape)
             .clip(shape)
             .background(containerColor)
-            .clickableWithSound(sound = UiSound.Click, onClick = onClick),
+            .then(clickModifier),
         contentAlignment = Alignment.Center,
     ) {
         Text(

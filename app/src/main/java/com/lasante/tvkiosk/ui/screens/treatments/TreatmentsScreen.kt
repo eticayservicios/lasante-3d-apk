@@ -104,12 +104,9 @@ fun TreatmentsScreen(
     var searchEditing by remember { mutableStateOf(false) }
     var dismissListTick by remember { mutableStateOf(0) }
     fun dismissSearchSession() {
-        if (searchEditing) {
-            focusManager.clearFocus()
-            keyboard?.hide()
-        } else {
-            dismissListTick += 1
-        }
+        dismissListTick += 1
+        focusManager.clearFocus()
+        keyboard?.hide()
     }
     val gridState = rememberLazyGridState()
     val context = LocalContext.current

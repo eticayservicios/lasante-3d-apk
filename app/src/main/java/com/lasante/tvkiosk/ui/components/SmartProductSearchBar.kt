@@ -177,6 +177,12 @@ fun SmartProductSearchBar(
     var query by remember { mutableStateOf(TextFieldValue("")) }
     var focused by remember { mutableStateOf(false) }
     var pendingFocus by remember { mutableStateOf(false) }
+    /**
+     * Teclado virtual independiente del foco del TextField: al tocar una tecla Compose
+     * a veces quita el foco; si dependiéramos solo de [focused], el teclado se desmontaría
+     * (parpadeos / estado raro / posibles ANR en OEM).
+     */
+    var customKeyboardOpen by remember { mutableStateOf(false) }
     /** Mantiene la lista visible tras abrir un producto (desenfoque del modal). */
     var pinResultsOpen by remember { mutableStateOf(false) }
     var retainResultsOnBlur by remember { mutableStateOf(false) }
@@ -189,7 +195,7 @@ fun SmartProductSearchBar(
     val suggestions = remember(queryText, searchIndex, metrics.suggestionLimit) {
         rankIndexedProductMatches(searchIndex, queryText, metrics.suggestionLimit)
     }
-    val showList = queryText.isNotBlank() && (focused || pinResultsOpen)
+    val showList = queryText.isNotBlank() && (focused || pinResultsOpen || customKeyboardOpen)
     val showDropdown = showList && suggestions.isNotEmpty()
     val showEmpty = showList && suggestions.isEmpty()
     val barShape = RoundedCornerShape(metrics.cornerRadius)
@@ -202,24 +208,30 @@ fun SmartProductSearchBar(
         }
     }
 
+    fun hideSystemIme() {
+        // Llamadas puntuales solamente (nunca en bucle): hide() bloqueante en algunos TV.
+        runCatching { keyboard?.hide() }
+    }
+
     fun hideKeyboardKeepList() {
         if (query.text.isNotBlank()) {
             pinResultsOpen = true
         }
         pendingFocus = false
+        customKeyboardOpen = false
         focusManager.clearFocus()
-        keyboard?.hide()
+        hideSystemIme()
     }
 
     fun focusSearchField() {
         if (!enabled) return
         onInteraction()
         moveCursorToEnd()
-        // Solo foco: el IME de Android está bloqueado; se usa teclado virtual.
+        customKeyboardOpen = true
         if (!focused) {
             pendingFocus = true
         }
-        keyboard?.hide()
+        hideSystemIme()
     }
 
     fun closeEditing(clearQuery: Boolean) {
@@ -230,16 +242,19 @@ fun SmartProductSearchBar(
         retainResultsOnBlur = false
         pendingFocus = false
         focused = false
+        customKeyboardOpen = false
         focusManager.clearFocus()
-        keyboard?.hide()
+        hideSystemIme()
     }
 
     fun insertText(chunk: String) {
         if (!enabled || chunk.isEmpty()) return
-        val start = query.selection.min
-        val end = query.selection.max
+        // Mantener teclado aunque el TextField pierda foco al tocar la tecla.
+        customKeyboardOpen = true
+        val start = query.selection.min.coerceIn(0, query.text.length)
+        val end = query.selection.max.coerceIn(0, query.text.length)
         val newText = query.text.replaceRange(start, end, chunk)
-        val cursor = start + chunk.length
+        val cursor = (start + chunk.length).coerceIn(0, newText.length)
         query = TextFieldValue(newText, TextRange(cursor))
         if (newText.isBlank()) {
             pinResultsOpen = false
@@ -248,14 +263,15 @@ fun SmartProductSearchBar(
 
     fun backspaceText() {
         if (!enabled) return
-        val start = query.selection.min
-        val end = query.selection.max
+        customKeyboardOpen = true
+        val start = query.selection.min.coerceIn(0, query.text.length)
+        val end = query.selection.max.coerceIn(0, query.text.length)
         if (start != end) {
             val newText = query.text.removeRange(start, end)
-            query = TextFieldValue(newText, TextRange(start))
+            query = TextFieldValue(newText, TextRange(start.coerceIn(0, newText.length)))
         } else if (start > 0) {
             val newText = query.text.removeRange(start - 1, start)
-            query = TextFieldValue(newText, TextRange(start - 1))
+            query = TextFieldValue(newText, TextRange((start - 1).coerceAtLeast(0)))
         }
         if (query.text.isBlank()) {
             pinResultsOpen = false
@@ -272,8 +288,7 @@ fun SmartProductSearchBar(
                 if (attempt < 3) delay(16)
             }
         }
-        // Una sola vez: no spamear hide() (provoca ANR en algunos OEM/TV).
-        keyboard?.hide()
+        hideSystemIme()
         pendingFocus = false
     }
 
@@ -286,8 +301,9 @@ fun SmartProductSearchBar(
     LaunchedEffect(enabled) {
         if (!enabled) {
             pendingFocus = false
+            customKeyboardOpen = false
             focusManager.clearFocus()
-            keyboard?.hide()
+            hideSystemIme()
         }
     }
 
@@ -295,28 +311,41 @@ fun SmartProductSearchBar(
         pinResultsOpen = query.text.isNotBlank()
         retainResultsOnBlur = true
         pendingFocus = false
+        customKeyboardOpen = false
         focusManager.clearFocus()
-        keyboard?.hide()
+        hideSystemIme()
         onProductSelected(product)
     }
 
-    val searchSessionOpen = focused || showList
+    val searchSessionOpen = focused || showList || customKeyboardOpen
     val onActiveChangeState = rememberUpdatedState(onActiveChange)
     val onEditingChangeState = rememberUpdatedState(onEditingChange)
     LaunchedEffect(searchSessionOpen) {
         onActiveChangeState.value(searchSessionOpen)
     }
-    LaunchedEffect(focused) {
-        onEditingChangeState.value(focused)
+    // "Editing" = teclado virtual abierto (no solo foco del TextField).
+    LaunchedEffect(customKeyboardOpen) {
+        onEditingChangeState.value(customKeyboardOpen)
     }
     LaunchedEffect(dismissListTick) {
-        if (dismissListTick > 0) {
+        if (dismissListTick <= 0) return@LaunchedEffect
+        if (customKeyboardOpen) {
+            // 1.er toque fuera: cierra teclado, deja lista si hay query.
+            customKeyboardOpen = false
+            pendingFocus = false
+            if (query.text.isNotBlank()) {
+                pinResultsOpen = true
+            }
+            focusManager.clearFocus()
+            hideSystemIme()
+        } else {
+            // 2.º toque: cierra lista.
             pinResultsOpen = false
             retainResultsOnBlur = false
         }
     }
 
-    val showKeyboard = focused && enabled
+    val showKeyboard = customKeyboardOpen && enabled
     val listVisibleRows = if (showKeyboard) {
         VISIBLE_ROWS_WITH_KEYBOARD
     } else {
@@ -387,12 +416,11 @@ fun SmartProductSearchBar(
                                 focused = nowFocused
                                 if (nowFocused) {
                                     onInteraction()
-                                    // Un solo hide al enfocar (sin bucle).
-                                    keyboard?.hide()
-                                } else {
-                                    if (query.text.isNotBlank()) {
-                                        pinResultsOpen = true
-                                    }
+                                    customKeyboardOpen = true
+                                    hideSystemIme()
+                                } else if (query.text.isNotBlank()) {
+                                    // No cerrar teclado aquí: un tap en tecla puede quitar el foco.
+                                    pinResultsOpen = true
                                     retainResultsOnBlur = false
                                 }
                             },

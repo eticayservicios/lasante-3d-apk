@@ -260,12 +260,10 @@ private fun BoxScope.IntroProductSearchLayer(
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
     fun dismissSearchSession() {
-        if (searchEditing) {
-            focusManager.clearFocus()
-            keyboard?.hide()
-        } else {
-            dismissListTick += 1
-        }
+        // Siempre tick: el buscador cierra teclado (1.er toque) o lista (2.º).
+        dismissListTick += 1
+        focusManager.clearFocus()
+        keyboard?.hide()
     }
 
     if (searchSessionOpen && enabled && !backdropBlurred) {
