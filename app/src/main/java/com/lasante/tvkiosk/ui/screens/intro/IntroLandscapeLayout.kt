@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.runtime.Composable
@@ -214,7 +215,7 @@ fun IntroResponsiveLayout(
             ) {
                 AsyncImage(
                     model = "file:///android_asset/vitrina/ui/logo_la_sante_vertical.png",
-                    contentDescription = null,
+                contentDescription = null,
                     modifier = Modifier
                         .height(logoH)
                         .width(logoW),
@@ -306,7 +307,7 @@ private fun BoxScope.IntroProductSearchLayer(
                         0.dp
                     },
             )
-            .width(searchMetrics.width)
+            .wrapContentWidth(align = Alignment.Start)
             .wrapContentHeight(unbounded = true, align = Alignment.Top)
             .zIndex(21f),
         horizontalAlignment = Alignment.Start,
@@ -410,17 +411,17 @@ fun SocialRail(
     onSocialClick: (String, String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+        Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(metrics.socialIconRowSpacing),
-    ) {
-        socialNetworks.forEach { social ->
-            SocialNetworkIconButton(
-                social = social,
-                size = metrics.socialIconSize,
-                onClick = { onSocialClick(social.label, social.url) },
-            )
-        }
+        ) {
+            socialNetworks.forEach { social ->
+                SocialNetworkIconButton(
+                    social = social,
+                    size = metrics.socialIconSize,
+                    onClick = { onSocialClick(social.label, social.url) },
+                )
+            }
     }
 }
