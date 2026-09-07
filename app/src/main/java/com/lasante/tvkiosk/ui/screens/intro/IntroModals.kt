@@ -315,30 +315,52 @@ private fun ExoVideoPlayer(
             )
             .build()
             .apply {
-                // No pausar al final de cada ítem: si no, REPEAT_MODE_ALL no cicla.
                 pauseAtEndOfMediaItems = false
                 setMediaItems(
                     urls.map { MediaItem.fromUri(VideoCache.normalizeVideoUri(it)) },
                     /* resetPosition = */ true,
                 )
-                // Después de setMediaItems para que quede aplicado a la playlist.
                 this.repeatMode = repeatMode
                 shuffleModeEnabled = false
+                val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
                 addListener(
                     object : Player.Listener {
+                        @Volatile
+                        private var recoverPosted = false
+
+                        /** Evita prepare()/seek reentrante dentro del callback (crash/ANR en algunos OEM). */
+                        private fun postRecover(block: ExoPlayer.() -> Unit) {
+                            if (recoverPosted) return
+                            recoverPosted = true
+                            mainHandler.post {
+                                try {
+                                    if (mediaItemCount > 0) {
+                                        block()
+                                    }
+                                } catch (t: Throwable) {
+                                    android.util.Log.e(
+                                        "VitrinaScreenSaver",
+                                        "Recover playback failed: ${t.message}",
+                                        t,
+                                    )
+                                } finally {
+                                    recoverPosted = false
+                                }
+                            }
+                        }
+
                         override fun onPlaybackStateChanged(playbackState: Int) {
                             if (playbackState != Player.STATE_ENDED) return
-                            // Solo ciclar si el caller pidió loop (screensaver).
                             if (repeatMode == Player.REPEAT_MODE_OFF) return
-                            if (mediaItemCount <= 0) return
                             android.util.Log.i(
                                 "VitrinaScreenSaver",
-                                "STATE_ENDED → reinicio cíclico (repeatMode=$repeatMode, items=$mediaItemCount)",
+                                "STATE_ENDED → reinicio cíclico (items=$mediaItemCount)",
                             )
-                            seekTo(0, 0L)
-                            prepare()
-                            playWhenReady = true
-                            play()
+                            postRecover {
+                                seekTo(0, 0L)
+                                playWhenReady = true
+                                play()
+                            }
                         }
 
                         override fun onPlayerError(error: PlaybackException) {
@@ -350,21 +372,23 @@ private fun ExoVideoPlayer(
                             )
                             if (mediaItemCount <= 0) return
                             if (repeatMode == Player.REPEAT_MODE_OFF) {
-                                // Institucional / one-shot: avanzar si hay más; si no, dejar ENDED.
                                 if (index < mediaItemCount - 1) {
-                                    seekTo(index + 1, 0L)
-                                    prepare()
-                                    playWhenReady = true
-                                    play()
+                                    postRecover {
+                                        seekTo(index + 1, 0L)
+                                        prepare()
+                                        playWhenReady = true
+                                        play()
+                                    }
                                 }
                                 return
                             }
-                            // Screensaver: siguiente o volver al primero (ciclo).
                             val next = (index + 1) % mediaItemCount
-                            seekTo(next, 0L)
-                            prepare()
-                            playWhenReady = true
-                            play()
+                            postRecover {
+                                seekTo(next, 0L)
+                                prepare()
+                                playWhenReady = true
+                                play()
+                            }
                         }
                     },
                 )
