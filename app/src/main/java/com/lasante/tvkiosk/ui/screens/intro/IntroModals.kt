@@ -315,30 +315,89 @@ private fun ExoVideoPlayer(
             )
             .build()
             .apply {
-            this.repeatMode = repeatMode
-            setMediaItems(urls.map { MediaItem.fromUri(VideoCache.normalizeVideoUri(it)) })
-            addListener(
-                object : Player.Listener {
-                    override fun onPlayerError(error: PlaybackException) {
-                        android.util.Log.e(
-                            "VitrinaScreenSaver",
-                            "Error reproduciendo video index=$currentMediaItemIndex url=${urls.getOrNull(currentMediaItemIndex)}: ${error.message}",
-                            error,
-                        )
-                        if (currentMediaItemIndex < mediaItemCount - 1) {
-                            seekTo(currentMediaItemIndex + 1, 0L)
-                            prepare()
-                            playWhenReady = true
-                            play()
+                pauseAtEndOfMediaItems = false
+                setMediaItems(
+                    urls.map { MediaItem.fromUri(VideoCache.normalizeVideoUri(it)) },
+                    /* resetPosition = */ true,
+                )
+                this.repeatMode = repeatMode
+                shuffleModeEnabled = false
+                val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+                addListener(
+                    object : Player.Listener {
+                        @Volatile
+                        private var recoverPosted = false
+
+                        /** Evita prepare()/seek reentrante dentro del callback (crash/ANR en algunos OEM). */
+                        private fun postRecover(block: ExoPlayer.() -> Unit) {
+                            if (recoverPosted) return
+                            recoverPosted = true
+                            mainHandler.post {
+                                try {
+                                    if (mediaItemCount > 0) {
+                                        block()
+                                    }
+                                } catch (t: Throwable) {
+                                    android.util.Log.e(
+                                        "VitrinaScreenSaver",
+                                        "Recover playback failed: ${t.message}",
+                                        t,
+                                    )
+                                } finally {
+                                    recoverPosted = false
+                                }
+                            }
                         }
-                    }
-                },
-            )
-            prepare()
-        }
+
+                        override fun onPlaybackStateChanged(playbackState: Int) {
+                            if (playbackState != Player.STATE_ENDED) return
+                            if (repeatMode == Player.REPEAT_MODE_OFF) return
+                            android.util.Log.i(
+                                "VitrinaScreenSaver",
+                                "STATE_ENDED → reinicio cíclico (items=$mediaItemCount)",
+                            )
+                            postRecover {
+                                seekTo(0, 0L)
+                                playWhenReady = true
+                                play()
+                            }
+                        }
+
+                        override fun onPlayerError(error: PlaybackException) {
+                            val index = currentMediaItemIndex
+                            android.util.Log.e(
+                                "VitrinaScreenSaver",
+                                "Error reproduciendo video index=$index url=${urls.getOrNull(index)}: ${error.message}",
+                                error,
+                            )
+                            if (mediaItemCount <= 0) return
+                            if (repeatMode == Player.REPEAT_MODE_OFF) {
+                                if (index < mediaItemCount - 1) {
+                                    postRecover {
+                                        seekTo(index + 1, 0L)
+                                        prepare()
+                                        playWhenReady = true
+                                        play()
+                                    }
+                                }
+                                return
+                            }
+                            val next = (index + 1) % mediaItemCount
+                            postRecover {
+                                seekTo(next, 0L)
+                                prepare()
+                                playWhenReady = true
+                                play()
+                            }
+                        }
+                    },
+                )
+                prepare()
+            }
     }
 
     LaunchedEffect(exoPlayer) {
+        exoPlayer.repeatMode = repeatMode
         exoPlayer.playWhenReady = true
         exoPlayer.play()
     }
@@ -349,6 +408,7 @@ private fun ExoVideoPlayer(
                 Lifecycle.Event.ON_START,
                 Lifecycle.Event.ON_RESUME,
                 -> {
+                    exoPlayer.repeatMode = repeatMode
                     exoPlayer.playWhenReady = true
                 }
                 Lifecycle.Event.ON_PAUSE,
