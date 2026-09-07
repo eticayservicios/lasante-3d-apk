@@ -315,30 +315,65 @@ private fun ExoVideoPlayer(
             )
             .build()
             .apply {
-            this.repeatMode = repeatMode
-            setMediaItems(urls.map { MediaItem.fromUri(VideoCache.normalizeVideoUri(it)) })
-            addListener(
-                object : Player.Listener {
-                    override fun onPlayerError(error: PlaybackException) {
-                        android.util.Log.e(
-                            "VitrinaScreenSaver",
-                            "Error reproduciendo video index=$currentMediaItemIndex url=${urls.getOrNull(currentMediaItemIndex)}: ${error.message}",
-                            error,
-                        )
-                        if (currentMediaItemIndex < mediaItemCount - 1) {
-                            seekTo(currentMediaItemIndex + 1, 0L)
+                // No pausar al final de cada ítem: si no, REPEAT_MODE_ALL no cicla.
+                pauseAtEndOfMediaItems = false
+                setMediaItems(
+                    urls.map { MediaItem.fromUri(VideoCache.normalizeVideoUri(it)) },
+                    /* resetPosition = */ true,
+                )
+                // Después de setMediaItems para que quede aplicado a la playlist.
+                this.repeatMode = repeatMode
+                shuffleModeEnabled = false
+                addListener(
+                    object : Player.Listener {
+                        override fun onPlaybackStateChanged(playbackState: Int) {
+                            if (playbackState != Player.STATE_ENDED) return
+                            // Solo ciclar si el caller pidió loop (screensaver).
+                            if (repeatMode == Player.REPEAT_MODE_OFF) return
+                            if (mediaItemCount <= 0) return
+                            android.util.Log.i(
+                                "VitrinaScreenSaver",
+                                "STATE_ENDED → reinicio cíclico (repeatMode=$repeatMode, items=$mediaItemCount)",
+                            )
+                            seekTo(0, 0L)
                             prepare()
                             playWhenReady = true
                             play()
                         }
-                    }
-                },
-            )
-            prepare()
-        }
+
+                        override fun onPlayerError(error: PlaybackException) {
+                            val index = currentMediaItemIndex
+                            android.util.Log.e(
+                                "VitrinaScreenSaver",
+                                "Error reproduciendo video index=$index url=${urls.getOrNull(index)}: ${error.message}",
+                                error,
+                            )
+                            if (mediaItemCount <= 0) return
+                            if (repeatMode == Player.REPEAT_MODE_OFF) {
+                                // Institucional / one-shot: avanzar si hay más; si no, dejar ENDED.
+                                if (index < mediaItemCount - 1) {
+                                    seekTo(index + 1, 0L)
+                                    prepare()
+                                    playWhenReady = true
+                                    play()
+                                }
+                                return
+                            }
+                            // Screensaver: siguiente o volver al primero (ciclo).
+                            val next = (index + 1) % mediaItemCount
+                            seekTo(next, 0L)
+                            prepare()
+                            playWhenReady = true
+                            play()
+                        }
+                    },
+                )
+                prepare()
+            }
     }
 
     LaunchedEffect(exoPlayer) {
+        exoPlayer.repeatMode = repeatMode
         exoPlayer.playWhenReady = true
         exoPlayer.play()
     }
@@ -349,6 +384,7 @@ private fun ExoVideoPlayer(
                 Lifecycle.Event.ON_START,
                 Lifecycle.Event.ON_RESUME,
                 -> {
+                    exoPlayer.repeatMode = repeatMode
                     exoPlayer.playWhenReady = true
                 }
                 Lifecycle.Event.ON_PAUSE,
