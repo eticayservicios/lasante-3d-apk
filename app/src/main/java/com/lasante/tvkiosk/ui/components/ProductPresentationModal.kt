@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
@@ -256,12 +257,14 @@ private fun ProductPresentationModalContent(
                         fallbackImageUrl = fallbackImageUrl,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1.25f),
+                            .weight(1.25f)
+                            .zIndex(1f),
                     )
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f),
+                            .weight(1f)
+                            .zIndex(2f),
                         contentAlignment = Alignment.Center,
                     ) {
                         Row(
@@ -326,14 +329,15 @@ private fun ProductPresentationModalContent(
                             modifier = Modifier
                                 .weight(layout.modelWeight)
                                 .fillMaxHeight()
-                                .zIndex(2f),
+                                // Debajo del card: el SceneView oversized no debe comerse toques de “Ver más”.
+                                .zIndex(1f),
                             scaleToUnits = layout.modelScaleToUnits,
                         )
                         Box(
                             modifier = Modifier
                                 .weight(layout.descriptionWeight)
                                 .fillMaxHeight(layout.descriptionHeightFraction)
-                                .zIndex(1f)
+                                .zIndex(2f)
                                 .offset(
                                     x = layout.descriptionOffsetX,
                                     y = layout.descriptionOffsetY,
@@ -423,8 +427,10 @@ private fun ProductModelStage(
         renderModel = true
     }
 
+    // clipToBounds: el SceneView (AndroidView) a 1.55× no debe recibir toques fuera del slot
+    // (tapaba el card / “Ver más”). El zoom sigue funcionando dentro del área visible.
     BoxWithConstraints(
-        modifier = modifier,
+        modifier = modifier.clipToBounds(),
         contentAlignment = Alignment.Center,
     ) {
         when {
@@ -435,7 +441,7 @@ private fun ProductModelStage(
                         .requiredHeight(maxHeight * MODEL_STAGE_OVERFLOW)
                         .zIndex(2f),
                     modelUrl = modelUrl,
-                    // Compensa el SceneView oversized: al abrir ≈ tamaño del slot; al zoom puede sobresalir.
+                    // Compensa el SceneView oversized: al abrir ≈ tamaño del slot.
                     scaleToUnits = scaleToUnits / MODEL_STAGE_OVERFLOW,
                 )
             }
@@ -504,8 +510,12 @@ private fun ProductDescriptionPanel(
         product.modalBulletLines(shorten = false)
     }
     var expanded by remember(product.productoId) { mutableStateOf(false) }
-    val textShortened = fullBullets.joinToString("\n") != previewBullets.joinToString("\n") ||
-        product.description.trim().length > MODAL_DESCRIPTION_MAX_CHARS
+    // Solo cuenta como “hay más” si el preview truncado difiere del texto completo.
+    // Antes también mirábamos description.length > 280 aunque el modal mostrara
+    // atributos ya enteros → “Ver más” visible sin ningún cambio al pulsar.
+    val textShortened = remember(previewBullets, fullBullets) {
+        previewBullets != fullBullets
+    }
     val bullets = if (expandable && expanded) fullBullets else previewBullets
     val corner = if (compact) 18.dp else 20.dp
     val cornerShape = RoundedCornerShape(corner)
@@ -520,7 +530,8 @@ private fun ProductDescriptionPanel(
     val scrollState = rememberScrollState()
     var viewportPx by remember(product.productoId) { mutableIntStateOf(0) }
     var contentPx by remember(product.productoId, expanded) { mutableIntStateOf(0) }
-    val overflows = contentPx > viewportPx + 2
+    // Evitar falso overflow mientras viewport aún no midió (0 px).
+    val overflows = viewportPx > 0 && contentPx > viewportPx + 2
     val canExpand = expandable && (textShortened || overflows || expanded)
 
     Box(modifier = modifier) {
@@ -647,12 +658,15 @@ private fun ProductDescriptionPanel(
                     fontSize = bodySize,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier
+                        .zIndex(30f)
+                        .fillMaxWidth()
+                        .heightIn(min = 44.dp)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
                             onClick = { expanded = !expanded },
                         )
-                        .padding(vertical = 4.dp),
+                        .padding(vertical = 8.dp),
                 )
             }
         }
