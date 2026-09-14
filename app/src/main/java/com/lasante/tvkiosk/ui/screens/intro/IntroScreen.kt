@@ -87,17 +87,6 @@ fun IntroScreen(
     }
     val dragTrackWidthScreenFraction = vitrinaLayoutProfile.dragTrackWidthScreenFraction
 
-    // Precarga GIFs de Intro una vez: al volver ya están en cache Coil.
-    LaunchedEffect(Unit) {
-        listOf(
-            VitrinaUiImages.HISTORIA_GIF,
-            VitrinaUiImages.GIRA_GIF,
-            VitrinaUiImages.TOUCH_GIF,
-        ).forEach { path ->
-            context.imageLoader.enqueue(VitrinaUiImages.request(context, path))
-        }
-    }
-
     var selectedProduct by remember { mutableStateOf<Product?>(null) }
     var isVideoPlaying by remember { mutableStateOf(false) }
     var qrUrl by remember { mutableStateOf<String?>(null) }
@@ -128,6 +117,29 @@ fun IntroScreen(
         institutionalVideoUrl = institutionalVideoUrl,
         enabled = appInForeground,
     )
+
+    // GIFs con tamaño de UI (no full-res): gira.gif ~14MB a nativo OOM/ANR al volver de idle.
+    // Esperar GLB base para no competir con Filament en el pico de arranque.
+    LaunchedEffect(
+        appInForeground,
+        vitrinaFilamentSession.baseInstance != null,
+        vitrinaLayoutProfile.rotateButtonSize,
+        vitrinaLayoutProfile.touchHintSize,
+        density,
+    ) {
+        if (!appInForeground || vitrinaFilamentSession.baseInstance == null) return@LaunchedEffect
+        val rotatePx = with(density) { vitrinaLayoutProfile.rotateButtonSize.roundToPx() }
+        val touchPx = with(density) { vitrinaLayoutProfile.touchHintSize.roundToPx() }
+        listOf(
+            VitrinaUiImages.HISTORIA_GIF to rotatePx,
+            VitrinaUiImages.GIRA_GIF to rotatePx,
+            VitrinaUiImages.TOUCH_GIF to touchPx,
+        ).forEach { (path, sizePx) ->
+            context.imageLoader.enqueue(
+                VitrinaUiImages.request(context, path, sizePx = sizePx),
+            )
+        }
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -179,10 +191,14 @@ fun IntroScreen(
     val renderVitrinaScene = contentActive
 
     // Con modal de producto: render OFF (frame congelado) + blur ON → mismo look, menos RAM/GPU.
-    val vitrinaFilamentRendering = contentActive && !shouldPlayScreenSaver && !hasHeavyModalOpen
-    val vitrinaSceneActive = contentActive && !hasModalOpen && !shouldPlayScreenSaver
-    val vitrinaInteractionEnabled = contentActive && !hasModalOpen
-    val showVitrinaControls = contentActive && !shouldPlayScreenSaver && !hasModalOpen
+    // appInForeground: sin esto Filament sigue renderizando en background (EGL perdido → crash/ANR al volver).
+    val vitrinaFilamentRendering =
+        contentActive && appInForeground && !shouldPlayScreenSaver && !hasHeavyModalOpen
+    val vitrinaSceneActive =
+        contentActive && appInForeground && !hasModalOpen && !shouldPlayScreenSaver
+    val vitrinaInteractionEnabled = contentActive && appInForeground && !hasModalOpen
+    val showVitrinaControls =
+        contentActive && appInForeground && !shouldPlayScreenSaver && !hasModalOpen
     val productModalBlur = selectedProduct != null
     val legacyTabletModalBlur = productModalBlur &&
         isTabletLandscape &&

@@ -19,9 +19,9 @@
 | 5 | Rotación vitrina | ✅ | Automática cada 30s + al regresar a pantalla |
 
 **URLs Redes Sociales (Actualizadas):**
-- Instagram: `https://www.instagram.com/pharmetiquelabs.ve/`
-- Facebook: `https://www.facebook.com/pharmetiquelabs.ve`
-- LinkedIn: `https://www.linkedin.com/company/pharmetique-labs-venezuela/`
+- Instagram: `https://www.instagram.com/lasante.ve`
+- Facebook: `https://www.facebook.com/lasante.ve/?locale=es_LA`
+- LinkedIn: `https://ve.linkedin.com/company/lasante-venezuela`
 - Catálogo: `https://pharmetiquelabs.com/catalogo`
 
 ---

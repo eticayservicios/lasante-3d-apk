@@ -14,6 +14,7 @@ import io.github.sceneview.model.engine
 import io.github.sceneview.model.model
 import io.github.sceneview.rememberEngine
 import io.github.sceneview.rememberModelLoader
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.yield
 
 /** Filament compartido por IntroScreen — sobrevive desmontes puntuales del viewer. */
@@ -37,6 +38,7 @@ fun rememberVitrinaFilamentSession(): VitrinaFilamentSession {
     LaunchedEffect(modelLoader, baseGlbSource.loadPath) {
         // Pintar Intro (spinner) antes de parsear el GLB; si no, el main se congela y Android pide cerrar.
         yield()
+        delay(32)
         val loaded = runCatching {
             modelLoader.loadModelInstance(baseGlbSource.loadPath)
         }.onFailure { t ->

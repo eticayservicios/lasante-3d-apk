@@ -27,10 +27,16 @@ class LaSanteApplication : Application(), ImageLoaderFactory {
                 // destellos blancos o loops corruptos en GIFs transparentes (bug de ImageDecoderDecoder)
                 add(GifDecoder.Factory())
             }
-            // Historia.gif / gira / touch: más margen de memoria para no re-decodificar al volver a Intro.
+            // Historia/gira/touch: cache acotado. 0.28 + gira.gif full-res explotaba RAM al volver de idle.
             .memoryCache {
+                val am = getSystemService(ACTIVITY_SERVICE) as android.app.ActivityManager
+                val percent = when {
+                    am.isLowRamDevice || am.memoryClass <= 192 -> 0.12
+                    am.memoryClass <= 256 -> 0.18
+                    else -> 0.22
+                }
                 MemoryCache.Builder(this)
-                    .maxSizePercent(0.28)
+                    .maxSizePercent(percent)
                     .build()
             }
             .build()
