@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
@@ -54,19 +55,19 @@ object SocialNetworks {
         SocialNetwork(
             id = SocialNetworkId.Instagram,
             label = "Instagram",
-            url = "https://www.instagram.com/pharmetiquelabs.ve/",
+            url = "https://www.instagram.com/lasante.ve",
             iconAssetPath = SocialNetworkAssets.INSTAGRAM,
         ),
         SocialNetwork(
             id = SocialNetworkId.Facebook,
             label = "Facebook",
-            url = "https://www.facebook.com/pharmetiquelabs.ve",
+            url = "https://www.facebook.com/lasante.ve/?locale=es_LA",
             iconAssetPath = SocialNetworkAssets.FACEBOOK,
         ),
         SocialNetwork(
             id = SocialNetworkId.LinkedIn,
             label = "LinkedIn",
-            url = "https://www.linkedin.com/company/pharmetique-labs-venezuela/",
+            url = "https://ve.linkedin.com/company/lasante-venezuela",
             iconAssetPath = SocialNetworkAssets.LINKEDIN,
         ),
     )
@@ -80,14 +81,20 @@ fun SocialNetworkIconButton(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val density = LocalDensity.current
+    val sizePx = with(density) { size.roundToPx() }
     val hasCustomIcon = remember(social.iconAssetPath) {
         runCatching {
             context.assets.open(social.iconAssetPath).close()
             true
         }.getOrDefault(false)
     }
-    val iconModel = remember(social.iconAssetPath, context) {
-        VitrinaUiImages.request(context, SocialNetworkAssets.assetUri(social.iconAssetPath))
+    val iconModel = remember(social.iconAssetPath, context, sizePx) {
+        VitrinaUiImages.request(
+            context,
+            SocialNetworkAssets.assetUri(social.iconAssetPath),
+            sizePx = sizePx,
+        )
     }
 
     Box(
