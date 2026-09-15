@@ -44,7 +44,7 @@ object VitrinaUiImages {
             .crossfade(false)
             .memoryCachePolicy(CachePolicy.ENABLED)
             .diskCachePolicy(CachePolicy.ENABLED)
-            .memoryCacheKey("filter_button_v2_512")
-            .diskCacheKey("filter_button_v2_512")
+            .memoryCacheKey("filter_button_v3_2fad11")
+            .diskCacheKey("filter_button_v3_2fad11")
             .build()
 }

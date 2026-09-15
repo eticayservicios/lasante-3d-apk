@@ -2,9 +2,9 @@ package com.lasante.tvkiosk.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// === NUEVA PALETA DE COLORES LASANTÉ (Basada en diseños finales) ===
-val LaSanteGreen = Color(0xFF7CB342) // Verde lima/oliva del diseño
-val LaSanteGreenDark = Color(0xFF558B2F)
+// === Paleta La Santé — verde de marca unificado (#2FAD11) ===
+val LaSanteGreen = Color(0xFF2FAD11)
+val LaSanteGreenDark = Color(0xFF2FAD11)
 val LaSanteBackground = Color(0xFFF5F5F5) // Gris muy claro casi blanco
 val LaSanteWhite = Color(0xFFFFFFFF)
 val LaSanteText = Color(0xFF424242)
@@ -18,7 +18,7 @@ val ShelfShadowColor = Color(0x20000000)
 
 // Scrollbar
 val ScrollTrackColor = Color(0xFFEEEEEE)
-val ScrollThumbColor = Color(0xFF8BC34A)
+val ScrollThumbColor = Color(0xFF2FAD11)
 
 // Specialty Colors (Legacy/Compat)
 val SpecialtyDermatologia = Color(0xFF2196F3)
@@ -31,9 +31,9 @@ val SpecialtyPediatria = Color(0xFFE91E63)
 val LaSanteOrange = Color(0xFFFFA205)
 val LaSanteBlue = Color(0xFF172D64)
 
-/** Paleta mock filtro CT (TV66). */
-val FilterGreenStart = Color(0xFFA8C829)
-val FilterGreenEnd = Color(0xFF4B991B)
+/** Filtro CT / botones verdes de UI. */
+val FilterGreenStart = Color(0xFF2FAD11)
+val FilterGreenEnd = Color(0xFF2FAD11)
 val FilterBlueStart = Color(0xFF00193E)
 val FilterBlueEnd = Color(0xFF1F6096)
 val FilterStarGold = Color(0xFFFFB000)

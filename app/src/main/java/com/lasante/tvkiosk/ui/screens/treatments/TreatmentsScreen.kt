@@ -214,7 +214,7 @@ fun TreatmentsScreen(
                             fontWeight = FontWeight.Medium,
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 brush = Brush.horizontalGradient(
-                                    listOf(LaSanteGreen, Color(0xFFA8C829)),
+                                    listOf(LaSanteGreen, LaSanteGreen),
                                 ),
                             ),
                             textAlign = TextAlign.End,
