@@ -22,8 +22,8 @@ import androidx.compose.ui.unit.sp
 import com.lasante.tvkiosk.ui.utils.UiSound
 import com.lasante.tvkiosk.ui.utils.clickableWithSound
 
-private val BadgeGreenStart = Color(0xFF6FA320)
-private val BadgeGreenEnd = Color(0xFFA4D23A)
+private val BadgeGreenStart = Color(0xFF2FAD11)
+private val BadgeGreenEnd = Color(0xFF2FAD11)
 
 /** Badge verde “PRODUCTOS ESTRELLAS” (Intro y pantalla de estrellas). */
 @Composable

@@ -1393,7 +1393,7 @@ private fun ProductGridItem(
         else -> 9.sp
     }
     val titleBrush = Brush.horizontalGradient(
-        listOf(LaSanteGreenDark, LaSanteGreen, Color(0xFFA8C829)),
+        listOf(LaSanteGreenDark, LaSanteGreen, LaSanteGreen),
     )
     val (titlePart, strengthPart) = remember(product.name, product.dosisDisplay) {
         val apiDosis = product.dosisDisplay

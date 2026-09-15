@@ -520,7 +520,7 @@ private fun ProductDescriptionPanel(
     val corner = if (compact) 18.dp else 20.dp
     val cornerShape = RoundedCornerShape(corner)
     val titleBrush = Brush.horizontalGradient(
-        listOf(LaSanteGreenDark, LaSanteGreen, Color(0xFFA8C829)),
+        listOf(LaSanteGreenDark, LaSanteGreen, LaSanteGreen),
     )
     val titleFontFamily = MaterialTheme.typography.bodyLarge.fontFamily
     // Sombra suave (mock): elevación difusa + leve sesgo arriba/derecha.

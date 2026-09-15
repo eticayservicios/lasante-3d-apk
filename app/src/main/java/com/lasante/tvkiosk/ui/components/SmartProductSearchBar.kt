@@ -66,6 +66,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.lasante.tvkiosk.data.Product
 import com.lasante.tvkiosk.ui.layout.Tv66Reference
+import com.lasante.tvkiosk.ui.theme.LaSanteGreen
 import com.lasante.tvkiosk.ui.theme.LaSanteText
 import com.lasante.tvkiosk.ui.theme.LaSanteTextSecondary
 import com.lasante.tvkiosk.ui.theme.LaSanteWhite
@@ -75,9 +76,6 @@ import java.text.Normalizer
 import java.util.Locale
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
-
-/** Verde del chip de lupa — alineado con VER TODOS / marca (#2FAD11). */
-private val SearchChromeGreen = Color(0xFF2FAD11)
 
 @Immutable
 data class ProductSearchBarMetrics(
@@ -409,7 +407,7 @@ fun SmartProductSearchBar(
                         // Evita que el IME intente enlazarse; el texto lo escribe el teclado virtual.
                         readOnly = true,
                         textStyle = fieldTextStyle,
-                        cursorBrush = SolidColor(SearchChromeGreen),
+                        cursorBrush = SolidColor(LaSanteGreen),
                         modifier = Modifier
                             .fillMaxSize()
                             .focusRequester(focusRequester)
@@ -462,7 +460,7 @@ fun SmartProductSearchBar(
                     .width(metrics.greenWidth)
                     .fillMaxHeight()
                     .clip(greenShape)
-                    .background(SearchChromeGreen)
+                    .background(LaSanteGreen)
                     .clickableWithSound(enabled = enabled) { focusSearchField() },
                 contentAlignment = Alignment.Center,
             ) {

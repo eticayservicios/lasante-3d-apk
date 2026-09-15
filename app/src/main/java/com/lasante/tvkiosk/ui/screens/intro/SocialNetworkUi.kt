@@ -107,7 +107,7 @@ fun SocialNetworkIconButton(
                 } else {
                     Modifier.background(
                         Brush.linearGradient(
-                            colors = listOf(Color(0xFF68BD45), Color(0xFF319D32)),
+                            colors = listOf(Color(0xFF2FAD11), Color(0xFF2FAD11)),
                         ),
                     )
                 },
