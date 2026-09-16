@@ -95,6 +95,11 @@ fun ProductsRoute(
                         ),
                     )
                 } else {
+                    // VER TODOS / catálogo de unidad: forzar /home fresco para no
+                    // mostrar un snapshot viejo (antes TTL 24h sin invalidate).
+                    if (isViewAll) {
+                        catalogRepository.invalidateCache()
+                    }
                     val treatments = catalogRepository.getTreatments(unitId)
                     val treatment = treatments.firstOrNull { it.id == treatmentId }
                     val products = if (isViewAll) {
@@ -102,6 +107,11 @@ fun ProductsRoute(
                     } else {
                         catalogRepository.getProducts(treatmentId)
                     }
+                    android.util.Log.i(
+                        "ProductsRoute",
+                        "unit=$unitId treatment=$treatmentId viewAll=$isViewAll " +
+                            "products=${products.size}",
+                    )
                     UiState.Success(
                         ProductsData(
                             treatmentName = when {

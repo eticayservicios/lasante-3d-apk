@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -83,7 +84,10 @@ private const val MODAL_3D_DEFER_MS = 180L
 /** Misma asset que el close del modal de Filtros ([GreenNavButton]). */
 private const val CLOSE_MODAL_ASSET = "vitrina/ui/close_modal.png"
 private const val MODAL_DESCRIPTION_MAX_CHARS = 280
-private const val MODAL_BULLETS_MAX = 5
+/** Bullets visibles antes de “Ver más”. */
+private const val MODAL_BULLETS_PREVIEW = 3
+/** Tope al expandir (evita listas enormes en atributos). */
+private const val MODAL_BULLETS_MAX = 8
 /** Ancho del bloque card+close dentro de su columna (el trim viene del perfil). */
 private const val DESCRIPTION_CARD_WIDTH_SCALE = 1.0f
 
@@ -635,8 +639,17 @@ private fun ProductDescriptionPanel(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
+                            // Sin esto el Column se mide con maxHeight=viewport y
+                            // overflows casi nunca es true (tablet Damasco / cards altos).
                             .then(
-                                if (expanded) Modifier.verticalScroll(scrollState) else Modifier,
+                                if (expanded) {
+                                    Modifier.verticalScroll(scrollState)
+                                } else {
+                                    Modifier.wrapContentHeight(
+                                        align = Alignment.Top,
+                                        unbounded = true,
+                                    )
+                                },
                             )
                             .onSizeChanged { contentPx = it.height },
                         verticalArrangement = Arrangement.spacedBy(((if (compact) 8f else 10f) * bodyScale).dp),
@@ -730,14 +743,18 @@ private fun Product.modalBulletLines(shorten: Boolean = true): List<String> {
     val fromAttrs = atributos
         .filterKeys { it.shouldShowInProductModal() }
         .entries
-        .take(MODAL_BULLETS_MAX)
         .map { (k, v) ->
             val value = v.trim()
             if (value.isEmpty()) k.trim() else "${k.trim()}: $value"
         }
         .filter { it.isNotBlank() }
     if (fromAttrs.isNotEmpty()) {
-        return if (shorten) fromAttrs.map { shortenModalText(it, 140) } else fromAttrs
+        val lines = if (shorten) {
+            fromAttrs.take(MODAL_BULLETS_PREVIEW)
+        } else {
+            fromAttrs.take(MODAL_BULLETS_MAX)
+        }
+        return if (shorten) lines.map { shortenModalText(it, 140) } else lines
     }
 
     val raw = description.trim()
@@ -748,7 +765,11 @@ private fun Product.modalBulletLines(shorten: Boolean = true): List<String> {
         .map { it.trim().trimStart('-', '*', '–').trim() }
         .filter { it.isNotBlank() }
     if (byLines.size >= 2) {
-        val lines = byLines.take(MODAL_BULLETS_MAX)
+        val lines = if (shorten) {
+            byLines.take(MODAL_BULLETS_PREVIEW)
+        } else {
+            byLines.take(MODAL_BULLETS_MAX)
+        }
         return if (shorten) lines.map { shortenModalText(it, 140) } else lines
     }
 
@@ -759,7 +780,11 @@ private fun Product.modalBulletLines(shorten: Boolean = true): List<String> {
         .filter { it.isNotBlank() }
     return when {
         sentences.size >= 2 -> {
-            val lines = sentences.take(MODAL_BULLETS_MAX)
+            val lines = if (shorten) {
+                sentences.take(MODAL_BULLETS_PREVIEW)
+            } else {
+                sentences.take(MODAL_BULLETS_MAX)
+            }
             if (shorten) lines.map { shortenModalText(it, 160) } else lines
         }
         else -> listOf(

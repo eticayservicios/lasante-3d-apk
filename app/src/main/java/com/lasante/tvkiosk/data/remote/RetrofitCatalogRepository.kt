@@ -16,8 +16,12 @@ class RetrofitCatalogRepository(
     private var homeSnapshot: HomeSnapshot? = null
     @Volatile
     private var homeCacheTime: Long = 0
-    /** Snapshot /home en memoria (kiosco). Antes 5 min; ahora 24 h. [invalidateCache] fuerza refresh. */
-    private val CACHE_TTL_MS = 24L * 60 * 60 * 1000
+    /**
+     * Snapshot /home en memoria (kiosco).
+     * 5 min: evita catálogo viejo en VER TODOS tras cambios en admin (antes 24 h y
+     * [invalidateCache] no se llamaba desde ningún sitio).
+     */
+    private val CACHE_TTL_MS = 5L * 60 * 1000
     private val homeMutex = Mutex()
 
     private data class BusinessUnitAlias(
@@ -79,30 +83,35 @@ class RetrofitCatalogRepository(
         ),
     )
 
-    fun invalidateCache() {
+    override fun invalidateCache() {
         homeSnapshot = null
         homeCacheTime = 0
     }
 
-    private suspend fun getSnapshot(): HomeSnapshot = withContext(Dispatchers.IO) {
-        homeMutex.withLock {
-            val now = System.currentTimeMillis()
-            val cached = homeSnapshot
-            if (cached != null && (now - homeCacheTime) <= CACHE_TTL_MS) {
-                return@withLock cached
+    private suspend fun getSnapshot(forceRefresh: Boolean = false): HomeSnapshot =
+        withContext(Dispatchers.IO) {
+            homeMutex.withLock {
+                val now = System.currentTimeMillis()
+                val cached = homeSnapshot
+                if (!forceRefresh &&
+                    cached != null &&
+                    (now - homeCacheTime) <= CACHE_TTL_MS
+                ) {
+                    return@withLock cached
+                }
+                val dto = api.getHome()
+                val snap = dto.toSnapshot()
+                homeSnapshot = snap
+                homeCacheTime = now
+                android.util.Log.d(
+                    "RetrofitCatalogRepository",
+                    "home loaded: unidades=${dto.unidades.size}, vitrinaUnits=${dto.vitrina?.units?.size ?: -1}, " +
+                        "videos=${dto.vitrina?.videos?.screenSaver?.items?.size ?: -1}, " +
+                        "catalogProducts=${snap.catalogEntries.size} force=$forceRefresh",
+                )
+                snap
             }
-            val dto = api.getHome()
-            val snap = dto.toSnapshot()
-            homeSnapshot = snap
-            homeCacheTime = now
-            android.util.Log.d(
-                "RetrofitCatalogRepository",
-                "home loaded: unidades=${dto.unidades.size}, vitrinaUnits=${dto.vitrina?.units?.size ?: -1}, " +
-                    "videos=${dto.vitrina?.videos?.screenSaver?.items?.size ?: -1}",
-            )
-            snap
         }
-    }
 
     private fun String.normalizedKey(): String {
         val withoutAccents = Normalizer.normalize(this, Normalizer.Form.NFD)
@@ -432,14 +441,43 @@ class RetrofitCatalogRepository(
     override suspend fun getProductsForUnit(unitId: String): List<Product> =
         runCatching {
             val snapshot = getSnapshot()
-            val resolvedId = snapshot.dto.findBusinessUnitByIdOrAlias(unitId)?.id ?: unitId
+            val matchingUnitIds = snapshot.dto.matchingBusinessUnitIds(unitId)
             snapshot.catalogEntries
                 .asSequence()
-                .filter { it.unitId == resolvedId || it.unitId == unitId }
+                .filter { it.unitId in matchingUnitIds }
                 .map { (u, t, product) -> product.toProduct(u, t) }
                 .distinctBy { it.productoId }
                 .toList()
         }.getOrElse { emptyList() }
+
+    /**
+     * IDs de unidad que corresponden al [unitId] pedido (id exacto + alias canónico
+     * p. ej. genericos-la-sante ↔ medicina-general).
+     */
+    private fun HomeDto.matchingBusinessUnitIds(unitId: String): Set<String> {
+        val resolved = findBusinessUnitByIdOrAlias(unitId)
+        return buildSet {
+            add(unitId)
+            if (resolved != null) {
+                add(resolved.id)
+                val canonical = businessUnitAliases.firstOrNull { it.matches(resolved) }
+                if (canonical != null) {
+                    add(canonical.fallbackId)
+                    addAll(canonical.aliases)
+                }
+            } else {
+                val canonical = businessUnitAliases.firstOrNull { target ->
+                    val key = unitId.normalizedKey()
+                    target.fallbackId.normalizedKey() == key ||
+                        target.aliases.any { it.normalizedKey() == key }
+                }
+                if (canonical != null) {
+                    add(canonical.fallbackId)
+                    addAll(canonical.aliases)
+                }
+            }
+        }
+    }
 
     override suspend fun getProduct(productId: String): Product? =
         runCatching {

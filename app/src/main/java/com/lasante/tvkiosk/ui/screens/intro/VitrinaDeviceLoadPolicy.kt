@@ -109,8 +109,8 @@ internal object VitrinaDeviceLoadPolicy {
      * - Emulador TV66/4K: [RenderQuality.Performance] (DRS) para evitar ANR en x86.
      * - Emulador TV1080 / Television_1080 (TV_REGULAR): [RenderQuality.Default] —
      *   Performance+DRS se ve muy pixelado en 1137×711.
-     * - Dispositivos reales (tablet táctil incluido): Default sin DRS; la RAM se mitiga
-     *   con prefetch retrasado, no bajando resolución del GLB.
+     * - Dispositivos reales (tablet táctil incluido): Default — Performance apagaba
+     *   calidad de lámparas/IBL; la agilidad del drag va por sensibilidad/snap.
      */
     fun filamentRenderQuality(context: Context, layoutMetrics: IntroLayoutMetrics): RenderQuality =
         when {
