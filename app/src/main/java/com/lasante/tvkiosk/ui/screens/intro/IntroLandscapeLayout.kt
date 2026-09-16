@@ -409,17 +409,25 @@ fun SocialRail(
     onSocialClick: (String, String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-        Row(
+    val density = LocalDensity.current
+    val sizePx = with(density) { metrics.socialIconSize.roundToPx() }
+    val syncedDrawables = rememberSyncedSocialGifDrawables(
+        socialNetworks = socialNetworks,
+        sizePx = sizePx,
+    )
+
+    Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(metrics.socialIconRowSpacing),
-        ) {
-            socialNetworks.forEach { social ->
-                SocialNetworkIconButton(
-                    social = social,
-                    size = metrics.socialIconSize,
-                    onClick = { onSocialClick(social.label, social.url) },
-                )
-            }
+    ) {
+        socialNetworks.forEach { social ->
+            SocialNetworkIconButton(
+                social = social,
+                size = metrics.socialIconSize,
+                syncedDrawable = syncedDrawables[social.id],
+                onClick = { onSocialClick(social.label, social.url) },
+            )
+        }
     }
 }

@@ -1,5 +1,8 @@
 package com.lasante.tvkiosk.ui.screens.intro
 
+import android.graphics.drawable.Animatable
+import android.graphics.drawable.Drawable
+import android.widget.ImageView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -9,20 +12,28 @@ import androidx.compose.material.icons.filled.Facebook
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import coil.imageLoader
 import com.lasante.tvkiosk.ui.utils.clickableWithSound
+import kotlinx.coroutines.yield
 
 /** Rutas de GIF por red social dentro de `assets/vitrina/ui/`. */
 object SocialNetworkAssets {
@@ -73,28 +84,90 @@ object SocialNetworks {
     )
 }
 
+/**
+ * Precarga los GIF de redes y los arranca juntos para que el loop quede sincronizado
+ * (mismos frames/duración en assets; Coil por sí solo arranca al terminar cada decode).
+ */
+@Composable
+fun rememberSyncedSocialGifDrawables(
+    socialNetworks: List<SocialNetwork>,
+    sizePx: Int,
+): Map<SocialNetworkId, Drawable> {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var drawables by remember(socialNetworks, sizePx) {
+        mutableStateOf<Map<SocialNetworkId, Drawable>>(emptyMap())
+    }
+
+    fun restartAll(map: Map<SocialNetworkId, Drawable>) {
+        map.values.forEach { drawable ->
+            (drawable as? Animatable)?.stop()
+        }
+        map.values.forEach { drawable ->
+            (drawable as? Animatable)?.start()
+        }
+    }
+
+    LaunchedEffect(socialNetworks, sizePx) {
+        val loader = context.imageLoader
+        val loaded = LinkedHashMap<SocialNetworkId, Drawable>(socialNetworks.size)
+        for (social in socialNetworks) {
+            val exists = runCatching {
+                context.assets.open(social.iconAssetPath).close()
+                true
+            }.getOrDefault(false)
+            if (!exists) continue
+            val result = loader.execute(
+                VitrinaUiImages.request(
+                    context,
+                    SocialNetworkAssets.assetUri(social.iconAssetPath),
+                    sizePx = sizePx,
+                ),
+            )
+            val drawable = result.drawable ?: continue
+            (drawable as? Animatable)?.stop()
+            loaded[social.id] = drawable
+        }
+        drawables = loaded
+        // Misma “marca” de arranque tras componer los painters.
+        yield()
+        restartAll(loaded)
+    }
+
+    // Al volver de background, Coil puede dejar animaciones desfasadas: re-sync.
+    DisposableEffect(lifecycleOwner, drawables) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && drawables.isNotEmpty()) {
+                restartAll(drawables)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    LaunchedEffect(drawables) {
+        if (drawables.isEmpty()) return@LaunchedEffect
+        yield()
+        restartAll(drawables)
+    }
+
+    return drawables
+}
+
 @Composable
 fun SocialNetworkIconButton(
     social: SocialNetwork,
     size: Dp,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    syncedDrawable: Drawable? = null,
 ) {
     val context = LocalContext.current
-    val density = LocalDensity.current
-    val sizePx = with(density) { size.roundToPx() }
-    val hasCustomIcon = remember(social.iconAssetPath) {
+    val hasCustomIcon = syncedDrawable != null || remember(social.iconAssetPath) {
         runCatching {
             context.assets.open(social.iconAssetPath).close()
             true
         }.getOrDefault(false)
-    }
-    val iconModel = remember(social.iconAssetPath, context, sizePx) {
-        VitrinaUiImages.request(
-            context,
-            SocialNetworkAssets.assetUri(social.iconAssetPath),
-            sizePx = sizePx,
-        )
     }
 
     Box(
@@ -115,15 +188,29 @@ fun SocialNetworkIconButton(
             .clickableWithSound { onClick() },
         contentAlignment = Alignment.Center,
     ) {
-        if (hasCustomIcon) {
-            AsyncImage(
-                model = iconModel,
-                contentDescription = social.label,
-                contentScale = ContentScale.Fit,
+        when {
+            syncedDrawable != null -> AndroidView(
+                factory = { ctx ->
+                    ImageView(ctx).apply {
+                        contentDescription = social.label
+                        scaleType = ImageView.ScaleType.FIT_CENTER
+                        adjustViewBounds = true
+                        setImageDrawable(syncedDrawable)
+                    }
+                },
+                update = { imageView ->
+                    imageView.contentDescription = social.label
+                    if (imageView.drawable !== syncedDrawable) {
+                        imageView.setImageDrawable(syncedDrawable)
+                    }
+                },
                 modifier = Modifier.size(size),
             )
-        } else {
-            SocialNetworkFallbackGlyph(id = social.id, size = size)
+            hasCustomIcon -> {
+                // Esperando sync: placeholder vacío (evita un GIF arrancando solo).
+                Box(modifier = Modifier.size(size))
+            }
+            else -> SocialNetworkFallbackGlyph(id = social.id, size = size)
         }
     }
 }

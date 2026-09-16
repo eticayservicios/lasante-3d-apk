@@ -525,6 +525,10 @@ private fun ProductDescriptionPanel(
     val titleFontFamily = MaterialTheme.typography.bodyLarge.fontFamily
     // Sombra suave (mock): elevación difusa + leve sesgo arriba/derecha.
     val shadowElevation = if (compact) 12.dp else 20.dp
+    val titleSize = ((if (compact) 18f else 22f) * bodyScale).sp
+    val titleLine = ((if (compact) 21.6f else 26f) * bodyScale).sp
+    val strengthSize = ((if (compact) 14f else 16f) * bodyScale).sp
+    val strengthLine = ((if (compact) 18f else 20f) * bodyScale).sp
     val bodySize = ((if (compact) 13f else 14f) * bodyScale).sp
     val bodyLine = ((if (compact) 18f else 20f) * bodyScale).sp
     val scrollState = rememberScrollState()
@@ -578,8 +582,8 @@ private fun ProductDescriptionPanel(
                 style = TextStyle(
                     brush = titleBrush,
                     fontFamily = titleFontFamily,
-                    fontSize = if (compact) 18.sp else 21.6.sp,
-                    lineHeight = if (compact) 21.6.sp else 25.2.sp,
+                    fontSize = titleSize,
+                    lineHeight = titleLine,
                     fontWeight = FontWeight.Medium,
                 ),
                 color = Color.Unspecified,
@@ -589,12 +593,12 @@ private fun ProductDescriptionPanel(
             )
 
             if (!strengthPart.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height((6f * bodyScale).dp))
                 Text(
                     text = strengthPart,
                     color = LaSanteText,
-                    fontSize = if (compact) 14.sp else 16.sp,
-                    lineHeight = if (compact) 18.sp else 20.sp,
+                    fontSize = strengthSize,
+                    lineHeight = strengthLine,
                     fontWeight = FontWeight.Normal,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -610,7 +614,7 @@ private fun ProductDescriptionPanel(
                 )
             }
 
-            Spacer(modifier = Modifier.height(if (compact) 14.dp else 18.dp))
+            Spacer(modifier = Modifier.height(((if (compact) 14f else 18f) * bodyScale).dp))
 
             if (bullets.isEmpty()) {
                 Text(
@@ -635,7 +639,7 @@ private fun ProductDescriptionPanel(
                                 if (expanded) Modifier.verticalScroll(scrollState) else Modifier,
                             )
                             .onSizeChanged { contentPx = it.height },
-                        verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(((if (compact) 8f else 10f) * bodyScale).dp),
                     ) {
                         bullets.forEachIndexed { index, line ->
                             ModalBulletLine(
