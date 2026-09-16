@@ -33,8 +33,8 @@ object VitrinaConstants {
         "phone_landscape", "phone_portrait" -> DRAG_TRACK_WIDTH_SCREEN_FRACTION
         "tv_32" -> 0.12f
         "tv_42", "tablet_landscape" -> 0.10f
-        // TV66/Hikvision: +15% sensibilidad vs 0.075 (menor fracción = menos swipe).
-        "tv_66", "expanded" -> 0.065f
+        // TV66/Hikvision: un poco más sensible (menor fracción = menos swipe).
+        "tv_66", "expanded" -> 0.058f
         else -> 0.12f
     }
 
@@ -65,16 +65,16 @@ object VitrinaConstants {
         easing = snappyRotationEasing,
     )
 
-    /** Duración snap manual (botón / select). TV66 ~20% más rápido que baseline TV. */
+    /** Duración snap manual (botón / select). TV66 más ágil a distancia de sala. */
     fun manualRotationDurationMs(profileKey: String): Int = when (profileKey) {
-        "tv_66" -> 115
-        else -> 180
+        "tv_66" -> 95
+        else -> 160
     }
 
     /** Duración snap al soltar drag. */
     fun dragSnapDurationMs(profileKey: String): Int = when (profileKey) {
-        "tv_66" -> 75
-        else -> 120
+        "tv_66" -> 58
+        else -> 105
     }
 
     /** Umbral de ángulo al soltar para cambiar de unidad (fracción de 72°). Menor = más sensible. */
@@ -163,11 +163,11 @@ object VitrinaConstants {
     val LAMP_INTERIOR_EMISSIVE_FACTOR = floatArrayOf(1f, 1f, 1f)
 
     val fadeAnimationSpec: AnimationSpec<Float> = tween(durationMillis = 280)
-    val manualRotationAnimationSpec: AnimationSpec<Float> = rotationTween(180)
+    val manualRotationAnimationSpec: AnimationSpec<Float> = rotationTween(160)
     /** Snap al soltar drag (más corto que rotación manual genérica). */
-    val dragSnapAnimationSpec: AnimationSpec<Float> = rotationTween(120)
+    val dragSnapAnimationSpec: AnimationSpec<Float> = rotationTween(105)
     val autoRotationAnimationSpec: AnimationSpec<Float> = tween(
-        durationMillis = 4000,
+        durationMillis = 3200,
         easing = LinearEasing,
     )
 

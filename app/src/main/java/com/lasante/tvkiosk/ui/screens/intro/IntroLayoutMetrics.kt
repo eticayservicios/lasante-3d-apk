@@ -1059,9 +1059,9 @@ data class IntroLayoutMetrics(
             "phone_landscape", "phone_portrait" -> 60_000
             "tv_32" -> 85_000
             "tv_42", "tablet_landscape" -> 95_000
-            // TV66: ~20% más rápido que 100s (sigue más lento que phone).
-            "tv_66" -> 83_000
-            else -> 75_000
+            // TV66: idle un poco más vivo (~18% vs 83s; sigue más lento que phone).
+            "tv_66" -> 68_000
+            else -> 70_000
         }
 
     /** Grados de tolerancia para encender cintillo/lámparas tras el snap. */

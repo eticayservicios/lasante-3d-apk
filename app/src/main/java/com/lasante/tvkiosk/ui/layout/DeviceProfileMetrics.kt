@@ -281,7 +281,8 @@ object DeviceProfileResolver {
                 alignRowTop = false,
                 closeButtonSize = modalCloseIconSize(DeviceProfileTier.TV_LARGE),
                 justifyDescription = true,
-                descriptionBodyScale = 0.90f,
+                // Hikvision / TV66: lectura a distancia — antes 0.90 se veía demasiado chico.
+                descriptionBodyScale = 1.34f,
                 descriptionBottomPadding = 40.dp,
                 descriptionExpandable = true,
             )
