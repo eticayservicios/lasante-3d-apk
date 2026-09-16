@@ -32,7 +32,9 @@ object VitrinaConstants {
     fun dragTrackWidthScreenFraction(profileKey: String): Float = when (profileKey) {
         "phone_landscape", "phone_portrait" -> DRAG_TRACK_WIDTH_SCREEN_FRACTION
         "tv_32" -> 0.12f
-        "tv_42", "tablet_landscape" -> 0.10f
+        // Tablet táctil (Damasco): más sensible — ver3 es más pesado y el swipe se sentía lento.
+        "tablet_landscape" -> 0.072f
+        "tv_42" -> 0.10f
         // TV66/Hikvision: un poco más sensible (menor fracción = menos swipe).
         "tv_66", "expanded" -> 0.058f
         else -> 0.12f
@@ -65,15 +67,17 @@ object VitrinaConstants {
         easing = snappyRotationEasing,
     )
 
-    /** Duración snap manual (botón / select). TV66 más ágil a distancia de sala. */
+    /** Duración snap manual (botón / select). TV66 / tablet más ágiles. */
     fun manualRotationDurationMs(profileKey: String): Int = when (profileKey) {
         "tv_66" -> 95
+        "tablet_landscape" -> 110
         else -> 160
     }
 
     /** Duración snap al soltar drag. */
     fun dragSnapDurationMs(profileKey: String): Int = when (profileKey) {
         "tv_66" -> 58
+        "tablet_landscape" -> 70
         else -> 105
     }
 
