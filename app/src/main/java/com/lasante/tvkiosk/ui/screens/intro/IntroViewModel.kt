@@ -32,6 +32,9 @@ class IntroViewModel(
         }
 
         viewModelScope.launch {
+            if (forceRefresh) {
+                catalogRepository.invalidateCache()
+            }
             if (cached == null) {
                 uiState = UiState.Loading
             }
@@ -41,6 +44,7 @@ class IntroViewModel(
 
     private fun refreshInBackground() {
         viewModelScope.launch {
+            // Respeta TTL de /home; forceRefresh invalida antes de fetch.
             val fresh = fetchCatalog()
             if (fresh is UiState.Success) {
                 uiState = fresh

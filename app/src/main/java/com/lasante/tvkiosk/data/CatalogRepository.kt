@@ -21,6 +21,8 @@ interface CatalogRepository {
     suspend fun getVitrinaUnits(): List<VitrinaUnit>
     /** Snapshot en memoria de /home (sin suspend). Null si aún no se cargó. */
     fun cachedVitrinaUnitsOrNull(): List<VitrinaUnit>? = null
+    /** Invalida snapshot /home en memoria para forzar el próximo fetch de red. */
+    fun invalidateCache() {}
     suspend fun getVitrinaConfig(): VitrinaConfig
     suspend fun getScreenSaverVideos(): List<ScreenSaverVideo>
     suspend fun getInstitutionalVideoUrl(): String?

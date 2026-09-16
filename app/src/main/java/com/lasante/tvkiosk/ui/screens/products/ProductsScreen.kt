@@ -136,9 +136,12 @@ private fun resolveScopeProducts(
     scopeLoading: Boolean = false,
     emptyWhileLoading: Boolean = false,
 ): List<Product> = when (productFilter) {
-    ProductFilter.BUSINESS_UNIT ->
-        if (emptyWhileLoading && scopeLoading && unitProducts.isEmpty()) emptyList()
-        else unitProducts.ifEmpty { products }
+    ProductFilter.BUSINESS_UNIT -> {
+        val scoped = unitProducts.ifEmpty { products }
+        // Si la ruta ya trae catálogo (VER TODOS), no ocultarlo mientras recarga.
+        if (emptyWhileLoading && scopeLoading && scoped.isEmpty()) emptyList()
+        else scoped
+    }
     ProductFilter.THERAPEUTIC_CLASS ->
         if (isStarProductsMode) {
             if (emptyWhileLoading && scopeLoading && starProducts.isEmpty()) emptyList()
@@ -241,19 +244,33 @@ fun ProductsScreen(
             var ctCatalogFilter by remember(unitId) { mutableStateOf(TherapeuticClassCatalogFilter()) }
             var isSearching by remember { mutableStateOf(false) }
             var globalSearchResults by remember { mutableStateOf<List<Product>>(emptyList()) }
-            var unitProducts by remember(unitId) { mutableStateOf<List<Product>>(emptyList()) }
+            // VER TODOS: la ruta ya trae getProductsForUnit; sembrar para no pantallar vacío.
+            var unitProducts by remember(unitId, isViewAllTreatments) {
+                mutableStateOf(if (isViewAllTreatments) products else emptyList())
+            }
             // Modo estrellas: la ruta ya trae los slots de /home; evita lista vacía al abrir.
             var starProducts by remember(unitId, isStarProductsMode, products) {
                 mutableStateOf(if (isStarProductsMode) products else emptyList())
             }
-            var scopeLoading by remember(unitId) { mutableStateOf(!isStarProductsMode) }
+            var scopeLoading by remember(unitId, isViewAllTreatments, products) {
+                mutableStateOf(
+                    when {
+                        isStarProductsMode -> false
+                        isViewAllTreatments && products.isNotEmpty() -> false
+                        else -> true
+                    },
+                )
+            }
 
             val coroutineScope = rememberCoroutineScope()
 
             // Carga en IO: en Main bloqueaba el UI (ANR al filtrar Unidad de negocio).
             // getVitrinaUnits / getProductsForUnit usan snapshot /home o catálogo ya cacheado.
-            LaunchedEffect(unitId, isStarProductsMode) {
-                scopeLoading = true
+            LaunchedEffect(unitId, isStarProductsMode, isViewAllTreatments, products) {
+                if (isViewAllTreatments && products.isNotEmpty()) {
+                    unitProducts = products
+                }
+                scopeLoading = !(isViewAllTreatments && products.isNotEmpty()) && !isStarProductsMode
                 val loaded = withContext(Dispatchers.IO) {
                     runCatching {
                         val stars = catalogRepository.getVitrinaUnits()
@@ -264,13 +281,18 @@ fun ProductsScreen(
                         // En modo estrellas no hace falta el catálogo completo de la unidad al abrir.
                         val unit = if (isStarProductsMode) {
                             emptyList()
+                        } else if (isViewAllTreatments && products.isNotEmpty()) {
+                            // Ya invalidó+cargó ProductsRoute; evita segunda pasada vacía.
+                            products
                         } else {
                             catalogRepository.getProductsForUnit(unitId)
                         }
                         unit to stars
                     }.getOrElse { emptyList<Product>() to emptyList() }
                 }
-                unitProducts = loaded.first
+                if (loaded.first.isNotEmpty()) {
+                    unitProducts = loaded.first
+                }
                 if (loaded.second.isNotEmpty()) {
                     starProducts = loaded.second
                 } else if (isStarProductsMode) {
