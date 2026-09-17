@@ -16,6 +16,8 @@ class MainActivity : ComponentActivity() {
         // que ignoran o retrasan sensorLandscape hasta “pantalla completa”.
         lockLandscape()
         super.onCreate(savedInstanceState)
+        // Kiosco: nunca el IME de Android; buscadores usan KioskQwertyKeyboard.
+        window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
         applyImmersiveFullscreen()
         setContent {
             LaSanteApp()

@@ -38,7 +38,11 @@ class IntroViewModel(
             if (cached == null) {
                 uiState = UiState.Loading
             }
-            uiState = fetchCatalog()
+            val result = fetchCatalog()
+            uiState = result
+            if (result is UiState.Success) {
+                loadSearchIndexInBackground()
+            }
         }
     }
 
@@ -48,6 +52,20 @@ class IntroViewModel(
             val fresh = fetchCatalog()
             if (fresh is UiState.Success) {
                 uiState = fresh
+                loadSearchIndexInBackground()
+            }
+        }
+    }
+
+    /** Buscador: índice slim en background; Intro ya pintó con /home slim. */
+    private fun loadSearchIndexInBackground() {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                val products = catalogRepository.ensureProductSearchIndex()
+                val current = (uiState as? UiState.Success)?.data ?: return@runCatching
+                if (products.isNotEmpty() && products != current.allProducts) {
+                    uiState = UiState.Success(current.copy(allProducts = products))
+                }
             }
         }
     }

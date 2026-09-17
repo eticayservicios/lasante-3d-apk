@@ -32,12 +32,13 @@ import com.lasante.tvkiosk.ui.theme.LaSanteWhite
 import com.lasante.tvkiosk.ui.utils.UiSound
 import com.lasante.tvkiosk.ui.utils.clickableWithSound
 
+private val RowNumbers = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
 private val Row1 = listOf("Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P")
 private val Row2 = listOf("A", "S", "D", "F", "G", "H", "J", "K", "L", "Ñ")
 private val Row3 = listOf("Z", "X", "C", "V", "B", "N", "M")
 
 /**
- * Teclado QWERTY en pantalla para kiosco/TV (Hikvision).
+ * Teclado QWERTY + números en pantalla para kiosco/TV (Hikvision).
  * No usa el IME de Android: el padre debe bloquear soft input.
  */
 @Composable
@@ -70,6 +71,14 @@ fun KioskQwertyKeyboard(
             .padding(pad),
         verticalArrangement = Arrangement.spacedBy(keyGap),
     ) {
+        KeyboardKeyRow(
+            labels = RowNumbers,
+            keyHeight = keyHeight,
+            keyGap = keyGap,
+            labelSp = labelSp,
+            corner = corner,
+            onChar = onChar,
+        )
         KeyboardKeyRow(
             labels = Row1,
             keyHeight = keyHeight,
@@ -162,7 +171,10 @@ private fun KeyboardKeyRow(
                     .height(keyHeight),
                 labelSp = labelSp,
                 corner = corner,
-                onClick = { onChar(label.lowercase()) },
+                onClick = {
+                    // Letras en minúscula; dígitos y símbolos tal cual.
+                    onChar(if (label.length == 1 && label[0].isLetter()) label.lowercase() else label)
+                },
             )
         }
     }

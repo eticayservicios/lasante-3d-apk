@@ -16,6 +16,11 @@ class RetrofitCatalogRepository(
     private var homeSnapshot: HomeSnapshot? = null
     @Volatile
     private var homeCacheTime: Long = 0
+    @Volatile
+    private var productSearchIndex: List<Product> = emptyList()
+    @Volatile
+    private var productIndexTime: Long = 0
+    private val productIndexMutex = Mutex()
     /**
      * Snapshot /home en memoria (kiosco).
      * 5 min: evita catálogo viejo en VER TODOS tras cambios en admin (antes 24 h y
@@ -86,6 +91,8 @@ class RetrofitCatalogRepository(
     override fun invalidateCache() {
         homeSnapshot = null
         homeCacheTime = 0
+        productSearchIndex = emptyList()
+        productIndexTime = 0
     }
 
     private suspend fun getSnapshot(forceRefresh: Boolean = false): HomeSnapshot =
@@ -99,15 +106,15 @@ class RetrofitCatalogRepository(
                 ) {
                     return@withLock cached
                 }
-                val dto = api.getHome()
+                val dto = api.getHome(view = "slim")
                 val snap = dto.toSnapshot()
                 homeSnapshot = snap
                 homeCacheTime = now
                 android.util.Log.d(
                     "RetrofitCatalogRepository",
-                    "home loaded: unidades=${dto.unidades.size}, vitrinaUnits=${dto.vitrina?.units?.size ?: -1}, " +
+                    "home slim loaded: unidades=${dto.unidades.size}, vitrinaUnits=${dto.vitrina?.units?.size ?: -1}, " +
                         "videos=${dto.vitrina?.videos?.screenSaver?.items?.size ?: -1}, " +
-                        "catalogProducts=${snap.catalogEntries.size} force=$forceRefresh",
+                        "nestedProducts=${snap.catalogEntries.size} force=$forceRefresh",
                 )
                 snap
             }
@@ -189,8 +196,8 @@ class RetrofitCatalogRepository(
     private fun ProductoDto.toProduct(unidadId: String, tratamientoId: String): Product {
         return Product(
             productoId    = id,
-            unidadId      = unidadId,
-            tratamientoId = tratamientoId,
+            unidadId      = this.unidadId?.takeIf { it.isNotBlank() } ?: unidadId,
+            tratamientoId = this.tratamientoId?.takeIf { it.isNotBlank() } ?: tratamientoId,
             nombre        = nombre ?: "",
             descripcion   = descripcion ?: "",
             estado        = "ACTIVO",
@@ -396,17 +403,57 @@ class RetrofitCatalogRepository(
 
     override suspend fun getIntroCatalogData(): IntroCatalogData {
         val snapshot = getSnapshot()
+        val fromHome = snapshot.catalogEntries
+            .map { (unitId, treatmentId, product) -> product.toProduct(unitId, treatmentId) }
+            .distinctBy { it.productoId }
+        val indexed = productSearchIndex
         return IntroCatalogData(
             businessUnits = snapshot.businessUnits,
             vitrinaUnits = snapshot.vitrinaUnits,
             vitrinaConfig = snapshot.vitrinaConfig,
             screenSaverVideos = snapshot.screenSaverVideos,
             institutionalVideoUrl = snapshot.institutionalVideoUrl,
-            allProducts = snapshot.catalogEntries
-                .map { (unitId, treatmentId, product) -> product.toProduct(unitId, treatmentId) }
-                .distinctBy { it.productoId },
+            allProducts = when {
+                indexed.isNotEmpty() -> indexed
+                else -> fromHome
+            },
         )
     }
+
+    override suspend fun ensureProductSearchIndex(): List<Product> =
+        withContext(Dispatchers.IO) {
+            productIndexMutex.withLock {
+                val now = System.currentTimeMillis()
+                if (productSearchIndex.isNotEmpty() && (now - productIndexTime) <= CACHE_TTL_MS) {
+                    return@withLock productSearchIndex
+                }
+                val products = runCatching {
+                    api.getProductosIndex().items.map { dto ->
+                        dto.toProduct(
+                            unidadId = dto.unidadId.orEmpty(),
+                            tratamientoId = dto.tratamientoId.orEmpty(),
+                        )
+                    }.distinctBy { it.productoId }
+                }.getOrElse { err ->
+                    android.util.Log.w(
+                        "RetrofitCatalogRepository",
+                        "productos-index failed, building from treatments: ${err.message}",
+                    )
+                    getUnits().flatMap { unit ->
+                        getTreatments(unit.unidadId).flatMap { treatment ->
+                            getProducts(treatment.tratamientoId)
+                        }
+                    }.distinctBy { it.productoId }
+                }
+                productSearchIndex = products
+                productIndexTime = now
+                android.util.Log.i(
+                    "RetrofitCatalogRepository",
+                    "product search index loaded: ${products.size}",
+                )
+                products
+            }
+        }
 
     override suspend fun getUnits(): List<BusinessUnit> =
         runCatching { getSnapshot().businessUnits }.getOrElse { emptyList() }
@@ -431,24 +478,111 @@ class RetrofitCatalogRepository(
 
     override suspend fun getProducts(treatmentId: String): List<Product> =
         runCatching {
+            val page = api.getProductosByTratamiento(tratamientoId = treatmentId)
+            page.items.map { dto ->
+                dto.toProduct(
+                    unidadId = dto.unidadId.orEmpty(),
+                    tratamientoId = treatmentId,
+                )
+            }
+        }.getOrElse {
+            // Fallback: snapshot home (view=full legado) o índice
             getSnapshot().catalogEntries
                 .filter { it.treatmentId == treatmentId }
                 .map { (unitId, treatmentIdValue, product) ->
                     product.toProduct(unitId, treatmentIdValue)
                 }
-        }.getOrElse { emptyList() }
+        }
 
     override suspend fun getProductsForUnit(unitId: String): List<Product> =
         runCatching {
-            val snapshot = getSnapshot()
-            val matchingUnitIds = snapshot.dto.matchingBusinessUnitIds(unitId)
-            snapshot.catalogEntries
-                .asSequence()
-                .filter { it.unitId in matchingUnitIds }
-                .map { (u, t, product) -> product.toProduct(u, t) }
+            val page = api.getProductosByUnidad(unidadId = unitId)
+            page.items
+                .map { dto ->
+                    dto.toProduct(
+                        unidadId = dto.unidadId?.takeIf { it.isNotBlank() } ?: unitId,
+                        tratamientoId = dto.tratamientoId.orEmpty(),
+                    )
+                }
                 .distinctBy { it.productoId }
-                .toList()
-        }.getOrElse { emptyList() }
+                .takeIf { it.isNotEmpty() }
+                ?: error("empty productos by unidad")
+        }.getOrElse {
+            android.util.Log.w(
+                "RetrofitCatalogRepository",
+                "getProductsForUnit catalog miss, walk treatments: ${it.message}",
+            )
+            getTreatments(unitId)
+                .flatMap { treatment -> getProducts(treatment.tratamientoId) }
+                .distinctBy { it.productoId }
+                .ifEmpty {
+                    val snapshot = getSnapshot()
+                    val matchingUnitIds = snapshot.dto.matchingBusinessUnitIds(unitId)
+                    snapshot.catalogEntries
+                        .asSequence()
+                        .filter { entry -> entry.unitId in matchingUnitIds }
+                        .map { (u, t, product) -> product.toProduct(u, t) }
+                        .distinctBy { product -> product.productoId }
+                        .toList()
+                }
+        }
+
+    override suspend fun getProductsForUnitPage(
+        unitId: String,
+        limit: Int,
+        cursor: String?,
+    ): ProductPage =
+        runCatching {
+            val page = api.getProductosByUnidad(
+                unidadId = unitId,
+                limit = limit.coerceIn(1, 100),
+                cursor = cursor,
+            )
+            val items = page.items.map { dto ->
+                dto.toProduct(
+                    unidadId = dto.unidadId?.takeIf { it.isNotBlank() } ?: unitId,
+                    tratamientoId = dto.tratamientoId.orEmpty(),
+                )
+            }.distinctBy { it.productoId }
+            if (items.isEmpty() && cursor == null) error("empty unit page")
+            ProductPage(items = items, nextCursor = page.nextCursor)
+        }.getOrElse {
+            if (cursor == null) {
+                ProductPage(items = getProductsForUnit(unitId), nextCursor = null)
+            } else {
+                ProductPage(items = emptyList(), nextCursor = null)
+            }
+        }
+
+    override suspend fun getAllProductsPage(
+        limit: Int,
+        cursor: String?,
+    ): ProductPage =
+        runCatching {
+            val page = api.getAllProductos(
+                limit = limit.coerceIn(1, 100),
+                cursor = cursor,
+            )
+            val items = page.items.map { dto ->
+                dto.toProduct(
+                    unidadId = dto.unidadId.orEmpty(),
+                    tratamientoId = dto.tratamientoId.orEmpty(),
+                )
+            }.distinctBy { it.productoId }
+            if (items.isEmpty() && cursor == null) error("empty global page")
+            ProductPage(items = items, nextCursor = page.nextCursor)
+        }.getOrElse { err ->
+            android.util.Log.w(
+                "RetrofitCatalogRepository",
+                "getAllProductsPage fallback to search index: ${err.message}",
+            )
+            if (cursor != null) {
+                ProductPage(items = emptyList(), nextCursor = null)
+            } else {
+                // Fallback: índice global (todas las unidades) de una vez.
+                ProductPage(items = ensureProductSearchIndex(), nextCursor = null)
+            }
+        }
 
     /**
      * IDs de unidad que corresponden al [unitId] pedido (id exacto + alias canónico
@@ -481,9 +615,18 @@ class RetrofitCatalogRepository(
 
     override suspend fun getProduct(productId: String): Product? =
         runCatching {
-            getSnapshot().catalogEntries
+            val fromHome = getSnapshot().catalogEntries
                 .firstOrNull { it.product.id == productId }
                 ?.let { (unitId, treatmentId, product) -> product.toProduct(unitId, treatmentId) }
+            if (fromHome != null) return@runCatching fromHome
+
+            val fromIndex = productSearchIndex.firstOrNull { it.productoId == productId }
+            val treatmentId = fromIndex?.tratamientoId?.takeIf { it.isNotBlank() }
+            if (treatmentId != null) {
+                val full = getProducts(treatmentId).firstOrNull { it.productoId == productId }
+                if (full != null) return@runCatching full
+            }
+            fromIndex
         }.getOrNull()
 
     override suspend fun getVitrinaUnits(): List<VitrinaUnit> =

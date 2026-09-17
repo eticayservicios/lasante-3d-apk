@@ -23,6 +23,7 @@ private data class ProductsData(
     val products: List<Product>,
     val isStarProductsMode: Boolean = false,
     val isViewAllTreatments: Boolean = false,
+    val nextCursor: String? = null,
 )
 
 private fun starProductsData(
@@ -95,22 +96,22 @@ fun ProductsRoute(
                         ),
                     )
                 } else {
-                    // VER TODOS / catálogo de unidad: forzar /home fresco para no
-                    // mostrar un snapshot viejo (antes TTL 24h sin invalidate).
-                    if (isViewAll) {
-                        catalogRepository.invalidateCache()
-                    }
+                    // Usar snapshot en memoria si está fresco (TTL). No invalidar aquí:
+                    // /home tarda ~10s+ (Lambda/Dynamo); invalidar en cada VER TODOS
+                    // dejaba Tratamientos/Productos en loading otra vez.
                     val treatments = catalogRepository.getTreatments(unitId)
                     val treatment = treatments.firstOrNull { it.id == treatmentId }
-                    val products = if (isViewAll) {
-                        catalogRepository.getProductsForUnit(unitId)
+                    val (products, nextCursor) = if (isViewAll) {
+                        // Catálogo global: todas las UN + CT (no la cara activa de vitrina).
+                        val page = catalogRepository.getAllProductsPage(limit = 24)
+                        page.items to page.nextCursor
                     } else {
-                        catalogRepository.getProducts(treatmentId)
+                        catalogRepository.getProducts(treatmentId) to null
                     }
                     android.util.Log.i(
                         "ProductsRoute",
                         "unit=$unitId treatment=$treatmentId viewAll=$isViewAll " +
-                            "products=${products.size}",
+                            "products=${products.size} nextCursor=${nextCursor != null}",
                     )
                     UiState.Success(
                         ProductsData(
@@ -124,6 +125,7 @@ fun ProductsRoute(
                             treatmentIconUrl = if (isViewAll) null else treatment?.media?.icono,
                             products = products,
                             isViewAllTreatments = isViewAll,
+                            nextCursor = nextCursor,
                         ),
                     )
                 }
@@ -152,6 +154,7 @@ fun ProductsRoute(
                     unitId            = unitId,
                     isViewAllTreatments = state.data.isViewAllTreatments,
                     isStarProductsMode = state.data.isStarProductsMode,
+                    initialNextCursor = state.data.nextCursor,
                     onBack            = onBack,
                     onHome            = onHome,
                     onProductSelected = { product -> selectedProduct = product },
