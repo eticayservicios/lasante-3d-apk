@@ -10,13 +10,37 @@ data class IntroCatalogData(
     val allProducts: List<Product> = emptyList(),
 )
 
+data class ProductPage(
+    val items: List<Product>,
+    val nextCursor: String? = null,
+)
+
 interface CatalogRepository {
     suspend fun getIntroCatalogData(): IntroCatalogData
+    /**
+     * Carga índice slim de productos para el buscador (background tras Intro).
+     * No bloquea /home.
+     */
+    suspend fun ensureProductSearchIndex(): List<Product>
     suspend fun getUnits(): List<BusinessUnit>
     suspend fun getTreatments(unitId: String): List<Treatment>
     suspend fun getProducts(treatmentId: String): List<Product>
     /** Todos los productos de una unidad (todas las clases terapéuticas). */
     suspend fun getProductsForUnit(unitId: String): List<Product>
+    /** Primera página (o siguiente) de productos de una unidad — scroll infinito. */
+    suspend fun getProductsForUnitPage(
+        unitId: String,
+        limit: Int = 24,
+        cursor: String? = null,
+    ): ProductPage
+    /**
+     * Catálogo global (todas las UN + CT). Usado por VER TODOS desde Intro.
+     * No filtra por la unidad activa de la vitrina.
+     */
+    suspend fun getAllProductsPage(
+        limit: Int = 24,
+        cursor: String? = null,
+    ): ProductPage
     suspend fun getProduct(productId: String): Product?
     suspend fun getVitrinaUnits(): List<VitrinaUnit>
     /** Snapshot en memoria de /home (sin suspend). Null si aún no se cargó. */

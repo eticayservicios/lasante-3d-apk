@@ -121,7 +121,22 @@ data class ProductoDto(
     @SerializedName("dosisValor")  val dosisValor: String? = null,
     @SerializedName("dosisUnidad") val dosisUnidad: String? = null,
     @SerializedName("formaFarmaceutica") val formaFarmaceutica: String? = null,
+    @SerializedName("unidadId")    val unidadId: String? = null,
+    @SerializedName("tratamientoId") val tratamientoId: String? = null,
     @SerializedName("media")       val media: ItemMediaDto? = null
+)
+
+/** Página de /catalog?entity=…&limit=&cursor= */
+data class CatalogPageDto(
+    @SerializedName("items")       val items: List<ProductoDto> = emptyList(),
+    @SerializedName("count")       val count: Int = 0,
+    @SerializedName("nextCursor")  val nextCursor: String? = null,
+)
+
+data class TreatmentPageDto(
+    @SerializedName("items")       val items: List<TratamientoDto> = emptyList(),
+    @SerializedName("count")       val count: Int = 0,
+    @SerializedName("nextCursor")  val nextCursor: String? = null,
 )
 
 // ── Items Destacados ───────────────────────────────────────────────

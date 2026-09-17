@@ -17,6 +17,7 @@ import kotlinx.coroutines.withContext
 data class TreatmentsData(
     val unitName: String,
     val treatments: List<Treatment>,
+    /** Catálogo de la unidad para el buscador; puede llegar vacío y rellenarse luego. */
     val products: List<Product>,
 )
 
@@ -30,6 +31,8 @@ class TreatmentsViewModel(
 
     private val cache = mutableMapOf<String, TreatmentsData>()
     private var warmCacheStarted = false
+    @Volatile
+    private var activeUnitId: String? = null
 
     fun warmCache() {
         if (warmCacheStarted) return
@@ -38,15 +41,23 @@ class TreatmentsViewModel(
             runCatching {
                 val units = catalogRepository.getUnits()
                 units.forEach { unit ->
-                    cache.putIfAbsent(unit.id, buildTreatmentsData(unit.id, units))
+                    cache.putIfAbsent(unit.id, buildTreatmentsShell(unit.id, units))
                 }
+                // Índice de búsqueda (compartido con Intro); no precargar todos los productos por unidad.
+                runCatching { catalogRepository.ensureProductSearchIndex() }
             }
         }
     }
 
     fun load(unitId: String, forceRefresh: Boolean = false) {
+        activeUnitId = unitId
         cache[unitId]?.takeUnless { forceRefresh }?.let { cached ->
             uiState = UiState.Success(cached)
+            if (cached.products.isEmpty()) {
+                viewModelScope.launch(Dispatchers.IO) {
+                    runCatching { ensureProductsLoaded(unitId) }
+                }
+            }
             return
         }
 
@@ -54,22 +65,23 @@ class TreatmentsViewModel(
             if (cache[unitId] == null) {
                 uiState = UiState.Loading
             }
-            uiState = fetchTreatments(unitId)
+            uiState = try {
+                val shell = withContext(Dispatchers.IO) {
+                    buildTreatmentsShell(unitId)
+                }
+                cache[unitId] = shell
+                viewModelScope.launch(Dispatchers.IO) {
+                    runCatching { ensureProductsLoaded(unitId) }
+                }
+                UiState.Success(shell)
+            } catch (e: Exception) {
+                UiState.Error(e.message ?: "Error de conexión")
+            }
         }
     }
 
-    private suspend fun fetchTreatments(unitId: String): UiState<TreatmentsData> =
-        try {
-            val data = withContext(Dispatchers.IO) {
-                buildTreatmentsData(unitId)
-            }
-            cache[unitId] = data
-            UiState.Success(data)
-        } catch (e: Exception) {
-            UiState.Error(e.message ?: "Error de conexión")
-        }
-
-    private suspend fun buildTreatmentsData(
+    /** Solo metadatos de clases terapéuticas (lo que ve el grid). */
+    private suspend fun buildTreatmentsShell(
         unitId: String,
         allUnits: List<com.lasante.tvkiosk.data.BusinessUnit>? = null,
     ): TreatmentsData {
@@ -77,11 +89,26 @@ class TreatmentsViewModel(
         val unit = units.firstOrNull { it.id == unitId }
         val treatments = catalogRepository.getTreatments(unitId)
             .filterNot { it.id.endsWith("-vitrina") }
-        val products = catalogRepository.getProductsForUnit(unitId)
         return TreatmentsData(
             unitName = DisplayTitles.resolve(unit?.name, unitId),
             treatments = treatments,
-            products = products,
+            products = cache[unitId]?.products.orEmpty(),
         )
+    }
+
+    private suspend fun ensureProductsLoaded(unitId: String) {
+        val current = cache[unitId] ?: return
+        if (current.products.isNotEmpty()) return
+        val indexed = catalogRepository.ensureProductSearchIndex()
+            .filter { product ->
+                product.unidadId.equals(unitId, ignoreCase = true)
+            }
+        val products = indexed.ifEmpty { catalogRepository.getProductsForUnit(unitId) }
+        if (products.isEmpty()) return
+        val updated = current.copy(products = products)
+        cache[unitId] = updated
+        if (activeUnitId == unitId) {
+            uiState = UiState.Success(updated)
+        }
     }
 }

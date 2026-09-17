@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -42,7 +41,6 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -70,11 +68,15 @@ import com.lasante.tvkiosk.data.CatalogRepository
 import com.lasante.tvkiosk.data.DisplayTitles
 import com.lasante.tvkiosk.data.Product
 import com.lasante.tvkiosk.ui.components.GreenNavButton
+import com.lasante.tvkiosk.ui.components.KioskImeBlockedTextField
+import com.lasante.tvkiosk.ui.components.KioskQwertyKeyboard
 import com.lasante.tvkiosk.ui.components.LaSanteBackground
 import com.lasante.tvkiosk.ui.components.LaSanteScreenTitle
 import com.lasante.tvkiosk.ui.components.ProductosEstrellasBadge
 import com.lasante.tvkiosk.ui.components.RealGreenScrollBar
 import com.lasante.tvkiosk.ui.components.TreatmentIconAssets
+import com.lasante.tvkiosk.ui.components.appendKioskChar
+import com.lasante.tvkiosk.ui.components.backspaceKioskText
 import com.lasante.tvkiosk.ui.layout.CatalogHeaderMetrics
 import com.lasante.tvkiosk.ui.layout.CatalogIconDebugColors
 import com.lasante.tvkiosk.ui.layout.CatalogIconDebugPanel
@@ -200,11 +202,26 @@ fun ProductsScreen(
     unitId: String,
     isViewAllTreatments: Boolean = false,
     isStarProductsMode: Boolean = false,
+    initialNextCursor: String? = null,
     onBack: () -> Unit,
     onHome: () -> Unit,
     onProductSelected: (Product) -> Unit,
 ) {
-    BackHandler(onBack = onBack)
+    var searchQuery by remember { mutableStateOf("") }
+    var searchKeyboardOpen by remember { mutableStateOf(false) }
+    var pagedProducts by remember(unitId, treatmentName, products) { mutableStateOf(products) }
+    var nextCursor by remember(unitId, treatmentName, initialNextCursor) {
+        mutableStateOf(initialNextCursor)
+    }
+    var loadingMore by remember { mutableStateOf(false) }
+
+    BackHandler {
+        if (searchKeyboardOpen) {
+            searchKeyboardOpen = false
+        } else {
+            onBack()
+        }
+    }
 
     LaSanteBackground {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -229,7 +246,6 @@ fun ProductsScreen(
                 screen = if (isStarProductsMode) "ProductosEstrella" else "Products",
             )
 
-            var searchQuery by remember { mutableStateOf("") }
             var sortOrder by remember { mutableStateOf(SortOrder.NONE) }
             val defaultFilter = when {
                 isStarProductsMode -> ProductFilter.STAR_PRODUCTS
@@ -269,6 +285,7 @@ fun ProductsScreen(
             LaunchedEffect(unitId, isStarProductsMode, isViewAllTreatments, products) {
                 if (isViewAllTreatments && products.isNotEmpty()) {
                     unitProducts = products
+                    pagedProducts = products
                 }
                 scopeLoading = !(isViewAllTreatments && products.isNotEmpty()) && !isStarProductsMode
                 val loaded = withContext(Dispatchers.IO) {
@@ -282,8 +299,10 @@ fun ProductsScreen(
                         val unit = if (isStarProductsMode) {
                             emptyList()
                         } else if (isViewAllTreatments && products.isNotEmpty()) {
-                            // Ya invalidó+cargó ProductsRoute; evita segunda pasada vacía.
+                            // Primera página global ya vino de ProductsRoute.
                             products
+                        } else if (isViewAllTreatments) {
+                            catalogRepository.getAllProductsPage(limit = 100).items
                         } else {
                             catalogRepository.getProductsForUnit(unitId)
                         }
@@ -292,6 +311,9 @@ fun ProductsScreen(
                 }
                 if (loaded.first.isNotEmpty()) {
                     unitProducts = loaded.first
+                    if (isViewAllTreatments) {
+                        pagedProducts = loaded.first
+                    }
                 }
                 if (loaded.second.isNotEmpty()) {
                     starProducts = loaded.second
@@ -448,6 +470,38 @@ fun ProductsScreen(
                 gridState.scrollToItem(0)
             }
 
+            // VER TODOS: cargar siguiente página global al acercarse al final del grid.
+            val loadMoreThreshold = remember {
+                derivedStateOf {
+                    val info = gridState.layoutInfo
+                    val last = info.visibleItemsInfo.lastOrNull()?.index ?: 0
+                    val total = info.totalItemsCount
+                    total > 0 && last >= total - columns * 2
+                }
+            }
+            LaunchedEffect(loadMoreThreshold.value, nextCursor, isViewAllTreatments, unitId) {
+                if (!isViewAllTreatments || nextCursor.isNullOrBlank() || loadingMore) return@LaunchedEffect
+                if (!loadMoreThreshold.value) return@LaunchedEffect
+                loadingMore = true
+                val page = withContext(Dispatchers.IO) {
+                    runCatching {
+                        catalogRepository.getAllProductsPage(
+                            limit = 24,
+                            cursor = nextCursor,
+                        )
+                    }.getOrNull()
+                }
+                if (page != null && page.items.isNotEmpty()) {
+                    val merged = (pagedProducts + page.items).distinctBy { it.productoId }
+                    pagedProducts = merged
+                    unitProducts = merged
+                    nextCursor = page.nextCursor
+                } else {
+                    nextCursor = null
+                }
+                loadingMore = false
+            }
+
             val scrollInfo = remember(columns) {
                 derivedStateOf { computeProductsGridScrollbar(gridState, columns) }
             }
@@ -493,7 +547,7 @@ fun ProductsScreen(
                                 isTv42 = isTv42,
                                 isTv42LargeUp = isTv42LargeUp,
                                 searchQuery = searchQuery,
-                                onSearchQueryChange = { searchQuery = it },
+                                onOpenSearchKeyboard = { searchKeyboardOpen = true },
                                 isSearching = isSearching,
                                 sortOrder = sortOrder,
                                 onSortClick = {
@@ -609,6 +663,11 @@ fun ProductsScreen(
                                                         colors = listOf(Color(0xFFF8F8F8), Color(0xFFD0D0D0)),
                                                     ),
                                                 )
+                                                .clickable(
+                                                    interactionSource = remember { MutableInteractionSource() },
+                                                    indication = null,
+                                                    onClick = { searchKeyboardOpen = true },
+                                                )
                                                 .padding(horizontal = if (isLandscape) 10.dp else 8.dp),
                                             contentAlignment = Alignment.CenterStart,
                                         ) {
@@ -622,26 +681,11 @@ fun ProductsScreen(
                                                     modifier = Modifier.size(header.searchIconSize),
                                                     contentScale = ContentScale.Fit,
                                                 )
-                                                BasicTextField(
+                                                KioskImeBlockedTextField(
                                                     value = searchQuery,
-                                                    onValueChange = { searchQuery = it },
-                                                    textStyle = TextStyle(
-                                                        color = LaSanteText,
-                                                        fontSize = header.searchFontSize,
-                                                    ),
-                                                    cursorBrush = SolidColor(LaSanteGreen),
+                                                    fontSize = header.searchFontSize,
                                                     modifier = Modifier.weight(1f),
-                                                    singleLine = true,
-                                                    decorationBox = { innerTextField ->
-                                                        if (searchQuery.isEmpty()) {
-                                                            Text(
-                                                                "Buscar Producto",
-                                                                color = LaSanteTextSecondary.copy(alpha = 0.40f),
-                                                                fontSize = header.searchFontSize,
-                                                            )
-                                                        }
-                                                        innerTextField()
-                                                    },
+                                                    onOpenCustomKeyboard = { searchKeyboardOpen = true },
                                                 )
                                                 if (isSearching) {
                                                     CircularProgressIndicator(
@@ -770,6 +814,11 @@ fun ProductsScreen(
                                                     colors = listOf(Color(0xFFF8F8F8), Color(0xFFD0D0D0)),
                                                 ),
                                             )
+                                            .clickable(
+                                                interactionSource = remember { MutableInteractionSource() },
+                                                indication = null,
+                                                onClick = { searchKeyboardOpen = true },
+                                            )
                                             .padding(horizontal = if (isLandscape) 10.dp else 8.dp),
                                         contentAlignment = Alignment.CenterStart,
                                     ) {
@@ -783,26 +832,11 @@ fun ProductsScreen(
                                                 modifier = Modifier.size(header.searchIconSize),
                                                 contentScale = ContentScale.Fit,
                                             )
-                                            BasicTextField(
+                                            KioskImeBlockedTextField(
                                                 value = searchQuery,
-                                                onValueChange = { searchQuery = it },
-                                                textStyle = TextStyle(
-                                                    color = LaSanteText,
-                                                    fontSize = header.searchFontSize,
-                                                ),
-                                                cursorBrush = SolidColor(LaSanteGreen),
+                                                fontSize = header.searchFontSize,
                                                 modifier = Modifier.weight(1f),
-                                                singleLine = true,
-                                                decorationBox = { innerTextField ->
-                                                    if (searchQuery.isEmpty()) {
-                                                        Text(
-                                                            "Buscar Producto",
-                                                            color = LaSanteTextSecondary.copy(alpha = 0.40f),
-                                                            fontSize = header.searchFontSize,
-                                                        )
-                                                    }
-                                                    innerTextField()
-                                                },
+                                                onOpenCustomKeyboard = { searchKeyboardOpen = true },
                                             )
                                             if (isSearching) {
                                                 CircularProgressIndicator(
@@ -1060,6 +1094,44 @@ fun ProductsScreen(
 
             }
 
+            if (searchKeyboardOpen) {
+                // Scrim: toque fuera cierra el teclado virtual.
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .zIndex(35f)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = { searchKeyboardOpen = false },
+                        ),
+                )
+                val keyboardScale = (canvasHeight.value / 720f).coerceIn(0.85f, 1.35f)
+                // Callbacks estables: evitan re-montar todas las teclas en cada letra.
+                val searchQueryState = rememberUpdatedState(searchQuery)
+                val onCharStable = remember {
+                    { char: String ->
+                        searchQuery = appendKioskChar(searchQueryState.value, char)
+                    }
+                }
+                val onBackspaceStable = remember {
+                    {
+                        searchQuery = backspaceKioskText(searchQueryState.value)
+                    }
+                }
+                KioskQwertyKeyboard(
+                    onChar = onCharStable,
+                    onBackspace = onBackspaceStable,
+                    onDone = { searchKeyboardOpen = false },
+                    layoutScale = keyboardScale,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth(0.72f)
+                        .padding(bottom = 16.dp)
+                        .zIndex(40f),
+                )
+            }
+
             if (showFilterSheet) {
                 // Mismo modal CT en Productos de clase y en Ver todos (formas + estrellas).
                 TherapeuticClassFilterSheet(
@@ -1097,7 +1169,7 @@ private fun StarProductsHeader(
     isTv42: Boolean,
     isTv42LargeUp: Boolean,
     searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
+    onOpenSearchKeyboard: () -> Unit,
     isSearching: Boolean,
     sortOrder: SortOrder,
     onSortClick: () -> Unit,
@@ -1129,6 +1201,11 @@ private fun StarProductsHeader(
                             colors = listOf(Color(0xFFF8F8F8), Color(0xFFD0D0D0)),
                         ),
                     )
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onOpenSearchKeyboard,
+                    )
                     .padding(horizontal = if (isLandscape) 10.dp else 8.dp),
                 contentAlignment = Alignment.CenterStart,
             ) {
@@ -1142,26 +1219,11 @@ private fun StarProductsHeader(
                         modifier = Modifier.size(header.searchIconSize),
                         contentScale = ContentScale.Fit,
                     )
-                    BasicTextField(
+                    KioskImeBlockedTextField(
                         value = searchQuery,
-                        onValueChange = onSearchQueryChange,
-                        textStyle = TextStyle(
-                            color = LaSanteText,
-                            fontSize = header.searchFontSize,
-                        ),
-                        cursorBrush = SolidColor(LaSanteGreen),
+                        fontSize = header.searchFontSize,
                         modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        decorationBox = { innerTextField ->
-                            if (searchQuery.isEmpty()) {
-                                Text(
-                                    "Buscar Producto",
-                                    color = LaSanteTextSecondary.copy(alpha = 0.40f),
-                                    fontSize = header.searchFontSize,
-                                )
-                            }
-                            innerTextField()
-                        },
+                        onOpenCustomKeyboard = onOpenSearchKeyboard,
                     )
                     if (isSearching) {
                         CircularProgressIndicator(
