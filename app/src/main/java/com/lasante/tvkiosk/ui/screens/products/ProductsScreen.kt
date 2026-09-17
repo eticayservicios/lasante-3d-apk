@@ -156,17 +156,24 @@ private fun resolveScopeProducts(
         else starProducts
 }
 
-/** Por defecto estrellas primero. A-Z / Z-A ordenan todo el catálogo, estrellas incluidas. */
+/** Por defecto estrellas primero (A–Z entre ellas), luego el resto A–Z. */
 private fun List<Product>.sortedForProductGrid(
     sortOrder: SortOrder,
     starIds: Set<String>,
 ): List<Product> {
+    fun nameKey(p: Product) = p.name.lowercase()
     return when (sortOrder) {
-        SortOrder.AZ -> sortedBy { it.name }
-        SortOrder.ZA -> sortedByDescending { it.name }
+        SortOrder.AZ -> sortedBy(::nameKey)
+        SortOrder.ZA -> sortedByDescending(::nameKey)
         SortOrder.NONE ->
-            if (starIds.isEmpty()) this
-            else sortedByDescending { it.productoId in starIds }
+            if (starIds.isEmpty()) {
+                sortedBy(::nameKey)
+            } else {
+                sortedWith(
+                    compareByDescending<Product> { it.productoId in starIds }
+                        .thenBy(::nameKey),
+                )
+            }
     }
 }
 
@@ -192,6 +199,19 @@ private fun Product.gridVisual(): ProductGridVisual {
     }
 }
 
+/** Estrellas A–Z primero; resto A–Z sin duplicar. */
+private fun mergeStarsFirstCatalog(stars: List<Product>, catalog: List<Product>): List<Product> {
+    val starsSorted = stars.distinctBy { it.productoId }.sortedBy { it.name.lowercase() }
+    val starIds = starsSorted.map { it.productoId }.toSet()
+    val rest = catalog
+        .asSequence()
+        .filter { it.productoId !in starIds }
+        .distinctBy { it.productoId }
+        .sortedBy { it.name.lowercase() }
+        .toList()
+    return starsSorted + rest
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductsScreen(
@@ -203,6 +223,8 @@ fun ProductsScreen(
     isViewAllTreatments: Boolean = false,
     isStarProductsMode: Boolean = false,
     initialNextCursor: String? = null,
+    /** VER TODOS: estrellas ya resueltas desde vitrina (todas las UN). */
+    initialStarProducts: List<Product> = emptyList(),
     onBack: () -> Unit,
     onHome: () -> Unit,
     onProductSelected: (Product) -> Unit,
@@ -214,6 +236,17 @@ fun ProductsScreen(
         mutableStateOf(initialNextCursor)
     }
     var loadingMore by remember { mutableStateOf(false) }
+    /** Cola paginada (sin estrellas); las estrellas se reinyectan al mergear. */
+    var catalogTail by remember(unitId, treatmentName, products, initialStarProducts) {
+        val starIds = initialStarProducts.map { it.productoId }.toSet()
+        mutableStateOf(
+            if (isViewAllTreatments && starIds.isNotEmpty()) {
+                products.filter { it.productoId !in starIds }
+            } else {
+                emptyList()
+            },
+        )
+    }
 
     BackHandler {
         if (searchKeyboardOpen) {
@@ -260,13 +293,19 @@ fun ProductsScreen(
             var ctCatalogFilter by remember(unitId) { mutableStateOf(TherapeuticClassCatalogFilter()) }
             var isSearching by remember { mutableStateOf(false) }
             var globalSearchResults by remember { mutableStateOf<List<Product>>(emptyList()) }
-            // VER TODOS: la ruta ya trae getProductsForUnit; sembrar para no pantallar vacío.
+            // VER TODOS: la ruta ya trae catálogo; sembrar para no pantallar vacío.
             var unitProducts by remember(unitId, isViewAllTreatments) {
                 mutableStateOf(if (isViewAllTreatments) products else emptyList())
             }
-            // Modo estrellas: la ruta ya trae los slots de /home; evita lista vacía al abrir.
-            var starProducts by remember(unitId, isStarProductsMode, products) {
-                mutableStateOf(if (isStarProductsMode) products else emptyList())
+            // Estrellas: modo estrellas usa `products`; VER TODOS usa las de todas las UN.
+            var starProducts by remember(unitId, isStarProductsMode, products, initialStarProducts) {
+                mutableStateOf(
+                    when {
+                        isStarProductsMode -> products
+                        isViewAllTreatments && initialStarProducts.isNotEmpty() -> initialStarProducts
+                        else -> emptyList()
+                    },
+                )
             }
             var scopeLoading by remember(unitId, isViewAllTreatments, products) {
                 mutableStateOf(
@@ -282,24 +321,40 @@ fun ProductsScreen(
 
             // Carga en IO: en Main bloqueaba el UI (ANR al filtrar Unidad de negocio).
             // getVitrinaUnits / getProductsForUnit usan snapshot /home o catálogo ya cacheado.
-            LaunchedEffect(unitId, isStarProductsMode, isViewAllTreatments, products) {
+            LaunchedEffect(unitId, isStarProductsMode, isViewAllTreatments, products, initialStarProducts) {
                 if (isViewAllTreatments && products.isNotEmpty()) {
-                    unitProducts = products
-                    pagedProducts = products
+                    val pinned = initialStarProducts.ifEmpty { starProducts }
+                    if (pinned.isNotEmpty()) {
+                        starProducts = pinned
+                        val starIds = pinned.map { it.productoId }.toSet()
+                        catalogTail = products.filter { it.productoId !in starIds }
+                        val merged = mergeStarsFirstCatalog(pinned, catalogTail)
+                        unitProducts = merged
+                        pagedProducts = merged
+                    } else {
+                        unitProducts = products
+                        pagedProducts = products
+                    }
                 }
                 scopeLoading = !(isViewAllTreatments && products.isNotEmpty()) && !isStarProductsMode
                 val loaded = withContext(Dispatchers.IO) {
                     runCatching {
-                        val stars = catalogRepository.getVitrinaUnits()
-                            .firstOrNull { it.unit.id == unitId }
-                            ?.starProducts
-                            .orEmpty()
-                            .distinctBy { it.productoId }
-                        // En modo estrellas no hace falta el catálogo completo de la unidad al abrir.
+                        val vitrinaUnits = catalogRepository.getVitrinaUnits()
+                        // VER TODOS: estrellas de todas las unidades (pin al inicio).
+                        val stars = if (isViewAllTreatments) {
+                            vitrinaUnits
+                                .flatMap { it.starProducts }
+                                .distinctBy { it.productoId }
+                        } else {
+                            vitrinaUnits
+                                .firstOrNull { it.unit.id == unitId }
+                                ?.starProducts
+                                .orEmpty()
+                                .distinctBy { it.productoId }
+                        }
                         val unit = if (isStarProductsMode) {
                             emptyList()
                         } else if (isViewAllTreatments && products.isNotEmpty()) {
-                            // Primera página global ya vino de ProductsRoute.
                             products
                         } else if (isViewAllTreatments) {
                             catalogRepository.getAllProductsPage(limit = 100).items
@@ -309,16 +364,27 @@ fun ProductsScreen(
                         unit to stars
                     }.getOrElse { emptyList<Product>() to emptyList() }
                 }
-                if (loaded.first.isNotEmpty()) {
-                    unitProducts = loaded.first
-                    if (isViewAllTreatments) {
-                        pagedProducts = loaded.first
-                    }
-                }
                 if (loaded.second.isNotEmpty()) {
                     starProducts = loaded.second
                 } else if (isStarProductsMode) {
                     starProducts = products
+                }
+                if (isViewAllTreatments) {
+                    val stars = starProducts.ifEmpty { loaded.second }
+                    val starIds = stars.map { it.productoId }.toSet()
+                    val tail = when {
+                        catalogTail.isNotEmpty() -> catalogTail
+                        loaded.first.isNotEmpty() -> loaded.first.filter { it.productoId !in starIds }
+                        else -> products.filter { it.productoId !in starIds }
+                    }
+                    catalogTail = tail
+                    val merged = mergeStarsFirstCatalog(stars, tail)
+                    if (merged.isNotEmpty()) {
+                        unitProducts = merged
+                        pagedProducts = merged
+                    }
+                } else if (loaded.first.isNotEmpty()) {
+                    unitProducts = loaded.first
                 }
                 scopeLoading = false
             }
@@ -480,26 +546,43 @@ fun ProductsScreen(
                 }
             }
             LaunchedEffect(loadMoreThreshold.value, nextCursor, isViewAllTreatments, unitId) {
-                if (!isViewAllTreatments || nextCursor.isNullOrBlank() || loadingMore) return@LaunchedEffect
+                if (!isViewAllTreatments || nextCursor.isNullOrBlank()) return@LaunchedEffect
                 if (!loadMoreThreshold.value) return@LaunchedEffect
+                val cursorAtStart = nextCursor
                 loadingMore = true
-                val page = withContext(Dispatchers.IO) {
-                    runCatching {
-                        catalogRepository.getAllProductsPage(
-                            limit = 24,
-                            cursor = nextCursor,
-                        )
-                    }.getOrNull()
+                try {
+                    val page = withContext(Dispatchers.IO) {
+                        runCatching {
+                            catalogRepository.getAllProductsPage(
+                                limit = 24,
+                                cursor = cursorAtStart,
+                            )
+                        }.getOrNull()
+                    }
+                    if (page == null) {
+                        nextCursor = null
+                        return@LaunchedEffect
+                    }
+                    val starIds = starProducts.map { it.productoId }.toSet()
+                    val existingIds = starIds + catalogTail.map { it.productoId }.toSet()
+                    val newItems = page.items.filter { it.productoId !in existingIds }
+                    if (newItems.isNotEmpty()) {
+                        catalogTail = (catalogTail + newItems).distinctBy { it.productoId }
+                        val merged = mergeStarsFirstCatalog(starProducts, catalogTail)
+                        pagedProducts = merged
+                        unitProducts = merged
+                    }
+                    val next = page.nextCursor?.takeIf { it.isNotBlank() }
+                    // Fin: sin cursor, cursor repetido, o página vacía sin avance útil.
+                    nextCursor = when {
+                        next == null -> null
+                        next == cursorAtStart -> null
+                        else -> next
+                    }
+                } finally {
+                    // Evita spinner eterno si el LaunchedEffect se cancela al cambiar nextCursor.
+                    loadingMore = false
                 }
-                if (page != null && page.items.isNotEmpty()) {
-                    val merged = (pagedProducts + page.items).distinctBy { it.productoId }
-                    pagedProducts = merged
-                    unitProducts = merged
-                    nextCursor = page.nextCursor
-                } else {
-                    nextCursor = null
-                }
-                loadingMore = false
             }
 
             val scrollInfo = remember(columns) {
@@ -989,6 +1072,25 @@ fun ProductsScreen(
                                         },
                                         onClick = { onProductSelected(filteredProducts[index]) },
                                     )
+                                }
+                                if (isViewAllTreatments && loadingMore && !nextCursor.isNullOrBlank()) {
+                                    item(
+                                        key = "ver-todos-loading-more",
+                                        span = { GridItemSpan(maxLineSpan) },
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 28.dp),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            CircularProgressIndicator(
+                                                color = LaSanteGreen,
+                                                strokeWidth = 3.dp,
+                                                modifier = Modifier.size(40.dp),
+                                            )
+                                        }
+                                    }
                                 }
                             }
 

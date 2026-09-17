@@ -24,7 +24,22 @@ private data class ProductsData(
     val isStarProductsMode: Boolean = false,
     val isViewAllTreatments: Boolean = false,
     val nextCursor: String? = null,
+    /** Estrellas de todas las UN (VER TODOS); se pinchan arriba sin esperar paginación. */
+    val pinnedStarProducts: List<Product> = emptyList(),
 )
+
+/** Estrellas A–Z primero; resto del catálogo A–Z sin duplicar estrellas. */
+private fun mergeStarsFirst(stars: List<Product>, catalog: List<Product>): List<Product> {
+    val starsSorted = stars.distinctBy { it.productoId }.sortedBy { it.name.lowercase() }
+    val starIds = starsSorted.map { it.productoId }.toSet()
+    val rest = catalog
+        .asSequence()
+        .filter { it.productoId !in starIds }
+        .distinctBy { it.productoId }
+        .sortedBy { it.name.lowercase() }
+        .toList()
+    return starsSorted + rest
+}
 
 private fun starProductsData(
     catalogRepository: CatalogRepository,
@@ -101,12 +116,21 @@ fun ProductsRoute(
                     // dejaba Tratamientos/Productos en loading otra vez.
                     val treatments = catalogRepository.getTreatments(unitId)
                     val treatment = treatments.firstOrNull { it.id == treatmentId }
-                    val (products, nextCursor) = if (isViewAll) {
-                        // Catálogo global: todas las UN + CT (no la cara activa de vitrina).
+                    val (products, nextCursor, pinnedStars) = if (isViewAll) {
+                        // Estrellas de /home (todas las UN) primero; paginación solo completa el resto.
+                        val allStars = catalogRepository.getVitrinaUnits()
+                            .flatMap { it.starProducts }
+                            .distinctBy { it.productoId }
                         val page = catalogRepository.getAllProductsPage(limit = 24)
-                        page.items to page.nextCursor
+                        val merged = mergeStarsFirst(allStars, page.items)
+                        android.util.Log.i(
+                            "ProductsRoute",
+                            "VER TODOS stars=${allStars.size} page=${page.items.size} " +
+                                "merged=${merged.size} next=${page.nextCursor != null}",
+                        )
+                        Triple(merged, page.nextCursor, allStars)
                     } else {
-                        catalogRepository.getProducts(treatmentId) to null
+                        Triple(catalogRepository.getProducts(treatmentId), null, emptyList())
                     }
                     android.util.Log.i(
                         "ProductsRoute",
@@ -126,6 +150,7 @@ fun ProductsRoute(
                             products = products,
                             isViewAllTreatments = isViewAll,
                             nextCursor = nextCursor,
+                            pinnedStarProducts = pinnedStars,
                         ),
                     )
                 }
@@ -155,6 +180,7 @@ fun ProductsRoute(
                     isViewAllTreatments = state.data.isViewAllTreatments,
                     isStarProductsMode = state.data.isStarProductsMode,
                     initialNextCursor = state.data.nextCursor,
+                    initialStarProducts = state.data.pinnedStarProducts,
                     onBack            = onBack,
                     onHome            = onHome,
                     onProductSelected = { product -> selectedProduct = product },
