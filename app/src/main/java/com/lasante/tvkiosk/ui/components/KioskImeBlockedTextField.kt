@@ -1,26 +1,26 @@
 package com.lasante.tvkiosk.ui.components
 
-import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.platform.LocalTextInputService
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
-import com.lasante.tvkiosk.ui.theme.LaSanteGreen
 import com.lasante.tvkiosk.ui.theme.LaSanteText
 import com.lasante.tvkiosk.ui.theme.LaSanteTextSecondary
 
 /**
- * Campo de texto kiosco: bloquea el IME de Android y abre el teclado virtual propio.
- * El texto lo escribe [KioskQwertyKeyboard] vía estado del padre (este campo es readOnly).
+ * Campo de texto kiosco: solo muestra el query; no usa [BasicTextField] para evitar
+ * selección/copiar del sistema. El texto lo escribe [KioskQwertyKeyboard] vía el padre.
  */
 @Composable
 fun KioskImeBlockedTextField(
@@ -33,45 +33,47 @@ fun KioskImeBlockedTextField(
     onOpenCustomKeyboard: () -> Unit = {},
 ) {
     val keyboard = LocalSoftwareKeyboardController.current
+    // focusRequester se conserva en la firma por compat; el campo ya no toma foco.
+    @Suppress("UNUSED_PARAMETER")
+    val unusedFocus = focusRequester
+
     LaunchedEffect(Unit) {
-        // Una sola vez al montar; hide() puede ser costoso en algunos OEM.
         runCatching { keyboard?.hide() }
     }
 
-    @Suppress("DEPRECATION")
-    CompositionLocalProvider(LocalTextInputService provides null) {
-        BasicTextField(
-            value = value,
-            onValueChange = {},
-            enabled = enabled,
-            singleLine = true,
-            readOnly = true,
-            textStyle = TextStyle(
-                color = LaSanteText,
-                fontSize = fontSize,
-            ),
-            cursorBrush = SolidColor(LaSanteGreen),
-            modifier = modifier
-                .then(
-                    if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier,
-                )
-                .onFocusChanged { state ->
-                    if (state.isFocused) {
-                        runCatching { keyboard?.hide() }
-                        onOpenCustomKeyboard()
-                    }
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                enabled = enabled,
+                onClick = {
+                    runCatching { keyboard?.hide() }
+                    onOpenCustomKeyboard()
                 },
-            decorationBox = { innerTextField ->
-                if (value.isEmpty()) {
-                    Text(
-                        text = placeholder,
-                        color = LaSanteTextSecondary.copy(alpha = 0.40f),
-                        fontSize = fontSize,
-                    )
-                }
-                innerTextField()
-            },
-        )
+            ),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        if (value.isEmpty()) {
+            Text(
+                text = placeholder,
+                color = LaSanteTextSecondary.copy(alpha = 0.40f),
+                fontSize = fontSize,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        } else {
+            Text(
+                text = value,
+                style = TextStyle(
+                    color = LaSanteText,
+                    fontSize = fontSize,
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
