@@ -38,13 +38,17 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
@@ -72,11 +76,13 @@ import com.lasante.tvkiosk.ui.components.KioskImeBlockedTextField
 import com.lasante.tvkiosk.ui.components.KioskQwertyKeyboard
 import com.lasante.tvkiosk.ui.components.LaSanteBackground
 import com.lasante.tvkiosk.ui.components.LaSanteScreenTitle
+import com.lasante.tvkiosk.ui.components.ProductSearchBarMetrics
 import com.lasante.tvkiosk.ui.components.ProductosEstrellasBadge
 import com.lasante.tvkiosk.ui.components.RealGreenScrollBar
 import com.lasante.tvkiosk.ui.components.TreatmentIconAssets
 import com.lasante.tvkiosk.ui.components.appendKioskChar
 import com.lasante.tvkiosk.ui.components.backspaceKioskText
+import kotlin.math.roundToInt
 import com.lasante.tvkiosk.ui.layout.CatalogHeaderMetrics
 import com.lasante.tvkiosk.ui.layout.CatalogIconDebugColors
 import com.lasante.tvkiosk.ui.layout.CatalogIconDebugPanel
@@ -231,11 +237,17 @@ fun ProductsScreen(
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var searchKeyboardOpen by remember { mutableStateOf(false) }
+    /** Evita que el mismo toque que abre el teclado cierre el scrim al instante. */
+    var keyboardScrimArmed by remember { mutableStateOf(false) }
     var pagedProducts by remember(unitId, treatmentName, products) { mutableStateOf(products) }
     var nextCursor by remember(unitId, treatmentName, initialNextCursor) {
         mutableStateOf(initialNextCursor)
     }
     var loadingMore by remember { mutableStateOf(false) }
+    /** Ancla del teclado: debajo del buscador (misma lógica que Intro/Tratamientos). */
+    var rootPosInRoot by remember { mutableStateOf(Offset.Zero) }
+    var keyboardOffset by remember { mutableStateOf(IntOffset.Zero) }
+    var searchBarPlaced by remember { mutableStateOf(false) }
     /** Cola paginada (sin estrellas); las estrellas se reinyectan al mergear. */
     var catalogTail by remember(unitId, treatmentName, products, initialStarProducts) {
         val starIds = initialStarProducts.map { it.productoId }.toSet()
@@ -248,18 +260,56 @@ fun ProductsScreen(
         )
     }
 
+    fun openSearchKeyboard() {
+        searchKeyboardOpen = true
+    }
+
+    fun closeSearchKeyboard() {
+        searchKeyboardOpen = false
+        keyboardScrimArmed = false
+    }
+
     BackHandler {
         if (searchKeyboardOpen) {
-            searchKeyboardOpen = false
+            closeSearchKeyboard()
         } else {
             onBack()
         }
     }
 
+    LaunchedEffect(searchKeyboardOpen, searchBarPlaced) {
+        if (searchKeyboardOpen) {
+            keyboardScrimArmed = false
+            // El toque de apertura no debe caer en el scrim recién montado.
+            delay(64)
+            if (searchKeyboardOpen) {
+                keyboardScrimArmed = true
+            }
+        } else {
+            keyboardScrimArmed = false
+        }
+    }
+
     LaSanteBackground {
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .onGloballyPositioned { rootPosInRoot = it.positionInRoot() },
+        ) {
             val canvasWidth = maxWidth
             val canvasHeight = maxHeight
+            val density = LocalDensity.current
+            val updateKeyboardAnchor: (LayoutCoordinates) -> Unit = remember(density) {
+                { coords ->
+                    val barPos = coords.positionInRoot()
+                    val gapPx = with(density) { 6.dp.roundToPx() }
+                    keyboardOffset = IntOffset(
+                        x = (barPos.x - rootPosInRoot.x).roundToInt(),
+                        y = (barPos.y - rootPosInRoot.y + coords.size.height + gapPx).roundToInt(),
+                    )
+                    searchBarPlaced = true
+                }
+            }
             val catalog = rememberCatalogLayout(canvasWidth, canvasHeight)
             val profile = catalog.profile
             val nav = catalog.nav
@@ -274,6 +324,12 @@ fun ProductsScreen(
                 else -> if (isLandscape) 4 else 2
             }
             val buttonSize = header.navButtonSize
+            val searchMetrics = remember(canvasHeight) {
+                ProductSearchBarMetrics.scaledForCanvas(canvasHeight)
+            }
+            val keyboardWidth = remember(header.searchBarWidth, searchMetrics.layoutScale) {
+                (header.searchBarWidth * 1.4f).coerceAtLeast(300.dp * searchMetrics.layoutScale)
+            }
             LogCatalogHeaderProfile(
                 header = header,
                 screen = if (isStarProductsMode) "ProductosEstrella" else "Products",
@@ -630,7 +686,8 @@ fun ProductsScreen(
                                 isTv42 = isTv42,
                                 isTv42LargeUp = isTv42LargeUp,
                                 searchQuery = searchQuery,
-                                onOpenSearchKeyboard = { searchKeyboardOpen = true },
+                                onOpenSearchKeyboard = { openSearchKeyboard() },
+                                onSearchBarPositioned = updateKeyboardAnchor,
                                 isSearching = isSearching,
                                 sortOrder = sortOrder,
                                 onSortClick = {
@@ -739,6 +796,7 @@ fun ProductsScreen(
                                             modifier = Modifier
                                                 .width(header.searchBarWidth)
                                                 .height(header.searchBarHeight)
+                                                .onGloballyPositioned(updateKeyboardAnchor)
                                                 .shadow(elevation = 2.dp, shape = RoundedCornerShape(50.dp))
                                                 .clip(RoundedCornerShape(50.dp))
                                                 .background(
@@ -749,7 +807,7 @@ fun ProductsScreen(
                                                 .clickable(
                                                     interactionSource = remember { MutableInteractionSource() },
                                                     indication = null,
-                                                    onClick = { searchKeyboardOpen = true },
+                                                    onClick = { openSearchKeyboard() },
                                                 )
                                                 .padding(horizontal = if (isLandscape) 10.dp else 8.dp),
                                             contentAlignment = Alignment.CenterStart,
@@ -768,7 +826,7 @@ fun ProductsScreen(
                                                     value = searchQuery,
                                                     fontSize = header.searchFontSize,
                                                     modifier = Modifier.weight(1f),
-                                                    onOpenCustomKeyboard = { searchKeyboardOpen = true },
+                                                    onOpenCustomKeyboard = { openSearchKeyboard() },
                                                 )
                                                 if (isSearching) {
                                                     CircularProgressIndicator(
@@ -890,6 +948,7 @@ fun ProductsScreen(
                                             .padding(top = header.controlsTopGap)
                                             .width(header.searchBarWidth)
                                             .height(header.searchBarHeight)
+                                            .onGloballyPositioned(updateKeyboardAnchor)
                                             .shadow(elevation = 2.dp, shape = RoundedCornerShape(50.dp))
                                             .clip(RoundedCornerShape(50.dp))
                                             .background(
@@ -900,7 +959,7 @@ fun ProductsScreen(
                                             .clickable(
                                                 interactionSource = remember { MutableInteractionSource() },
                                                 indication = null,
-                                                onClick = { searchKeyboardOpen = true },
+                                                onClick = { openSearchKeyboard() },
                                             )
                                             .padding(horizontal = if (isLandscape) 10.dp else 8.dp),
                                         contentAlignment = Alignment.CenterStart,
@@ -919,7 +978,7 @@ fun ProductsScreen(
                                                 value = searchQuery,
                                                 fontSize = header.searchFontSize,
                                                 modifier = Modifier.weight(1f),
-                                                onOpenCustomKeyboard = { searchKeyboardOpen = true },
+                                                onOpenCustomKeyboard = { openSearchKeyboard() },
                                             )
                                             if (isSearching) {
                                                 CircularProgressIndicator(
@@ -1197,41 +1256,48 @@ fun ProductsScreen(
             }
 
             if (searchKeyboardOpen) {
-                // Scrim: toque fuera cierra el teclado virtual.
+                // Scrim: toque fuera cierra el teclado (armado tras el gesto de apertura).
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .zIndex(35f)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = { searchKeyboardOpen = false },
+                        .then(
+                            if (keyboardScrimArmed) {
+                                Modifier.clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClick = { closeSearchKeyboard() },
+                                )
+                            } else {
+                                Modifier
+                            },
                         ),
                 )
-                val keyboardScale = (canvasHeight.value / 720f).coerceIn(0.85f, 1.35f)
-                // Callbacks estables: evitan re-montar todas las teclas en cada letra.
-                val searchQueryState = rememberUpdatedState(searchQuery)
-                val onCharStable = remember {
-                    { char: String ->
-                        searchQuery = appendKioskChar(searchQueryState.value, char)
+                // Misma posición que Intro/Tratamientos: justo debajo del buscador (sin deslizar por resultados).
+                if (searchBarPlaced) {
+                    val searchQueryState = rememberUpdatedState(searchQuery)
+                    val onCharStable = remember {
+                        { char: String ->
+                            searchQuery = appendKioskChar(searchQueryState.value, char)
+                        }
                     }
-                }
-                val onBackspaceStable = remember {
-                    {
-                        searchQuery = backspaceKioskText(searchQueryState.value)
+                    val onBackspaceStable = remember {
+                        {
+                            searchQuery = backspaceKioskText(searchQueryState.value)
+                        }
                     }
+                    KioskQwertyKeyboard(
+                        onChar = onCharStable,
+                        onBackspace = onBackspaceStable,
+                        onDone = { closeSearchKeyboard() },
+                        layoutScale = searchMetrics.layoutScale,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .offset { keyboardOffset }
+                            .width(keyboardWidth)
+                            .zIndex(40f),
+                    )
                 }
-                KioskQwertyKeyboard(
-                    onChar = onCharStable,
-                    onBackspace = onBackspaceStable,
-                    onDone = { searchKeyboardOpen = false },
-                    layoutScale = keyboardScale,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth(0.72f)
-                        .padding(bottom = 16.dp)
-                        .zIndex(40f),
-                )
             }
 
             if (showFilterSheet) {
@@ -1272,6 +1338,7 @@ private fun StarProductsHeader(
     isTv42LargeUp: Boolean,
     searchQuery: String,
     onOpenSearchKeyboard: () -> Unit,
+    onSearchBarPositioned: (LayoutCoordinates) -> Unit,
     isSearching: Boolean,
     sortOrder: SortOrder,
     onSortClick: () -> Unit,
@@ -1296,6 +1363,7 @@ private fun StarProductsHeader(
                 modifier = Modifier
                     .width(header.searchBarWidth)
                     .height(header.searchBarHeight)
+                    .onGloballyPositioned(onSearchBarPositioned)
                     .shadow(elevation = 2.dp, shape = RoundedCornerShape(50.dp))
                     .clip(RoundedCornerShape(50.dp))
                     .background(
