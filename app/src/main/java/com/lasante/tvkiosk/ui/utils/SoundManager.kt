@@ -18,7 +18,7 @@ import com.lasante.tvkiosk.R
  * - [UiSound.Product] → [R.raw.ui_tap]
  *   = productos panel = productos estrellas
  * - [UiSound.Error] → [R.raw.ui_error]
- *   = errores
+ *   = errores + tap en zona vacía de la vitrina
  */
 enum class UiSound(@RawRes val resId: Int) {
     Click(R.raw.ui_click),

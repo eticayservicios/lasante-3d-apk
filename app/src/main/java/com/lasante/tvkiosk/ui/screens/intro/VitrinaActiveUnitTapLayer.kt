@@ -62,7 +62,11 @@ fun VitrinaActiveUnitTapLayer(
                         val inUnitFace =
                             pos.x in tapLeft..tapRight &&
                                 pos.y in tapTop..tapBottom
-                        if (!inUnitFace) return@vitrinaTapOrHorizontalDragGesture
+                        if (!inUnitFace) {
+                            // Zona vacía (fuera del cuadro de la unidad activa).
+                            SoundManager.playErrorSound(context)
+                            return@vitrinaTapOrHorizontalDragGesture
+                        }
                         android.util.Log.i(
                             "VitrinaDiag",
                             "TAP activeIndex=$activeIndex glbNode=${VitrinaGlbMapping.glbNodeNameFor(activeIndex)} " +
