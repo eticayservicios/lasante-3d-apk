@@ -45,8 +45,9 @@ private fun starProductsData(
     catalogRepository: CatalogRepository,
     unitId: String,
 ): ProductsData? {
+    val unitKeys = catalogRepository.matchingUnitIds(unitId)
     val stars = catalogRepository.cachedVitrinaUnitsOrNull()
-        ?.firstOrNull { it.unit.id == unitId }
+        ?.firstOrNull { it.unit.id in unitKeys }
         ?.starProducts
         ?.distinctBy { it.productoId }
         ?: return null
@@ -97,8 +98,9 @@ fun ProductsRoute(
                 val isViewAll = treatmentId == Args.ALL_TREATMENTS_ID
 
                 if (isStarProducts) {
+                    val unitKeys = catalogRepository.matchingUnitIds(unitId)
                     val stars = catalogRepository.getVitrinaUnits()
-                        .firstOrNull { it.unit.id == unitId }
+                        .firstOrNull { it.unit.id in unitKeys }
                         ?.starProducts
                         .orEmpty()
                         .distinctBy { it.productoId }

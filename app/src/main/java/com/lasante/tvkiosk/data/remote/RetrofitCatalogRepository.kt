@@ -145,15 +145,40 @@ class RetrofitCatalogRepository(
     private fun HomeDto.findBusinessUnitByIdOrAlias(unitId: String): UnidadNegocioWrapperDto? {
         val requestedKey = unitId.normalizedKey()
         val exactUnit = unidades.firstOrNull { it.id.normalizedKey() == requestedKey }
-        if (exactUnit != null) return exactUnit
+        // Exacto solo si trae tratamientos; si está vacío (stub), seguir a alias.
+        if (exactUnit != null && exactUnit.tratamientos.isNotEmpty()) {
+            return exactUnit
+        }
 
         val canonical = businessUnitAliases.firstOrNull { target ->
             target.fallbackId.normalizedKey() == requestedKey ||
                 target.aliases.any { it.normalizedKey() == requestedKey }
         }
 
-        return canonical?.let { target ->
-            unidades.firstOrNull { target.matches(it) }
+        val fromAlias = canonical?.let { target ->
+            unidades
+                .filter { target.matches(it) }
+                .maxByOrNull { it.tratamientos.size }
+        }
+        if (fromAlias != null) return fromAlias
+        return exactUnit
+    }
+
+    /** IDs equivalentes (genericos-la-sante ↔ medicina-general, etc.). */
+    override fun matchingUnitIds(unitId: String): Set<String> =
+        homeSnapshot?.dto?.matchingBusinessUnitIds(unitId)
+            ?: matchingUnitIdsWithoutSnapshot(unitId)
+
+    private fun matchingUnitIdsWithoutSnapshot(unitId: String): Set<String> {
+        val key = unitId.normalizedKey()
+        val canonical = businessUnitAliases.firstOrNull { target ->
+            target.fallbackId.normalizedKey() == key ||
+                target.aliases.any { it.normalizedKey() == key }
+        } ?: return setOf(unitId)
+        return buildSet {
+            add(unitId)
+            add(canonical.fallbackId)
+            addAll(canonical.aliases)
         }
     }
 
@@ -460,7 +485,7 @@ class RetrofitCatalogRepository(
 
     override suspend fun getTreatments(unitId: String): List<Treatment> =
         runCatching {
-            getSnapshot().dto.findBusinessUnitByIdOrAlias(unitId)
+            val fromHome = getSnapshot().dto.findBusinessUnitByIdOrAlias(unitId)
                 ?.tratamientos
                 ?.map { t ->
                     Treatment(
@@ -473,8 +498,41 @@ class RetrofitCatalogRepository(
                         media         = TreatmentMedia(icono = t.icono, portada = null),
                         atributos     = emptyMap()
                     )
-                } ?: emptyList()
-        }.getOrElse { emptyList() }
+                }
+                .orEmpty()
+            if (fromHome.isNotEmpty()) return@runCatching fromHome
+
+            // Fallback: /catalog entity=tratamientos (con alias en backend).
+            for (candidate in matchingUnitIds(unitId)) {
+                val page = api.getTratamientosPage(unidadId = candidate)
+                val mapped = page.items.map { t ->
+                    Treatment(
+                        tratamientoId = t.id,
+                        unidadId = unitId,
+                        nombre = DisplayTitles.resolve(t.nombre, t.id),
+                        descripcion = t.descripcion ?: "",
+                        estado = "ACTIVO",
+                        orden = 0,
+                        media = TreatmentMedia(icono = t.icono, portada = null),
+                        atributos = emptyMap(),
+                    )
+                }
+                if (mapped.isNotEmpty()) {
+                    android.util.Log.i(
+                        "RetrofitCatalogRepository",
+                        "getTreatments fallback catalog unit=$unitId via=$candidate count=${mapped.size}",
+                    )
+                    return@runCatching mapped
+                }
+            }
+            emptyList()
+        }.getOrElse {
+            android.util.Log.w(
+                "RetrofitCatalogRepository",
+                "getTreatments failed unit=$unitId: ${it.message}",
+            )
+            emptyList()
+        }
 
     override suspend fun getProducts(treatmentId: String): List<Product> =
         runCatching {
