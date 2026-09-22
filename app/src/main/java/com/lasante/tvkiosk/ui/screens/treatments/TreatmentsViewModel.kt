@@ -99,9 +99,12 @@ class TreatmentsViewModel(
     private suspend fun ensureProductsLoaded(unitId: String) {
         val current = cache[unitId] ?: return
         if (current.products.isNotEmpty()) return
+        val unitKeys = catalogRepository.matchingUnitIds(unitId)
+            .map { it.lowercase() }
+            .toSet()
         val indexed = catalogRepository.ensureProductSearchIndex()
             .filter { product ->
-                product.unidadId.equals(unitId, ignoreCase = true)
+                product.unidadId.lowercase() in unitKeys
             }
         val products = indexed.ifEmpty { catalogRepository.getProductsForUnit(unitId) }
         if (products.isEmpty()) return

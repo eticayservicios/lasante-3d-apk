@@ -403,7 +403,9 @@ fun ProductsScreen(
                                 .distinctBy { it.productoId }
                         } else {
                             vitrinaUnits
-                                .firstOrNull { it.unit.id == unitId }
+                                .firstOrNull {
+                                    it.unit.id in catalogRepository.matchingUnitIds(unitId)
+                                }
                                 ?.starProducts
                                 .orEmpty()
                                 .distinctBy { it.productoId }

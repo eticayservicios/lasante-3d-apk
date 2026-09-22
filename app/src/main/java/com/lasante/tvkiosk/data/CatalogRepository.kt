@@ -24,6 +24,11 @@ interface CatalogRepository {
     suspend fun ensureProductSearchIndex(): List<Product>
     suspend fun getUnits(): List<BusinessUnit>
     suspend fun getTreatments(unitId: String): List<Treatment>
+    /**
+     * IDs de unidad equivalentes al pedido (p. ej. genericos-la-sante ↔ medicina-general).
+     * Default: solo el id pedido.
+     */
+    fun matchingUnitIds(unitId: String): Set<String> = setOf(unitId)
     suspend fun getProducts(treatmentId: String): List<Product>
     /** Todos los productos de una unidad (todas las clases terapéuticas). */
     suspend fun getProductsForUnit(unitId: String): List<Product>
