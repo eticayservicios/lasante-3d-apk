@@ -76,6 +76,7 @@ object DeviceProfileResolver {
         maxHeight: Dp,
         widthClass: WindowWidthSizeClass = WindowWidthSizeClass.Compact,
         preferTv66: Boolean = false,
+        context: android.content.Context? = null,
     ): DeviceProfile {
         val isLandscape = maxWidth > maxHeight
 
@@ -104,7 +105,12 @@ object DeviceProfileResolver {
         val isPhoneLandscape = isLandscape && maxHeight < 520.dp &&
             !(maxWidth >= 640.dp && maxHeight >= 400.dp)
         val isTabletLandscape = isLandscape && maxWidth >= 640.dp && maxHeight >= 400.dp
-        val isTv = maxWidth >= 880.dp && maxHeight >= 480.dp && !isPhoneLandscape
+        // Excluir tablets con touchscreen del path TV: una tablet landscape ≥880dp
+        // no es TV aunque tenga el ancho suficiente.
+        val hasTouchscreen = context?.packageManager
+            ?.hasSystemFeature(android.content.pm.PackageManager.FEATURE_TOUCHSCREEN) == true
+        val isTv = maxWidth >= 880.dp && maxHeight >= 480.dp && !isPhoneLandscape &&
+            !(isTabletLandscape && hasTouchscreen)
         val isTvLarge = isTv && maxWidth > Tv66Reference.MinWidthForLargeTier
         val isTvRegular = isTv && !isTvLarge
 
@@ -132,8 +138,9 @@ object DeviceProfileResolver {
         maxHeight: Dp,
         widthClass: WindowWidthSizeClass = WindowWidthSizeClass.Compact,
         preferTv66: Boolean = false,
+        context: android.content.Context? = null,
     ): SharedScreenMetrics {
-        val profile = resolve(maxWidth, maxHeight, widthClass, preferTv66 = preferTv66)
+        val profile = resolve(maxWidth, maxHeight, widthClass, preferTv66 = preferTv66, context = context)
         return SharedScreenMetrics(
             profile = profile,
             grid = gridMetrics(profile),

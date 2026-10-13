@@ -69,7 +69,9 @@ internal object VitrinaDeviceLoadPolicy {
 
     fun isLowRamDevice(context: Context): Boolean {
         val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        return am.isLowRamDevice || am.memoryClass <= 192
+        // Umbral 256: tablets de 3 GB RAM suelen tener memoryClass 256 y también
+        // necesitan los delays conservadores para no sufrir OOM al cargar el GLB.
+        return am.isLowRamDevice || am.memoryClass <= 256
     }
 
     fun isLikelyEmulator(): Boolean =

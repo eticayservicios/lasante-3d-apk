@@ -3,13 +3,13 @@ package com.lasante.tvkiosk.media
 import android.content.Context
 import android.net.Uri
 import android.util.Log
-import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.CacheWriter
+import androidx.media3.datasource.cache.ContentMetadata
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import com.lasante.tvkiosk.data.ScreenSaverVideo
@@ -124,8 +124,8 @@ object VideoCache {
             val cache = getOrCreateCache(context.applicationContext)
             val dataSpec = buildDataSpec(url)
             val cacheKey = dataSpec.key ?: return false
-            val cachedLength = cache.getCachedLength(cacheKey, 0, C.LENGTH_UNSET.toLong())
-            cachedLength > 0L
+            val contentLength = ContentMetadata.getContentLength(cache.getContentMetadata(cacheKey))
+            contentLength > 0L && cache.isCached(cacheKey, 0, contentLength)
         } catch (error: Exception) {
             Log.w(TAG, "isFullyCached check failed url=$url: ${error.message}")
             false

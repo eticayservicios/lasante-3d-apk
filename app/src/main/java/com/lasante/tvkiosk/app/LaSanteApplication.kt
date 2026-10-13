@@ -32,7 +32,9 @@ class LaSanteApplication : Application(), ImageLoaderFactory {
                 val am = getSystemService(ACTIVITY_SERVICE) as android.app.ActivityManager
                 val percent = when {
                     am.isLowRamDevice || am.memoryClass <= 192 -> 0.12
-                    am.memoryClass <= 256 -> 0.18
+                    // Tablets de 3 GB (memoryClass 256): caché intermedia.
+                    am.memoryClass <= 256 -> 0.15
+                    am.memoryClass <= 384 -> 0.18
                     else -> 0.22
                 }
                 MemoryCache.Builder(this)

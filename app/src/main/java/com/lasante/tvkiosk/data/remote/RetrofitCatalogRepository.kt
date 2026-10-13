@@ -52,6 +52,9 @@ class RetrofitCatalogRepository(
         val product: ProductoDto,
     )
 
+    private class CatalogLoadException(message: String, cause: Throwable? = null) :
+        IllegalStateException(message, cause)
+
     private val businessUnitAliases = listOf(
         BusinessUnitAlias(
             fallbackId = "genericos-la-sante",
@@ -481,7 +484,7 @@ class RetrofitCatalogRepository(
         }
 
     override suspend fun getUnits(): List<BusinessUnit> =
-        runCatching { getSnapshot().businessUnits }.getOrElse { emptyList() }
+        getSnapshot().businessUnits
 
     override suspend fun getTreatments(unitId: String): List<Treatment> =
         runCatching {
@@ -531,7 +534,10 @@ class RetrofitCatalogRepository(
                 "RetrofitCatalogRepository",
                 "getTreatments failed unit=$unitId: ${it.message}",
             )
-            emptyList()
+            throw CatalogLoadException(
+                "No se pudieron cargar las clases terapéuticas. Verifica la conexión.",
+                it,
+            )
         }
 
     override suspend fun getProducts(treatmentId: String): List<Product> =
@@ -570,19 +576,26 @@ class RetrofitCatalogRepository(
                 "RetrofitCatalogRepository",
                 "getProductsForUnit catalog miss, walk treatments: ${it.message}",
             )
-            getTreatments(unitId)
-                .flatMap { treatment -> getProducts(treatment.tratamientoId) }
-                .distinctBy { it.productoId }
-                .ifEmpty {
-                    val snapshot = getSnapshot()
-                    val matchingUnitIds = snapshot.dto.matchingBusinessUnitIds(unitId)
-                    snapshot.catalogEntries
-                        .asSequence()
-                        .filter { entry -> entry.unitId in matchingUnitIds }
-                        .map { (u, t, product) -> product.toProduct(u, t) }
-                        .distinctBy { product -> product.productoId }
-                        .toList()
-                }
+            runCatching {
+                getTreatments(unitId)
+                    .flatMap { treatment -> getProducts(treatment.tratamientoId) }
+                    .distinctBy { it.productoId }
+                    .ifEmpty {
+                        val snapshot = getSnapshot()
+                        val matchingUnitIds = snapshot.dto.matchingBusinessUnitIds(unitId)
+                        snapshot.catalogEntries
+                            .asSequence()
+                            .filter { entry -> entry.unitId in matchingUnitIds }
+                            .map { (u, t, product) -> product.toProduct(u, t) }
+                            .distinctBy { product -> product.productoId }
+                            .toList()
+                    }
+            }.getOrElse { fallbackError ->
+                throw CatalogLoadException(
+                    "No se pudieron cargar los productos. Verifica la conexión.",
+                    fallbackError,
+                )
+            }
         }
 
     override suspend fun getProductsForUnitPage(
@@ -690,7 +703,10 @@ class RetrofitCatalogRepository(
     override suspend fun getVitrinaUnits(): List<VitrinaUnit> =
         runCatching { getSnapshot().vitrinaUnits }.getOrElse {
             android.util.Log.e("RetrofitCatalogRepository", "getVitrinaUnits failed: ${it.message}", it)
-            emptyList()
+            throw CatalogLoadException(
+                "No se pudo cargar la vitrina. Verifica la conexión.",
+                it,
+            )
         }
 
     override fun cachedVitrinaUnitsOrNull(): List<VitrinaUnit>? = homeSnapshot?.vitrinaUnits

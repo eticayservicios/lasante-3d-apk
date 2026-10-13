@@ -1112,6 +1112,7 @@ fun BoxWithConstraintsScope.introLayoutMetrics(
             maxHeight = maxHeight,
             widthClass = widthClass,
             preferTv66 = preferTv66,
+            context = context,
         )
         IntroLayoutMetrics(
             maxWidth = maxWidth,
