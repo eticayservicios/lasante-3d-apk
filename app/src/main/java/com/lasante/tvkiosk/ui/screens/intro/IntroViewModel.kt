@@ -62,9 +62,11 @@ class IntroViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             runCatching {
                 val products = catalogRepository.ensureProductSearchIndex()
-                val current = (uiState as? UiState.Success)?.data ?: return@runCatching
-                if (products.isNotEmpty() && products != current.allProducts) {
-                    uiState = UiState.Success(current.copy(allProducts = products))
+                withContext(Dispatchers.Main) {
+                    val current = (uiState as? UiState.Success)?.data ?: return@withContext
+                    if (products.isNotEmpty() && products != current.allProducts) {
+                        uiState = UiState.Success(current.copy(allProducts = products))
+                    }
                 }
             }
         }

@@ -52,7 +52,7 @@ class TreatmentsViewModel(
     fun load(unitId: String, forceRefresh: Boolean = false) {
         activeUnitId = unitId
         cache[unitId]?.takeUnless { forceRefresh }?.let { cached ->
-            uiState = UiState.Success(cached)
+                uiState = UiState.Success(cached)
             if (cached.products.isEmpty()) {
                 viewModelScope.launch(Dispatchers.IO) {
                     runCatching { ensureProductsLoaded(unitId) }
@@ -111,7 +111,11 @@ class TreatmentsViewModel(
         val updated = current.copy(products = products)
         cache[unitId] = updated
         if (activeUnitId == unitId) {
-            uiState = UiState.Success(updated)
+            withContext(Dispatchers.Main) {
+                if (activeUnitId == unitId) {
+                    uiState = UiState.Success(updated)
+                }
+            }
         }
     }
 }
