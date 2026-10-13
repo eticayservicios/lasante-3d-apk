@@ -14,9 +14,7 @@ import io.github.sceneview.model.engine
 import io.github.sceneview.model.model
 import io.github.sceneview.rememberEngine
 import io.github.sceneview.rememberModelLoader
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 
 /** Filament compartido por IntroScreen — sobrevive desmontes puntuales del viewer. */
@@ -39,17 +37,16 @@ fun rememberVitrinaFilamentSession(): VitrinaFilamentSession {
 
     LaunchedEffect(modelLoader, baseGlbSource.loadPath) {
         // Ceder el hilo para que Intro (spinner) pinte antes de parsear el GLB.
+        // No usar withContext(IO): ModelLoader internamente alterna IO (lectura de assets)
+        // y Main (upload a Filament/GPU); envolverlo en IO bloquea el switch a Main.
+        // El yield() + delay garantizan que el primer frame se pinte antes del parse.
         yield()
-        delay(32)
-        // Parsear en IO: el parse de Draco 24 MB bloquea el main thread en tablets lentas
-        // el tiempo suficiente para que Android dispare el diálogo ANR.
-        val loaded = withContext(Dispatchers.IO) {
-            runCatching {
-                modelLoader.loadModelInstance(baseGlbSource.loadPath)
-            }.onFailure { t ->
-                VitrinaDebugLog.e("VitrinaGlb", "load ${baseGlbSource.loadPath} failed", t)
-            }.getOrNull()
-        }
+        delay(80) // 80 ms en lugar de 32: tablets lentas necesitan más tiempo para pintar el spinner
+        val loaded = runCatching {
+            modelLoader.loadModelInstance(baseGlbSource.loadPath)
+        }.onFailure { t ->
+            VitrinaDebugLog.e("VitrinaGlb", "load ${baseGlbSource.loadPath} failed", t)
+        }.getOrNull()
         loaded?.hideDecorativeBackgroundPlanes()
         baseInstance = loaded
         VitrinaDebugLog.d(
