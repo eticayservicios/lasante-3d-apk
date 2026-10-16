@@ -108,17 +108,19 @@ internal object VitrinaDeviceLoadPolicy {
 
     /**
      * Calidad Filament:
-     * - Emulador TV66/4K: [RenderQuality.Performance] (DRS) para evitar ANR en x86.
-     * - Emulador TV1080 / Television_1080 (TV_REGULAR): [RenderQuality.Default] —
-     *   Performance+DRS se ve muy pixelado en 1137×711.
-     * - Dispositivos reales (tablet táctil incluido): Default — Performance apagaba
-     *   calidad de lámparas/IBL; la agilidad del drag va por sensibilidad/snap.
+     * - Emulador TV66/4K / low-RAM: [RenderQuality.Performance] (DRS) — menos OOM/ANR.
+     * - Resto: Default (mejor lámparas/IBL).
      */
     fun filamentRenderQuality(context: Context, layoutMetrics: IntroLayoutMetrics): RenderQuality =
         when {
             isLikelyEmulator() && layoutMetrics.isTv66 -> RenderQuality.Performance
+            isLowRamDevice(context) -> RenderQuality.Performance
             else -> RenderQuality.Default
         }
+
+    /** Delay antes de parsear el GLB base (tras primer frame). */
+    fun baseGlbLoadDelayMs(context: Context): Long =
+        if (isLowRamDevice(context)) 280L else 80L
 
     private fun hasTouchscreen(context: Context): Boolean =
         context.packageManager.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)

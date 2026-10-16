@@ -1,5 +1,7 @@
 package com.lasante.tvkiosk.app
 
+import android.app.ActivityManager
+import android.content.Context
 import androidx.compose.material3.Surface
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
@@ -16,6 +18,7 @@ import com.lasante.tvkiosk.ui.layout.Tv66PreviewFrame
 import com.lasante.tvkiosk.ui.screens.treatments.TreatmentsViewModel
 import com.lasante.tvkiosk.ui.screens.treatments.TreatmentsViewModelFactory
 import com.lasante.tvkiosk.ui.theme.LaSanteTheme
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
@@ -30,6 +33,11 @@ fun LaSanteApp() {
     )
 
     LaunchedEffect(Unit) {
+        // En low-RAM no competir con el arranque de Filament/GLB.
+        val am = app.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        if (am.isLowRamDevice || am.memoryClass <= 256) {
+            delay(2_500)
+        }
         treatmentsViewModel.warmCache()
     }
 

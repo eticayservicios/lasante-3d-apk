@@ -41,7 +41,8 @@ fun rememberVitrinaFilamentSession(): VitrinaFilamentSession {
         // y Main (upload a Filament/GPU); envolverlo en IO bloquea el switch a Main.
         // El yield() + delay garantizan que el primer frame se pinte antes del parse.
         yield()
-        delay(80) // 80 ms en lugar de 32: tablets lentas necesitan más tiempo para pintar el spinner
+        val loadDelayMs = VitrinaDeviceLoadPolicy.baseGlbLoadDelayMs(context)
+        delay(loadDelayMs)
         val loaded = runCatching {
             modelLoader.loadModelInstance(baseGlbSource.loadPath)
         }.onFailure { t ->
@@ -51,7 +52,7 @@ fun rememberVitrinaFilamentSession(): VitrinaFilamentSession {
         baseInstance = loaded
         VitrinaDebugLog.d(
             "VitrinaGlb",
-            "session base asset=${baseGlbSource.loadPath} loaded=${loaded != null}",
+            "session base asset=${baseGlbSource.loadPath} loaded=${loaded != null} delayMs=$loadDelayMs",
         )
     }
 

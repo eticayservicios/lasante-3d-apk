@@ -54,6 +54,11 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+        // Extrae .so al instalar: evita UnsatisfiedLinkError en tablets OEM viejas
+        // cuando extractNativeLibs=false + APK mal alineado / instaladores raros.
+        jniLibs {
+            useLegacyPackaging = true
+        }
     }
 }
 
