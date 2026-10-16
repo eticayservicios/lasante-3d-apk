@@ -58,7 +58,7 @@ class RetrofitCatalogRepository(
     private val businessUnitAliases = listOf(
         BusinessUnitAlias(
             fallbackId = "genericos-la-sante",
-            displayName = "Genéricos La Santé",
+            displayName = "La Santé Genérico",
             aliases = setOf(
                 "genericos-la-sante",
                 "genericos la sante",
@@ -67,27 +67,28 @@ class RetrofitCatalogRepository(
                 "genericos",
                 "genéricos",
                 "genéricos la santé",
+                "la santé genérico",
             ),
         ),
         BusinessUnitAlias(
             fallbackId = "primary-care",
-            displayName = "Primary Care",
-            aliases = setOf("primary", "primary-care", "primary care"),
+            displayName = "Pharmetique",
+            aliases = setOf("primary", "primary-care", "primary care", "pharmetique", "pharmatique"),
         ),
         BusinessUnitAlias(
             fallbackId = "specialty-care",
-            displayName = "Specialty Care",
-            aliases = setOf("specialty", "specialty-care", "specialty care"),
+            displayName = "Oncológicas",
+            aliases = setOf("specialty", "specialty-care", "specialty care", "oncológicas"),
         ),
         BusinessUnitAlias(
             fallbackId = "phq-consumo",
-            displayName = "PHQ Consumo",
-            aliases = setOf("phq", "phq-consumo", "phq consumo", "consumo"),
+            displayName = "OTC",
+            aliases = setOf("phq", "phq-consumo", "phq consumo", "consumo", "otc"),
         ),
         BusinessUnitAlias(
             fallbackId = "hospital-care",
-            displayName = "Hospital Care",
-            aliases = setOf("hospital", "hospital-care", "hospital care"),
+            displayName = "Hospitalaria",
+            aliases = setOf("hospital", "hospital-care", "hospital care", "hospitalaria"),
         ),
     )
 
@@ -329,7 +330,7 @@ class RetrofitCatalogRepository(
             BusinessUnit(
                 unidadId    = u.id,
                 nombre      = DisplayTitles.resolve(u.nombre, u.id),
-                descripcion = u.descripcion ?: "",
+                descripcion = DisplayTitles.replaceLegacyUnitNames(u.descripcion ?: ""),
                 estado      = "ACTIVO",
                 orden       = 0,
                 media       = UnitMedia(),
@@ -351,13 +352,13 @@ class RetrofitCatalogRepository(
             return emptyList()
         }
 
-        // Orden = API/admin = cilindro: Specialty antes que PHQ.
+        // Orden visual del nuevo cintillo: Genérico, Pharmetique, OTC, Hospitalaria, Oncológicas.
         val glbOrder = listOf(
             "genericos-la-sante",
             "primary-care",
-            "specialty-care",
             "phq-consumo",
             "hospital-care",
+            "specialty-care",
             "medicina-general",
         )
         return vitrinaUnits
@@ -397,7 +398,7 @@ class RetrofitCatalogRepository(
                     unit = BusinessUnit(
                         unidadId = unitId,
                         nombre = DisplayTitles.resolve(unit.nombre, unitId),
-                        descripcion = unit.descripcion ?: "",
+                        descripcion = DisplayTitles.replaceLegacyUnitNames(unit.descripcion ?: ""),
                         media = UnitMedia(icono = unit.icono)
                     ),
                     products = resolvedFeatured,

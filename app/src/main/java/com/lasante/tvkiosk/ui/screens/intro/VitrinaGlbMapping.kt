@@ -4,10 +4,10 @@ package com.lasante.tvkiosk.ui.screens.intro
  * Única fuente de verdad del cilindro.
  *
  * Orden angular = API = admin:
- * Genéricos → Primary → Specialty → PHQ → Hospital.
+ * La Santé Genérico → Pharmetique → OTC → Hospitalaria → Oncológicas.
  *
- * En el GLB: nombre de nodo = texto del cintillo = [orderedNavigationUnitIds].
- * No invertir specialty/phq ni re-encodear Draco de esos meshes.
+ * Los nombres de nodo se conservan por compatibilidad técnica; [faces] asigna cada
+ * segmento del cintillo nuevo a su ID de navegación sin re-encodear Draco.
  */
 object VitrinaGlbMapping {
     data class UnitFace(
@@ -20,9 +20,9 @@ object VitrinaGlbMapping {
     val faces: List<UnitFace> = listOf(
         UnitFace(0, "genericos_lasante", "genericos-la-sante", 90.417f),
         UnitFace(1, "primary_care", "primary-care", 162.405f),
-        UnitFace(2, "specialty_care", "specialty-care", -125.567f),
-        UnitFace(3, "phq_consumo", "phq-consumo", -53.593f),
-        UnitFace(4, "hospital_care", "hospital-care", 18.440f),
+        UnitFace(2, "specialty_care", "phq-consumo", -125.567f),
+        UnitFace(3, "phq_consumo", "hospital-care", -53.593f),
+        UnitFace(4, "hospital_care", "specialty-care", 18.440f),
     )
 
     val orderedGlbNodeNames: List<String> = faces.map { it.nodeName }

@@ -117,8 +117,8 @@ object VitrinaConstants {
     val FEATURED_ANCHOR_NAMES = listOf("featured_1", "featured_2", "featured_3", "featured_4")
     /**
      * Nodos GLB en orden angular (~72°), igual que API/admin:
-     * Genéricos → Primary → Specialty → PHQ → Hospital.
-     * Nombre de nodo = texto del cintillo = ID.
+     * La Santé Genérico → Pharmetique → OTC → Hospitalaria → Oncológicas.
+     * Los nombres de nodo son técnicos; [VitrinaGlbMapping] los vincula al texto visible.
      *
      * Mantener sincronizado con [VitrinaGlbMapping.faces].
      */
