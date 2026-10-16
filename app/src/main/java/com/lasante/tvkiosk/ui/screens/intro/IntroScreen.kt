@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import coil.imageLoader
+import com.lasante.tvkiosk.app.FilamentNativeSupport
 import com.lasante.tvkiosk.ui.utils.ModalFrostScrim
 import com.lasante.tvkiosk.ui.utils.ModalOverlayDialog
 import com.lasante.tvkiosk.ui.utils.modalBackdropBlur
@@ -48,6 +49,16 @@ fun IntroScreen(
     onNavigateToStarProducts: (String) -> Unit = {},
     onNavigateToViewAllProducts: (String) -> Unit = {},
 ) {
+    // Antes de cualquier remember de Filament: proceso estable por proceso (Application.onCreate).
+    if (!FilamentNativeSupport.available) {
+        FilamentUnavailableIntro(
+            businessUnits = businessUnits,
+            onNavigateToTreatments = onNavigateToTreatments,
+            onNavigateToViewAllProducts = onNavigateToViewAllProducts,
+        )
+        return
+    }
+
     val widthClass = windowSizeClass.widthSizeClass
     val configuration = LocalConfiguration.current
     val context = LocalContext.current

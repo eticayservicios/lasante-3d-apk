@@ -20,6 +20,13 @@ class LaSanteApplication : Application(), ImageLoaderFactory {
         Media3AudioPlayer().also { it.attach(this) }
     }
 
+    override fun onCreate() {
+        super.onCreate()
+        // Preflight nativo + handler antes de Compose/Filament (tablets que abren y cierran).
+        FilamentNativeSupport.evaluate(this)
+        AppCrashGuard.install(this)
+    }
+
     override fun newImageLoader(): ImageLoader =
         ImageLoader.Builder(this)
             .components {
