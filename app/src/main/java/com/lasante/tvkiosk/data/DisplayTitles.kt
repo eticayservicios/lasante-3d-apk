@@ -5,24 +5,30 @@ import java.util.Locale
 
 /**
  * Convierte ids/slugs o nombres crudos del API en títulos legibles
- * (p. ej. `genericos-la-sante` → `Genéricos La Santé`).
+ * (p. ej. `genericos-la-sante` → `La Santé Genérico`).
  */
 object DisplayTitles {
 
     private val knownUnits = mapOf(
-        "genericos-la-sante" to "Genéricos La Santé",
-        "genericos_lasante" to "Genéricos La Santé",
-        "genericos-lasante" to "Genéricos La Santé",
-        "medicina-general" to "Genéricos La Santé",
-        "genericos" to "Genéricos La Santé",
-        "primary-care" to "Primary Care",
-        "primary" to "Primary Care",
-        "specialty-care" to "Specialty Care",
-        "specialty" to "Specialty Care",
-        "phq-consumo" to "PHQ Consumo",
-        "phq" to "PHQ Consumo",
-        "hospital-care" to "Hospital Care",
-        "hospital" to "Hospital Care",
+        "genericos-la-sante" to "La Santé Genérico",
+        "genericos_lasante" to "La Santé Genérico",
+        "genericos-lasante" to "La Santé Genérico",
+        "medicina-general" to "La Santé Genérico",
+        "genericos" to "La Santé Genérico",
+        "la-sante-generico" to "La Santé Genérico",
+        "primary-care" to "Pharmetique",
+        "primary" to "Pharmetique",
+        "pharmetique" to "Pharmetique",
+        "pharmatique" to "Pharmetique",
+        "specialty-care" to "Oncológicas",
+        "specialty" to "Oncológicas",
+        "oncologicas" to "Oncológicas",
+        "phq-consumo" to "OTC",
+        "phq" to "OTC",
+        "otc" to "OTC",
+        "hospital-care" to "Hospitalaria",
+        "hospital" to "Hospitalaria",
+        "hospitalaria" to "Hospitalaria",
     )
 
     private val wordOverrides = mapOf(
@@ -52,6 +58,21 @@ object DisplayTitles {
         if (source.isBlank()) return ""
         return formatSlug(source)
     }
+
+    /** Reemplaza nombres legacy dentro de descripciones sin modificar IDs ni contenido restante. */
+    fun replaceLegacyUnitNames(value: String): String =
+        legacyUnitNameReplacements.fold(value) { result, (legacy, current) ->
+            result.replace(legacy, current, ignoreCase = true)
+        }
+
+    private val legacyUnitNameReplacements = listOf(
+        "Genéricos La Santé" to "La Santé Genérico",
+        "Genericos La Sante" to "La Santé Genérico",
+        "Primary Care" to "Pharmetique",
+        "Specialty Care" to "Oncológicas",
+        "PHQ Consumo" to "OTC",
+        "Hospital Care" to "Hospitalaria",
+    )
 
     private fun looksLikeSlug(value: String): Boolean {
         if (value.contains('-') || value.contains('_')) return true
