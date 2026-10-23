@@ -467,12 +467,14 @@ private fun ProductModelStage(
             }
         }
         if (hasGlb) {
+            // zIndex por debajo del SceneView: si está encima, Compose se come
+            // pinches/órbita y el zoom “choca” con toques raros.
             Text(
                 text = "ARRASTRA PARA GIRAR EL PRODUCTO",
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 8.dp)
-                    .zIndex(3f),
+                    .zIndex(1f),
                 style = MaterialTheme.typography.labelSmall,
                 color = LaSanteText.copy(alpha = 0.35f),
                 fontWeight = FontWeight.Bold,
