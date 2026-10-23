@@ -9,6 +9,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -22,6 +24,9 @@ import com.lasante.tvkiosk.ui.components.ProductPresentationModal
 import com.lasante.tvkiosk.ui.components.UiState
 import com.lasante.tvkiosk.ui.utils.ModalFrostScrim
 import com.lasante.tvkiosk.ui.utils.modalBackdropBlur
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun TreatmentsRoute(
@@ -38,6 +43,8 @@ fun TreatmentsRoute(
     )
     var retryKey by remember { mutableIntStateOf(0) }
     var selectedProduct by remember(unitId) { mutableStateOf<Product?>(null) }
+    val modalScope = rememberCoroutineScope()
+    val catalogRepositoryState = rememberUpdatedState(catalogRepository)
 
     LaunchedEffect(unitId, retryKey) {
         viewModel.load(unitId, forceRefresh = retryKey > 0)
@@ -60,7 +67,22 @@ fun TreatmentsRoute(
                     products = state.data.products,
                     onBack = onBack,
                     onTreatmentSelected = onTreatmentSelected,
-                    onProductSelected = { product -> selectedProduct = product },
+                    onProductSelected = { product ->
+                        selectedProduct = product
+                        if (!product.hasPresentationGlb()) {
+                            modalScope.launch {
+                                val full = withContext(Dispatchers.IO) {
+                                    catalogRepositoryState.value.getProduct(product.productoId)
+                                }
+                                if (selectedProduct?.productoId == product.productoId &&
+                                    full != null &&
+                                    full.hasPresentationGlb()
+                                ) {
+                                    selectedProduct = full
+                                }
+                            }
+                        }
+                    },
                 )
             }
 

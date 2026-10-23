@@ -33,6 +33,7 @@ import com.lasante.tvkiosk.data.VitrinaUnit
 import com.lasante.tvkiosk.ui.layout.DeviceProfileResolver
 import com.lasante.tvkiosk.ui.layout.TvProfileDetector
 import com.lasante.tvkiosk.ui.theme.LaSanteBackground
+import kotlinx.coroutines.launch
 
 @Composable
 fun IntroScreen(
@@ -45,6 +46,11 @@ fun IntroScreen(
     windowSizeClass: WindowSizeClass,
     contentActive: Boolean = true,
     onStopAudio: () -> Unit,
+    /**
+     * Hidrata media completa (GLB) al abrir desde el buscador: el índice slim a veces
+     * solo trae miniaturas y el modal caía a foto estática.
+     */
+    resolveProductForModal: suspend (Product) -> Product = { it },
     onNavigateToTreatments: (String) -> Unit = {},
     onNavigateToStarProducts: (String) -> Unit = {},
     onNavigateToViewAllProducts: (String) -> Unit = {},
@@ -103,6 +109,8 @@ fun IntroScreen(
     var isVideoPlaying by remember { mutableStateOf(false) }
     var qrUrl by remember { mutableStateOf<String?>(null) }
     var qrLabel by remember { mutableStateOf("") }
+    val modalScope = rememberCoroutineScope()
+    val resolveProductForModalState = rememberUpdatedState(resolveProductForModal)
 
     val socialNetworks = remember { SocialNetworks.defaults }
 
@@ -281,7 +289,18 @@ fun IntroScreen(
                 },
                 onSearchProductSelected = { product ->
                     vitrinaController.registerInteraction()
+                    // Abrir ya (UX) e hidratar GLB si el índice slim no lo traía.
                     selectedProduct = product
+                    if (!product.hasPresentationGlb()) {
+                        modalScope.launch {
+                            val full = resolveProductForModalState.value(product)
+                            if (selectedProduct?.productoId == product.productoId &&
+                                full.hasPresentationGlb()
+                            ) {
+                                selectedProduct = full
+                            }
+                        }
+                    }
                 },
                 onSocialClick = { label, url ->
                     vitrinaController.registerInteraction()
