@@ -11,6 +11,8 @@ import com.lasante.tvkiosk.data.CatalogRepository
 import com.lasante.tvkiosk.ui.components.ErrorScreen
 import com.lasante.tvkiosk.ui.components.LoadingScreen
 import com.lasante.tvkiosk.ui.components.UiState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun IntroRoute(
@@ -49,6 +51,11 @@ fun IntroRoute(
                 windowSizeClass = windowSizeClass,
                 contentActive = contentActive,
                 onStopAudio = { audioPlayer.stop() },
+                resolveProductForModal = { product ->
+                    withContext(Dispatchers.IO) {
+                        catalogRepository.getProduct(product.productoId) ?: product
+                    }
+                },
                 onNavigateToTreatments = onNavigateToTreatments,
                 onNavigateToStarProducts = onNavigateToStarProducts,
                 onNavigateToViewAllProducts = onNavigateToViewAllProducts,

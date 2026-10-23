@@ -79,7 +79,8 @@ fun ModelViewerStub(
                     centerOrigin = Position(x = 0f, y = -1f, z = 0f),
                     scaleToUnits = scaleToUnits,
                     rotation = Rotation(y = PRODUCT_MODAL_INITIAL_YAW_DEG),
-                    isEditable = false,
+                    // Editable = gestos de arrastre/zoom sobre el modelo (modal compartido).
+                    isEditable = true,
                 )
             }
         }

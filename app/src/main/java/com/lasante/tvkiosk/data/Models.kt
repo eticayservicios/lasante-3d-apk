@@ -62,6 +62,14 @@ data class Product(
     val modelUrl: String? get() = media.modelo3d.glb
     val audioUrl: String? get() = null // Se agregará cuando el backend defina dónde viene el audio (ej: atributos o media)
 
+    /** True si hay algún GLB usable en el modal compartido (no solo miniatura 2D). */
+    fun hasPresentationGlb(): Boolean {
+        val model = media.modelo3d
+        return !model.glb.isNullOrBlank() ||
+            !model.glbFrasco.isNullOrBlank() ||
+            !model.glbAbrircaja.isNullOrBlank()
+    }
+
     /** Texto listo para UI: "10 mg". Null si falta valor o unidad. */
     val dosisDisplay: String?
         get() {
