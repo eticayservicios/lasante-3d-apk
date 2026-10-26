@@ -108,13 +108,12 @@ internal object VitrinaDeviceLoadPolicy {
 
     /**
      * Calidad Filament:
-     * - Emulador TV66/4K / low-RAM: [RenderQuality.Performance] (DRS) — menos OOM/ANR.
-     * - Resto: Default (mejor lámparas/IBL).
+     * - Emulador TV66/4K: [RenderQuality.Performance] — menos OOM/ANR.
+     * - Dispositivos físicos: Default, sin DRS que vuelva borrosas las texturas.
      */
-    fun filamentRenderQuality(context: Context, layoutMetrics: IntroLayoutMetrics): RenderQuality =
+    fun filamentRenderQuality(layoutMetrics: IntroLayoutMetrics): RenderQuality =
         when {
             isLikelyEmulator() && layoutMetrics.isTv66 -> RenderQuality.Performance
-            isLowRamDevice(context) -> RenderQuality.Performance
             else -> RenderQuality.Default
         }
 

@@ -16,6 +16,8 @@ class MainActivity : ComponentActivity() {
         // que ignoran o retrasan sensorLandscape hasta “pantalla completa”.
         lockLandscape()
         super.onCreate(savedInstanceState)
+        // Kiosco: la pantalla debe permanecer activa para rotación idle y screen saver.
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         // Kiosco: nunca el IME de Android; buscadores usan KioskQwertyKeyboard.
         window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
         applyImmersiveFullscreen()

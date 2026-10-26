@@ -55,6 +55,15 @@ object VitrinaConstants {
     const val STUDIO_IBL_INTENSITY = 10_000f
 
     /**
+     * Emisión del cintillo activo en paneles que queman blancos (Infinix / Hikvision).
+     * Se anula en phone/TV66: la textura sigue visible mediante baseColorTexture,
+     * sin sumar luz emisiva que sature colores o lave el texto.
+     * Tablet conserva el material ON nativo del GLB.
+     */
+    const val CINTILLO_SOFT_EMISSIVE_FACTOR = 0f
+    const val CINTILLO_SOFT_EMISSIVE_STRENGTH = 0f
+
+    /**
      * Baseline de rotación idle (phone). Tablet/TV usan [IntroLayoutMetrics.idleFullRotationMs]
      * porque el mismo °/s se percibe más rápido en pantallas grandes.
      */
