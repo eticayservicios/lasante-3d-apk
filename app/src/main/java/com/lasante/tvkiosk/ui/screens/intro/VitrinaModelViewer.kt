@@ -77,6 +77,28 @@ private fun duplicateLampOff(
     }
 }
 
+/**
+ * Clon de MAT_SECCION_ON sin emisión (no muta el material del GLB).
+ * Para Infinix / Hikvision donde el cintillo se ve blanco/lavado.
+ */
+private fun duplicateSoftCintilloOn(source: MaterialInstance): MaterialInstance? {
+    return try {
+        MaterialInstance.duplicate(source, "MAT_SECCION_ON_SOFT").also { soft ->
+            val f = VitrinaConstants.CINTILLO_SOFT_EMISSIVE_FACTOR
+            runCatching { soft.setParameter("emissiveFactor", f, f, f) }
+            runCatching {
+                soft.setParameter(
+                    "emissiveStrength",
+                    VitrinaConstants.CINTILLO_SOFT_EMISSIVE_STRENGTH,
+                )
+            }
+        }
+    } catch (t: Throwable) {
+        VitrinaDebugLog.w("VitrinaDiag", "duplicateSoftCintilloOn failed: ${t.message}")
+        null
+    }
+}
+
 private fun resolveLampEntities(
     instance: ModelInstance,
     renderableManager: RenderableManager,
@@ -192,7 +214,7 @@ fun VitrinaModelViewer(
     val appContext = LocalContext.current.applicationContext
     val scene = VitrinaSlotConfig.sceneMetrics(layoutMetrics)
     val renderQuality = remember(layoutMetrics.deviceProfile) {
-        VitrinaDeviceLoadPolicy.filamentRenderQuality(appContext, layoutMetrics)
+        VitrinaDeviceLoadPolicy.filamentRenderQuality(layoutMetrics)
     }
 
     val engine = filamentSession.engine
@@ -352,8 +374,10 @@ fun VitrinaModelViewer(
     // Intercambio dinámico de materiales para el cintillo y el acrílico.
     // Filament solo instancia materiales referenciados por ≥1 mesh del GLB.
     var swapMaterials by remember(baseInstance) { mutableStateOf<VitrinaSwapMaterials?>(null) }
+    val softCintilloEmissive =
+        layoutMetrics.isPhoneLandscape || layoutMetrics.isTv66
 
-    LaunchedEffect(baseInstance) {
+    LaunchedEffect(baseInstance, softCintilloEmissive) {
         val instance = baseInstance ?: run {
             swapMaterials = null
             return@LaunchedEffect
@@ -389,13 +413,20 @@ fun VitrinaModelViewer(
             swapMaterials = null
             return@LaunchedEffect
         }
+        // No mutar MAT_SECCION_ON del GLB (setParameter puede abortar Filament).
+        // En Infinix/Hikvision: clon sin emisión para que el texto no se lave.
+        val matOnForDevice = if (softCintilloEmissive) {
+            duplicateSoftCintilloOn(matOn!!) ?: matOn!!
+        } else {
+            matOn!!
+        }
         VitrinaDebugLog.d(
             "VitrinaMaterials",
             "Materiales listos ON/OFF + GLASS + lamps " +
                 "(led=${lampLed != null} interior=${lampInterior != null} " +
-                "bake=${lampBake != null} count=${materialInstances.size})",
+                "bake=${lampBake != null} softCintillo=$softCintilloEmissive " +
+                "count=${materialInstances.size})",
         )
-        // No mutar los materiales ON del GLB (setParameter puede abortar Filament).
         // OFF = clon con emisión en 0; si falla el clon, Intro sigue sin lámparas dinámicas.
         val lampLedOff = runCatching {
             duplicateLampOff(lampLed, "${VitrinaConstants.LAMP_LED_MATERIAL}_OFF")
@@ -404,7 +435,7 @@ fun VitrinaModelViewer(
             duplicateLampOff(lampInterior, "${VitrinaConstants.LAMP_INTERIOR_MATERIAL}_OFF")
         }.getOrNull()
         swapMaterials = VitrinaSwapMaterials(
-            matOn = matOn!!,
+            matOn = matOnForDevice,
             matOff = matOff!!,
             glassOn = glassOn!!,
             glassOff = glassOff!!,
