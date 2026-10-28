@@ -142,9 +142,9 @@ data class IntroLayoutMetrics(
             else -> 36.dp
         }
 
-    /** Slop mínimo antes de iniciar drag (igual en todos los perfiles). */
+    /** Slop mínimo antes de iniciar drag; TV66 responde antes al panel táctil. */
     fun dragPointerSlopPx(density: androidx.compose.ui.unit.Density): Float =
-        with(density) { 3.dp.toPx() }
+        with(density) { (if (vitrinaProfileKey == "tv_66") 2.dp else 3.dp).toPx() }
 
     /**
      * Fracción de ancho ≈ 1 unidad (72°) al arrastrar.

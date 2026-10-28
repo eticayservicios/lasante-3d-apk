@@ -1211,10 +1211,10 @@ fun ProductsScreen(
                 val topBadgeModifier = Modifier
                     .align(Alignment.TopStart)
                     .offset {
-                        // Lift suave en TV66: 7 espacios sacaba casi medio badge
-                        // fuera de pantalla en Hikvision y el icono CT se veía cortado.
+                        // Lift suave en TV66: subir un espacio adicional sin volver al recorte
+                        // que producía el desplazamiento anterior de 7 espacios en Hikvision.
                         val (dx, lift) = when {
-                            isTv66 -> 0.dp to Tv42Spacing.spaces(3)
+                            isTv66 -> 0.dp to Tv42Spacing.spaces(4)
                             isTv42 || catalog.largeCanvas ->
                                 (-Tv42Spacing.spaces(9)) to Tv42Spacing.spaces(4)
                             else -> 0.dp to 0.dp
@@ -1225,7 +1225,12 @@ fun ProductsScreen(
                         } else {
                             -lift
                         }
-                        IntOffset(x = dx.roundToPx(), y = y.roundToPx())
+                        // Solo badge CT en TV66/Hikvision: 10 px físicos más arriba.
+                        val ctExtraLiftPx = if (isTv66 && !isStarProductsMode) 10 else 0
+                        IntOffset(
+                            x = dx.roundToPx(),
+                            y = y.roundToPx() - ctExtraLiftPx,
+                        )
                     }
                     .padding(
                         start = horizontalPadding + contentPadding,

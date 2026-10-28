@@ -540,8 +540,10 @@ private fun ProductDescriptionPanel(
     val scrollState = rememberScrollState()
     var viewportPx by remember(product.productoId) { mutableIntStateOf(0) }
     var contentPx by remember(product.productoId, expanded) { mutableIntStateOf(0) }
-    // Evitar falso overflow mientras viewport aún no midió (0 px).
-    val overflows = viewportPx > 0 && contentPx > viewportPx + 2
+    // Tolera diferencias de medición menores a media línea: no deben provocar un
+    // “Ver más” que al pulsarlo no revele contenido perceptible.
+    val overflowTolerancePx = with(LocalDensity.current) { bodyLine.toPx() / 2f }
+    val overflows = viewportPx > 0 && contentPx > viewportPx + overflowTolerancePx
     val canExpand = expandable && (textShortened || overflows || expanded)
 
     Box(modifier = modifier) {
