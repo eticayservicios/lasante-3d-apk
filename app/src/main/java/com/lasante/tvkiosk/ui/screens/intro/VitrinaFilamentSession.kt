@@ -49,6 +49,7 @@ fun rememberVitrinaFilamentSession(): VitrinaFilamentSession {
             VitrinaDebugLog.e("VitrinaGlb", "load ${baseGlbSource.loadPath} failed", t)
         }.getOrNull()
         loaded?.hideDecorativeBackgroundPlanes()
+        loaded?.lowerFloatingPediatricBox()
         baseInstance = loaded
         VitrinaDebugLog.d(
             "VitrinaGlb",
@@ -64,6 +65,25 @@ fun rememberVitrinaFilamentSession(): VitrinaFilamentSession {
             baseInstance = baseInstance,
         )
     }
+}
+
+/**
+ * Ajuste puntual del arte base: la caja pediátrica de la repisa superior quedó
+ * separada de la superficie. El padre `Empty` convierte Z local en el eje
+ * vertical invertido, por eso aumentar Z baja la caja visualmente.
+ */
+private fun ModelInstance.lowerFloatingPediatricBox() {
+    val entity = model.getFirstEntityByName("Cube.003")
+    if (entity == 0) return
+
+    val transformManager = engine.transformManager
+    if (!transformManager.hasComponent(entity)) return
+
+    val instance = transformManager.getInstance(entity)
+    val transform = FloatArray(16)
+    transformManager.getTransform(instance, transform)
+    transform[14] += 0.015f
+    transformManager.setTransform(instance, transform)
 }
 
 private fun ModelInstance.hideDecorativeBackgroundPlanes() {
