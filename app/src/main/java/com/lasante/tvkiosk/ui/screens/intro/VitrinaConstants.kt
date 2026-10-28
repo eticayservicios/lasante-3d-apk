@@ -35,8 +35,9 @@ object VitrinaConstants {
         // Tablet táctil (Damasco): más sensible — ver3 es más pesado y el swipe se sentía lento.
         "tablet_landscape" -> 0.072f
         "tv_42" -> 0.10f
-        // TV66/Hikvision: un poco más sensible (menor fracción = menos swipe).
-        "tv_66", "expanded" -> 0.058f
+        // TV66/Hikvision: menor recorrido físico para completar cada paso.
+        "tv_66" -> 0.050f
+        "expanded" -> 0.058f
         else -> 0.12f
     }
 
@@ -92,13 +93,13 @@ object VitrinaConstants {
 
     /** Umbral de ángulo al soltar para cambiar de unidad (fracción de 72°). Menor = más sensible. */
     fun dragSnapCommitFraction(profileKey: String): Float = when (profileKey) {
-        "tv_66" -> 0.072f
+        "tv_66" -> 0.060f
         else -> DRAG_SNAP_COMMIT_FRACTION
     }
 
     /** Flick rápido al soltar; menor = más fácil de disparar. */
     fun dragFlickVelocityPxPerMs(profileKey: String): Float = when (profileKey) {
-        "tv_66" -> 0.74f
+        "tv_66" -> 0.65f
         else -> DRAG_FLICK_VELOCITY_PX_PER_MS
     }
 
