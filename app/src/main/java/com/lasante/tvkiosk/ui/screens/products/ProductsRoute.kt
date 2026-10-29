@@ -20,6 +20,7 @@ import com.lasante.tvkiosk.data.DisplayTitles
 private data class ProductsData(
     val treatmentName: String,
     val treatmentIconUrl: String?,
+    val unitName: String,
     val products: List<Product>,
     val isStarProductsMode: Boolean = false,
     val isViewAllTreatments: Boolean = false,
@@ -46,14 +47,14 @@ private fun starProductsData(
     unitId: String,
 ): ProductsData? {
     val unitKeys = catalogRepository.matchingUnitIds(unitId)
-    val stars = catalogRepository.cachedVitrinaUnitsOrNull()
+    val vitrinaUnit = catalogRepository.cachedVitrinaUnitsOrNull()
         ?.firstOrNull { it.unit.id in unitKeys }
-        ?.starProducts
-        ?.distinctBy { it.productoId }
         ?: return null
+    val stars = vitrinaUnit.starProducts.distinctBy { it.productoId }
     return ProductsData(
         treatmentName = "Productos Estrella",
         treatmentIconUrl = null,
+        unitName = DisplayTitles.resolve(vitrinaUnit.unit.name, vitrinaUnit.unit.id),
         products = stars,
         isStarProductsMode = true,
     )
@@ -99,8 +100,9 @@ fun ProductsRoute(
 
                 if (isStarProducts) {
                     val unitKeys = catalogRepository.matchingUnitIds(unitId)
-                    val stars = catalogRepository.getVitrinaUnits()
+                    val vitrinaUnit = catalogRepository.getVitrinaUnits()
                         .firstOrNull { it.unit.id in unitKeys }
+                    val stars = vitrinaUnit
                         ?.starProducts
                         .orEmpty()
                         .distinctBy { it.productoId }
@@ -108,6 +110,10 @@ fun ProductsRoute(
                         ProductsData(
                             treatmentName = "Productos Estrella",
                             treatmentIconUrl = null,
+                            unitName = DisplayTitles.resolve(
+                                vitrinaUnit?.unit?.name,
+                                unitId,
+                            ),
                             products = stars,
                             isStarProductsMode = true,
                         ),
@@ -116,6 +122,10 @@ fun ProductsRoute(
                     // Usar snapshot en memoria si está fresco (TTL). No invalidar aquí:
                     // /home tarda ~10s+ (Lambda/Dynamo); invalidar en cada VER TODOS
                     // dejaba Tratamientos/Productos en loading otra vez.
+                    val unitKeys = catalogRepository.matchingUnitIds(unitId)
+                    val unitName = catalogRepository.getUnits()
+                        .firstOrNull { it.id in unitKeys }
+                        ?.name
                     val treatments = catalogRepository.getTreatments(unitId)
                     val treatment = treatments.firstOrNull { it.id == treatmentId }
                     val (products, nextCursor, pinnedStars) = if (isViewAll) {
@@ -149,6 +159,7 @@ fun ProductsRoute(
                                 )
                             },
                             treatmentIconUrl = if (isViewAll) null else treatment?.media?.icono,
+                            unitName = DisplayTitles.resolve(unitName, unitId),
                             products = products,
                             isViewAllTreatments = isViewAll,
                             nextCursor = nextCursor,
@@ -176,6 +187,7 @@ fun ProductsRoute(
                 ProductsScreen(
                     treatmentName     = state.data.treatmentName,
                     treatmentIconUrl  = state.data.treatmentIconUrl,
+                    unitName          = state.data.unitName,
                     products          = state.data.products,
                     catalogRepository = catalogRepository,
                     unitId            = unitId,

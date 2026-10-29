@@ -71,6 +71,7 @@ import com.lasante.tvkiosk.BuildConfig
 import com.lasante.tvkiosk.data.CatalogRepository
 import com.lasante.tvkiosk.data.DisplayTitles
 import com.lasante.tvkiosk.data.Product
+import com.lasante.tvkiosk.ui.components.BusinessUnitIndicator
 import com.lasante.tvkiosk.ui.components.GreenNavButton
 import com.lasante.tvkiosk.ui.components.KioskImeBlockedTextField
 import com.lasante.tvkiosk.ui.components.KioskQwertyKeyboard
@@ -88,6 +89,7 @@ import com.lasante.tvkiosk.ui.layout.CatalogIconDebugColors
 import com.lasante.tvkiosk.ui.layout.CatalogIconDebugPanel
 import com.lasante.tvkiosk.ui.layout.CatalogIconDebugSizes
 import com.lasante.tvkiosk.ui.layout.CatalogScreenTitle
+import com.lasante.tvkiosk.ui.layout.SharedNavMetrics
 import com.lasante.tvkiosk.ui.layout.catalogIconDebugBorder
 import com.lasante.tvkiosk.ui.layout.toDebugLabel
 import com.lasante.tvkiosk.ui.layout.DeviceProfile
@@ -218,11 +220,38 @@ private fun mergeStarsFirstCatalog(stars: List<Product>, catalog: List<Product>)
     return starsSorted + rest
 }
 
+@Composable
+private fun TherapeuticClassTitle(
+    text: String,
+    unitId: String,
+    unitName: String,
+    nav: SharedNavMetrics,
+    titleStartGap: Dp,
+    titleTopGap: Dp,
+) {
+    Column {
+        CatalogScreenTitle(
+            text = text,
+            nav = nav,
+            titleStartGap = titleStartGap,
+            titleTopGap = titleTopGap,
+        )
+        BusinessUnitIndicator(
+            unitId = unitId,
+            unitName = unitName,
+            dotSize = (nav.titleFontSize.value * 0.63f).coerceIn(11f, 18f).dp,
+            fontSize = (nav.titleFontSize.value * 0.70f).coerceIn(15f, 24f).sp,
+            modifier = Modifier.padding(start = titleStartGap, top = 5.dp),
+        )
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductsScreen(
     treatmentName: String,
     treatmentIconUrl: String?,
+    unitName: String,
     products: List<Product>,
     catalogRepository: CatalogRepository,
     unitId: String,
@@ -754,8 +783,10 @@ fun ProductsScreen(
                                         }
                                         Spacer(modifier = Modifier.weight(1f))
                                     } else {
-                                        CatalogScreenTitle(
+                                        TherapeuticClassTitle(
                                             text = DisplayTitles.resolve(treatmentName),
+                                            unitId = unitId,
+                                            unitName = unitName,
                                             nav = nav,
                                             titleStartGap = header.titleStartGap,
                                             titleTopGap = 0.dp,
@@ -896,8 +927,10 @@ fun ProductsScreen(
                                 .padding(horizontal = contentPadding),
                             verticalAlignment = Alignment.Top,
                         ) {
-                            CatalogScreenTitle(
+                            TherapeuticClassTitle(
                                 text = DisplayTitles.resolve(treatmentName),
+                                unitId = unitId,
+                                unitName = unitName,
                                 nav = nav,
                                 titleStartGap = header.titleStartGap,
                                 titleTopGap = header.titleTopGap,

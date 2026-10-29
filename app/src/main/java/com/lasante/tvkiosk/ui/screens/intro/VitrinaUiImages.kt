@@ -9,7 +9,7 @@ import coil.request.ImageRequest
  * Evita duplicar Builder en Historia / gira / touch.
  */
 object VitrinaUiImages {
-    const val HISTORIA_GIF = "file:///android_asset/vitrina/ui/Historia.gif"
+    const val HISTORIA_GIF = "file:///android_asset/vitrina/ui/HistoriaNuevo.gif"
     const val GIRA_GIF = "file:///android_asset/vitrina/ui/gira.gif"
     const val TOUCH_GIF = "file:///android_asset/vitrina/ui/touch.gif"
     const val BADGE_HISTORIA = "file:///android_asset/vitrina/ui/badge_historia.png"

@@ -359,7 +359,7 @@ private fun ProductPresentationModalContent(
                                     product = product,
                                     businessUnitName = businessUnitName,
                                     modifier = Modifier
-                                        .weight(1f)
+                                        .width(360.dp)
                                         .fillMaxHeight(),
                                     horizontalPadding = layout.descriptionHorizontalPadding,
                                     descriptionTextAlign = layout.descriptionTextAlign,
@@ -497,8 +497,10 @@ private fun ProductDescriptionPanel(
     bottomPadding: Dp? = null,
     expandable: Boolean = false,
 ) {
-    val panelHorizontalPadding = horizontalPadding ?: if (compact) 18.dp else 28.dp
-    val panelBottomPadding = bottomPadding ?: if (compact) 18.dp else 24.dp
+    val panelHorizontalPadding =
+        (horizontalPadding ?: if (compact) 18.dp else 28.dp) + 15.dp
+    val panelBottomPadding =
+        (bottomPadding ?: if (compact) 18.dp else 24.dp) + 15.dp
     val bodyAlign = descriptionTextAlign ?: TextAlign.Start
     val (titlePart, strengthPart) = remember(product.name, product.dosisDisplay) {
         val apiDosis = product.dosisDisplay
@@ -523,14 +525,14 @@ private fun ProductDescriptionPanel(
         previewBullets != fullBullets
     }
     val bullets = if (expandable && expanded) fullBullets else previewBullets
-    val corner = if (compact) 18.dp else 20.dp
+    val corner = if (compact) 16.dp else 18.dp
     val cornerShape = RoundedCornerShape(corner)
     val titleBrush = Brush.horizontalGradient(
         listOf(LaSanteGreenDark, LaSanteGreen, LaSanteGreen),
     )
     val titleFontFamily = MaterialTheme.typography.bodyLarge.fontFamily
     // Sombra suave (mock): elevación difusa + leve sesgo arriba/derecha.
-    val shadowElevation = if (compact) 12.dp else 20.dp
+    val shadowElevation = if (compact) 18.dp else 28.dp
     val titleSize = ((if (compact) 18f else 22f) * bodyScale).sp
     val titleLine = ((if (compact) 21.6f else 26f) * bodyScale).sp
     val strengthSize = ((if (compact) 14f else 16f) * bodyScale).sp
@@ -552,33 +554,33 @@ private fun ProductDescriptionPanel(
             modifier = Modifier
                 .matchParentSize()
                 .offset(
-                    x = if (compact) 3.dp else 5.dp,
-                    y = if (compact) (-2).dp else (-3).dp,
+                    x = if (compact) 6.dp else 10.dp,
+                    y = if (compact) (-4).dp else (-7).dp,
                 )
                 .shadow(
                     elevation = shadowElevation,
                     shape = cornerShape,
                     clip = false,
-                    ambientColor = Color.Black.copy(alpha = 0.16f),
-                    spotColor = Color.Black.copy(alpha = 0.22f),
+                    ambientColor = Color.Black.copy(alpha = 0.22f),
+                    spotColor = Color.Black.copy(alpha = 0.30f),
                 ),
         )
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .shadow(
-                    elevation = if (compact) 8.dp else 14.dp,
+                    elevation = if (compact) 9.dp else 14.dp,
                     shape = cornerShape,
                     clip = false,
-                    ambientColor = Color.Black.copy(alpha = 0.10f),
-                    spotColor = Color.Black.copy(alpha = 0.18f),
+                    ambientColor = Color.Black.copy(alpha = 0.12f),
+                    spotColor = Color.Black.copy(alpha = 0.20f),
                 )
                 .background(Color.White, cornerShape)
                 .clip(cornerShape)
                 .padding(
                     start = panelHorizontalPadding,
                     end = panelHorizontalPadding,
-                    top = if (compact) 20.dp else 28.dp,
+                    top = (if (compact) 20.dp else 28.dp) + 15.dp,
                     bottom = panelBottomPadding,
                 ),
             verticalArrangement = Arrangement.Top,
