@@ -359,7 +359,7 @@ private fun ProductPresentationModalContent(
                                     product = product,
                                     businessUnitName = businessUnitName,
                                     modifier = Modifier
-                                        .weight(1f)
+                                        .width(360.dp)
                                         .fillMaxHeight(),
                                     horizontalPadding = layout.descriptionHorizontalPadding,
                                     descriptionTextAlign = layout.descriptionTextAlign,
