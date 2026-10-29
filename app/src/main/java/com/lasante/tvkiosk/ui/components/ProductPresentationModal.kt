@@ -90,7 +90,6 @@ private const val MODAL_BULLETS_PREVIEW = 3
 private const val MODAL_BULLETS_MAX = 8
 /** Ancho del bloque card+close dentro de su columna (el trim viene del perfil). */
 private const val DESCRIPTION_CARD_WIDTH_SCALE = 1.0f
-private val PRODUCT_CARD_CONTENT_PADDING = 15.dp
 
 private data class ProductModalMetrics(
     val modalWidthFraction: Float,
@@ -498,8 +497,10 @@ private fun ProductDescriptionPanel(
     bottomPadding: Dp? = null,
     expandable: Boolean = false,
 ) {
-    val panelHorizontalPadding = PRODUCT_CARD_CONTENT_PADDING
-    val panelBottomPadding = PRODUCT_CARD_CONTENT_PADDING
+    val panelHorizontalPadding =
+        (horizontalPadding ?: if (compact) 18.dp else 28.dp) + 15.dp
+    val panelBottomPadding =
+        (bottomPadding ?: if (compact) 18.dp else 24.dp) + 15.dp
     val bodyAlign = descriptionTextAlign ?: TextAlign.Start
     val (titlePart, strengthPart) = remember(product.name, product.dosisDisplay) {
         val apiDosis = product.dosisDisplay
@@ -579,7 +580,7 @@ private fun ProductDescriptionPanel(
                 .padding(
                     start = panelHorizontalPadding,
                     end = panelHorizontalPadding,
-                    top = PRODUCT_CARD_CONTENT_PADDING,
+                    top = (if (compact) 20.dp else 28.dp) + 15.dp,
                     bottom = panelBottomPadding,
                 ),
             verticalArrangement = Arrangement.Top,
