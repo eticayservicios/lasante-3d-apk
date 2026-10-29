@@ -1,11 +1,16 @@
 package com.lasante.tvkiosk.ui.screens.intro
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.view.WindowManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.platform.LocalContext
 import com.google.android.filament.Engine
 import io.github.sceneview.loaders.ModelLoader
@@ -14,6 +19,7 @@ import io.github.sceneview.model.engine
 import io.github.sceneview.model.model
 import io.github.sceneview.rememberEngine
 import io.github.sceneview.rememberModelLoader
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.yield
 
@@ -43,11 +49,16 @@ fun rememberVitrinaFilamentSession(): VitrinaFilamentSession {
         yield()
         val loadDelayMs = VitrinaDeviceLoadPolicy.baseGlbLoadDelayMs(context)
         delay(loadDelayMs)
-        val loaded = runCatching {
-            modelLoader.loadModelInstance(baseGlbSource.loadPath)
-        }.onFailure { t ->
+        val loaded = try {
+            withWindowInputPaused(context) {
+                modelLoader.loadModelInstance(baseGlbSource.loadPath)
+            }
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (t: Throwable) {
             VitrinaDebugLog.e("VitrinaGlb", "load ${baseGlbSource.loadPath} failed", t)
-        }.getOrNull()
+            null
+        }
         loaded?.hideDecorativeBackgroundPlanes()
         loaded?.lowerFloatingPediatricBox()
         baseInstance = loaded
@@ -65,6 +76,33 @@ fun rememberVitrinaFilamentSession(): VitrinaFilamentSession {
             baseInstance = baseInstance,
         )
     }
+}
+
+/**
+ * SceneView crea el modelo de Filament en Main. Mientras esa llamada nativa no
+ * retorna, impedir nuevos toques evita que InputDispatcher abra un evento que
+ * termine en ANR. Esperamos dos frames para que WindowManager aplique el flag.
+ */
+private suspend fun <T> withWindowInputPaused(
+    context: Context,
+    block: suspend () -> T,
+): T {
+    val window = context.findActivity()?.window
+    window?.addFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
+    return try {
+        if (window != null) {
+            repeat(2) { withFrameNanos { } }
+        }
+        block()
+    } finally {
+        window?.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
+    }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
 
 /**

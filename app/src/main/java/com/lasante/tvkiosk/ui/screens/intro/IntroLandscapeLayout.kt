@@ -45,6 +45,7 @@ import com.lasante.tvkiosk.ui.utils.clickableWithSound
 import com.lasante.tvkiosk.ui.utils.UiSound
 
 private const val PROFILE_LOG_TAG = "VitrinaProfile"
+private const val HISTORIA_ARTWORK_SCALE = 1.55f
 
 @Composable
 fun IntroResponsiveLayout(
@@ -349,7 +350,11 @@ private fun HistoriaBadgeButton(
 ) {
     val context = LocalContext.current
     val gifModel = remember(context) {
-        VitrinaUiImages.request(context, VitrinaUiImages.HISTORIA_GIF)
+        VitrinaUiImages.request(
+            context = context,
+            data = VitrinaUiImages.HISTORIA_GIF,
+            sizePx = 1200,
+        )
     }
     Box(
         modifier = modifier
@@ -369,7 +374,7 @@ private fun HistoriaBadgeButton(
             contentDescription = null,
             modifier = Modifier
                 .padding(top = metrics.historiaBadgeIconTop.coerceAtLeast(0.dp))
-                .size(metrics.historiaBadgeIconSize),
+                .size(metrics.historiaBadgeIconSize * HISTORIA_ARTWORK_SCALE),
             contentScale = ContentScale.Fit,
         )
     }
