@@ -16,6 +16,7 @@ import com.lasante.tvkiosk.ui.theme.LaSanteGreen
 import dev.romainguy.kotlin.math.Float3
 import dev.romainguy.kotlin.math.lookAt
 import io.github.sceneview.SceneView
+import io.github.sceneview.RenderQuality
 import io.github.sceneview.gesture.CameraGestureDetector
 import io.github.sceneview.math.Position
 import io.github.sceneview.math.Rotation
@@ -128,6 +129,7 @@ fun ModelViewerStub(
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         SceneView(
             modifier = Modifier.fillMaxSize(),
+            renderQuality = RenderQuality.Performance,
             engine = engine,
             modelLoader = modelLoader,
             isOpaque = false,

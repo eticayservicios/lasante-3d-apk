@@ -107,15 +107,16 @@ internal object VitrinaDeviceLoadPolicy {
         videoPrefetchDelayMs(profile)
 
     /**
-     * Calidad Filament:
-     * - Emulador TV66/4K: [RenderQuality.Performance] — menos OOM/ANR.
-     * - Dispositivos físicos: Default, sin DRS que vuelva borrosas las texturas.
+     * Perfil de compatibilidad para Filament.
+     *
+     * [RenderQuality.Default] habilita Bloom. Bloom compila el programa interno
+     * `separableGaussianBlur`, que aborta el proceso nativo en ciertos drivers
+     * OpenGL (Xiaomi/Android 15 entre ellos); no es recuperable con try/catch.
+     * Performance desactiva esa cadena (también AO/sombras), evita el crash
+     * antes del primer frame y conserva el GLB, texturas y gestos.
      */
     fun filamentRenderQuality(layoutMetrics: IntroLayoutMetrics): RenderQuality =
-        when {
-            isLikelyEmulator() && layoutMetrics.isTv66 -> RenderQuality.Performance
-            else -> RenderQuality.Default
-        }
+        RenderQuality.Performance
 
     /** Delay antes de parsear el GLB base (tras primer frame). */
     fun baseGlbLoadDelayMs(context: Context): Long =
