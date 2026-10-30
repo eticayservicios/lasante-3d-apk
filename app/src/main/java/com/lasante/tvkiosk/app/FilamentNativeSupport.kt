@@ -3,6 +3,7 @@ package com.lasante.tvkiosk.app
 import android.app.ActivityManager
 import android.content.Context
 import android.util.Log
+import android.os.Build
 
 /**
  * Preflight de arranque: GLES 3.0 + carga de .so de Filament.
@@ -27,6 +28,7 @@ object FilamentNativeSupport {
     fun evaluate(context: Context): Boolean {
         val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         glesVersion = am.deviceConfigurationInfo.reqGlEsVersion
+
         if (glesVersion < GLES_3) {
             available = false
             error =
@@ -54,6 +56,15 @@ object FilamentNativeSupport {
         Log.i(TAG, "native OK gles=0x${Integer.toHexString(glesVersion)}")
         return true
     }
+
+    /**
+     * En POCO F6 / garnet con Android 16 el backend OpenGL de Filament aborta al
+     * enlazar separableGaussianBlur. Vulkan evita ese driver, conservando el 3D.
+     */
+    fun requiresVulkanBackend(): Boolean =
+        Build.VERSION.SDK_INT >= 36 &&
+            Build.DEVICE.equals("garnet", ignoreCase = true) &&
+            Build.MANUFACTURER.equals("Xiaomi", ignoreCase = true)
 
     fun userMessage(): String =
         error

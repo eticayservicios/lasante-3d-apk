@@ -11,7 +11,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import com.google.android.filament.Engine
 import com.google.android.filament.utils.Manipulator
+import com.lasante.tvkiosk.app.FilamentNativeSupport
 import com.lasante.tvkiosk.ui.theme.LaSanteGreen
 import dev.romainguy.kotlin.math.Float3
 import dev.romainguy.kotlin.math.lookAt
@@ -81,7 +83,13 @@ fun ModelViewerStub(
     }
 
     val context = LocalContext.current
-    val engine = rememberEngine()
+    val engine = rememberEngine { eglContext ->
+        if (FilamentNativeSupport.requiresVulkanBackend()) {
+            Engine.create(Engine.Backend.VULKAN)
+        } else {
+            Engine.create(eglContext)
+        }
+    }
     val modelLoader = rememberModelLoader(engine, context)
     val modelInstance = rememberProductModelInstance(modelLoader, cleanPath)
     val cameraNode = rememberCameraNode(engine) {

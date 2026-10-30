@@ -13,6 +13,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.platform.LocalContext
 import com.google.android.filament.Engine
+import com.lasante.tvkiosk.app.FilamentNativeSupport
 import io.github.sceneview.loaders.ModelLoader
 import io.github.sceneview.model.ModelInstance
 import io.github.sceneview.model.engine
@@ -34,7 +35,13 @@ class VitrinaFilamentSession internal constructor(
 @Composable
 fun rememberVitrinaFilamentSession(): VitrinaFilamentSession {
     val context = LocalContext.current
-    val engine = rememberEngine()
+    val engine = rememberEngine { eglContext ->
+        if (FilamentNativeSupport.requiresVulkanBackend()) {
+            Engine.create(Engine.Backend.VULKAN)
+        } else {
+            Engine.create(eglContext)
+        }
+    }
     val modelLoader = rememberModelLoader(engine, context)
     val baseGlbSource = rememberVitrinaBaseGlbSource()
     var baseInstance by remember(baseGlbSource.loadPath) {
