@@ -13,6 +13,9 @@ import com.lasante.tvkiosk.ui.components.UiState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.Normalizer
+import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 data class TreatmentsData(
     val unitName: String,
@@ -29,10 +32,8 @@ class TreatmentsViewModel(
     var uiState by mutableStateOf<UiState<TreatmentsData>>(UiState.Loading)
         private set
 
-    private val cache = mutableMapOf<String, TreatmentsData>()
+    private val cache = ConcurrentHashMap<String, TreatmentsData>()
     private var warmCacheStarted = false
-    @Volatile
-    private var activeUnitId: String? = null
 
     fun warmCache() {
         if (warmCacheStarted) return
@@ -40,24 +41,20 @@ class TreatmentsViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             runCatching {
                 val units = catalogRepository.getUnits()
+                val productIndex = runCatching {
+                    catalogRepository.ensureProductSearchIndex()
+                }.getOrNull()
                 units.forEach { unit ->
-                    cache.putIfAbsent(unit.id, buildTreatmentsShell(unit.id, units))
+                    val data = buildTreatmentsData(unit.id, units, productIndex)
+                    cache.putIfAbsent(unit.id, data)
                 }
-                // Índice de búsqueda (compartido con Intro); no precargar todos los productos por unidad.
-                runCatching { catalogRepository.ensureProductSearchIndex() }
             }
         }
     }
 
     fun load(unitId: String, forceRefresh: Boolean = false) {
-        activeUnitId = unitId
         cache[unitId]?.takeUnless { forceRefresh }?.let { cached ->
-                uiState = UiState.Success(cached)
-            if (cached.products.isEmpty()) {
-                viewModelScope.launch(Dispatchers.IO) {
-                    runCatching { ensureProductsLoaded(unitId) }
-                }
-            }
+            uiState = UiState.Success(cached)
             return
         }
 
@@ -66,14 +63,11 @@ class TreatmentsViewModel(
                 uiState = UiState.Loading
             }
             uiState = try {
-                val shell = withContext(Dispatchers.IO) {
-                    buildTreatmentsShell(unitId)
+                val data = withContext(Dispatchers.IO) {
+                    buildTreatmentsData(unitId)
                 }
-                cache[unitId] = shell
-                viewModelScope.launch(Dispatchers.IO) {
-                    runCatching { ensureProductsLoaded(unitId) }
-                }
-                UiState.Success(shell)
+                cache[unitId] = data
+                UiState.Success(data)
             } catch (e: Exception) {
                 UiState.Error(e.message ?: "Error de conexión")
             }
@@ -81,41 +75,59 @@ class TreatmentsViewModel(
     }
 
     /** Solo metadatos de clases terapéuticas (lo que ve el grid). */
-    private suspend fun buildTreatmentsShell(
+    private suspend fun buildTreatmentsData(
         unitId: String,
         allUnits: List<com.lasante.tvkiosk.data.BusinessUnit>? = null,
+        productIndex: List<Product>? = null,
     ): TreatmentsData {
         val units = allUnits ?: catalogRepository.getUnits()
         val unit = units.firstOrNull { it.id == unitId }
         val treatments = catalogRepository.getTreatments(unitId)
             .filterNot { it.id.endsWith("-vitrina") }
-        return TreatmentsData(
+        val shell = TreatmentsData(
             unitName = DisplayTitles.resolve(unit?.name, unitId),
             treatments = treatments,
-            products = cache[unitId]?.products.orEmpty(),
+            products = emptyList(),
         )
+        val resolvedProductIndex = productIndex ?: runCatching {
+            catalogRepository.ensureProductSearchIndex()
+        }.getOrNull()
+        return shell.filterEmptyTreatments(unitId, resolvedProductIndex)
     }
 
-    private suspend fun ensureProductsLoaded(unitId: String) {
-        val current = cache[unitId] ?: return
-        if (current.products.isNotEmpty()) return
+    private fun String.catalogDisplayKey(): String =
+        Normalizer.normalize(trim(), Normalizer.Form.NFD)
+            .replace(Regex("\\p{Mn}+"), "")
+            .lowercase(Locale.ROOT)
+            .replace(Regex("[^a-z0-9]+"), "")
+
+    /**
+     * Oculta CT sin productos usando un único índice global. Si el índice falla o
+     * está vacío, conserva el catálogo completo: la red nunca debe borrar CT visibles.
+     */
+    private fun TreatmentsData.filterEmptyTreatments(
+        unitId: String,
+        productIndex: List<Product>?,
+    ): TreatmentsData {
+        val safeIndex = productIndex?.takeIf { it.isNotEmpty() } ?: return this
         val unitKeys = catalogRepository.matchingUnitIds(unitId)
-            .map { it.lowercase() }
+            .map { it.lowercase(Locale.ROOT) }
             .toSet()
-        val indexed = catalogRepository.ensureProductSearchIndex()
-            .filter { product ->
-                product.unidadId.lowercase() in unitKeys
-            }
-        val products = indexed.ifEmpty { catalogRepository.getProductsForUnit(unitId) }
-        if (products.isEmpty()) return
-        val updated = current.copy(products = products)
-        cache[unitId] = updated
-        if (activeUnitId == unitId) {
-            withContext(Dispatchers.Main) {
-                if (activeUnitId == unitId) {
-                    uiState = UiState.Success(updated)
-                }
-            }
+        val productsForUnit = safeIndex.filter { product ->
+            product.unidadId.lowercase(Locale.ROOT) in unitKeys
         }
+        val treatmentIdsWithProducts = productsForUnit
+            .map { it.tratamientoId }
+            .filter { it.isNotBlank() }
+            .map { it.lowercase(Locale.ROOT) }
+            .toSet()
+        return copy(
+            // Primero conservamos solo las CT con productos. Luego resolvemos nombres
+            // duplicados para no descartar una CT válida cuyo duplicado vacío llegó antes.
+            treatments = treatments
+                .filter { it.id.lowercase(Locale.ROOT) in treatmentIdsWithProducts }
+                .distinctBy { it.name.catalogDisplayKey() },
+            products = productsForUnit,
+        )
     }
 }

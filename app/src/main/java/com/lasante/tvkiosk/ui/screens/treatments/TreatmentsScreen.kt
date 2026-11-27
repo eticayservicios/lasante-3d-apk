@@ -95,6 +95,7 @@ fun TreatmentsScreen(
     treatments: List<Treatment>,
     products: List<Product>,
     onBack: () -> Unit,
+    onHome: () -> Unit,
     onTreatmentSelected: (String) -> Unit,
     onProductSelected: (Product) -> Unit,
 ) {
@@ -184,6 +185,7 @@ fun TreatmentsScreen(
                             searchMetrics = searchMetrics,
                             contentPadding = catalog.contentPadding,
                             onBack = onBack,
+                            onHome = onHome,
                             onSearchBarPositioned = { coords ->
                                 val root = overlayRootCoordinates
                                 if (root == null || !root.isAttached || !coords.isAttached) return@TreatmentsHeader
@@ -333,6 +335,7 @@ private fun TreatmentsHeader(
     searchMetrics: ProductSearchBarMetrics,
     contentPadding: Dp = 0.dp,
     onBack: () -> Unit,
+    onHome: () -> Unit,
     onSearchBarPositioned: (LayoutCoordinates) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -358,7 +361,8 @@ private fun TreatmentsHeader(
                 .onGloballyPositioned(onSearchBarPositioned),
         )
         Spacer(modifier = Modifier.width(header.searchToNavGap))
-        // Misma X que Productos: Back + hueco de Home (aunque Home no esté).
+        // Acciones siempre visibles: antes se reservaba un hueco para Inicio y el
+        // usuario solo veía Volver, incluso en pantallas táctiles grandes.
         Row(
                 horizontalArrangement = Arrangement.spacedBy(
                     if (header.usesSharedTvCatalogLayout) {
@@ -376,7 +380,13 @@ private fun TreatmentsHeader(
                     size = header.navButtonSize,
                     playSound = true,
                 )
-                Spacer(modifier = Modifier.size(header.navButtonSize))
+                GreenNavButton(
+                    assetPath = "svg/ui/Home.svg",
+                    contentDescription = "Inicio",
+                    onClick = onHome,
+                    size = header.navButtonSize,
+                    playSound = true,
+                )
             }
     }
 }
@@ -409,7 +419,11 @@ private fun TherapeuticClassCard(
         debugSizes = debugSizes.update()
         onIconDebugMeasure?.invoke(debugSizes)
     }
-    val iconModel = TreatmentIconAssets.resolve(iconUrl = treatment.media.icono)
+    val iconModel = TreatmentIconAssets.resolve(
+        id = treatment.id,
+        name = treatment.name,
+        iconUrl = treatment.media.icono,
+    )
 
     val cardShape = RoundedCornerShape(18.dp)
     Box(
