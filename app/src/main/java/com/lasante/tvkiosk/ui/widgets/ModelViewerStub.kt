@@ -2,12 +2,16 @@ package com.lasante.tvkiosk.ui.widgets
 
 import android.util.Log
 import android.view.MotionEvent
+import android.os.SystemClock
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -29,6 +33,7 @@ import io.github.sceneview.rememberEngine
 import io.github.sceneview.rememberMainLightNode
 import io.github.sceneview.rememberModelInstance
 import io.github.sceneview.rememberModelLoader
+import kotlinx.coroutines.delay
 import kotlin.math.abs
 import kotlin.math.exp
 import kotlin.math.ln
@@ -58,6 +63,19 @@ private const val PRODUCT_MODAL_MIN_CAMERA_DIST = 0.50f
 private const val PRODUCT_MODAL_MAX_CAMERA_DIST = 4.8f
 
 private const val TAG = "ProductModal3D"
+/** Tiempo de estabilización de texturas GPU antes de hacer visible el nodo del producto. */
+private const val PRODUCT_TEXTURE_SETTLE_MS = 850L
+/** DICIGEL trae una textura 4K / material más lento de preparar en Filament. */
+private const val DICIGEL_TEXTURE_SETTLE_MS = 2_500L
+
+/**
+ * Ajustes de presentación de assets excepcionales. Se basa en el nombre estable del asset,
+ * no en nombre comercial ni en la unidad, para que cambios de catálogo no afecten otros GLB.
+ */
+private fun textureSettleDelayMs(path: String): Long = when {
+    path.contains("dicigel-suspension-240-ml", ignoreCase = true) -> DICIGEL_TEXTURE_SETTLE_MS
+    else -> PRODUCT_TEXTURE_SETTLE_MS
+}
 
 /**
  * Visualizador 3D de producto (assets locales o URLs remotas CloudFront).
@@ -83,6 +101,9 @@ fun ModelViewerStub(
     }
 
     val context = LocalContext.current
+    val viewerStartedAtMs = remember(cleanPath) { SystemClock.elapsedRealtime() }
+    var firstModelFrameLogged by remember(cleanPath) { mutableStateOf(false) }
+    var modelVisible by remember(cleanPath) { mutableStateOf(false) }
     val engine = rememberEngine { eglContext ->
         if (FilamentNativeSupport.requiresVulkanBackend()) {
             Engine.create(Engine.Backend.VULKAN)
@@ -124,14 +145,30 @@ fun ModelViewerStub(
     }
 
     LaunchedEffect(cleanPath, modelInstance != null) {
+        val elapsedMs = SystemClock.elapsedRealtime() - viewerStartedAtMs
         Log.i(
             TAG,
-            "viewer path=$cleanPath loaded=${modelInstance != null} " +
+            "modelState path=$cleanPath loaded=${modelInstance != null} elapsedMs=$elapsedMs " +
                 "scaleToUnits=$scaleToUnits cameraZ=$cameraZ " +
                 "pinchSpeed=$PRODUCT_MODAL_PINCH_ZOOM_SPEED damping=$PRODUCT_MODAL_PINCH_ZOOM_DAMPING " +
                 "dollyGain=$PRODUCT_MODAL_DOLLY_GAIN maxStep=$PRODUCT_MODAL_MAX_DOLLY_STEP " +
                 "distClamp=$PRODUCT_MODAL_MIN_CAMERA_DIST..$PRODUCT_MODAL_MAX_CAMERA_DIST ownedDolly=true",
         )
+    }
+    // Filament puede informar la instancia como creada antes de que el driver termine de
+    // subir su textura. Mantener el nodo fuera de la escena evita el producto negro temporal.
+    LaunchedEffect(cleanPath, modelInstance) {
+        modelVisible = false
+        if (modelInstance != null) {
+            val settleMs = textureSettleDelayMs(cleanPath)
+            delay(settleMs)
+            modelVisible = true
+            Log.i(
+                TAG,
+                "modelVisible path=$cleanPath " +
+                    "elapsedMs=${SystemClock.elapsedRealtime() - viewerStartedAtMs} settleMs=$settleMs",
+            )
+        }
     }
 
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
@@ -146,6 +183,16 @@ fun ModelViewerStub(
             cameraNode = cameraNode,
             mainLightNode = mainLightNode,
             cameraManipulator = cameraManipulator,
+            onFrame = {
+                if (modelInstance != null && !firstModelFrameLogged) {
+                    firstModelFrameLogged = true
+                    Log.i(
+                        TAG,
+                        "firstModelFrame path=$cleanPath " +
+                            "elapsedMs=${SystemClock.elapsedRealtime() - viewerStartedAtMs}",
+                    )
+                }
+            },
             onTouchEvent = { event, hit ->
                 when (event.actionMasked) {
                     MotionEvent.ACTION_DOWN ->
@@ -169,7 +216,7 @@ fun ModelViewerStub(
                 false
             },
         ) {
-            modelInstance?.let { instance ->
+            modelInstance?.takeIf { modelVisible }?.let { instance ->
                 ModelNode(
                     modelInstance = instance,
                     centerOrigin = Position(x = 0f, y = -1f, z = 0f),
@@ -180,7 +227,7 @@ fun ModelViewerStub(
             }
         }
 
-        if (modelInstance == null) {
+        if (modelInstance == null || !modelVisible) {
             CircularProgressIndicator(color = LaSanteGreen)
         }
     }

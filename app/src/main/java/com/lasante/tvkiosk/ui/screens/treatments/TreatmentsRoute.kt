@@ -34,6 +34,7 @@ fun TreatmentsRoute(
     unitId: String,
     windowSizeClass: WindowSizeClass,
     onBack: () -> Unit,
+    onHome: () -> Unit,
     onTreatmentSelected: (String) -> Unit,
 ) {
     val activity = LocalContext.current as androidx.activity.ComponentActivity
@@ -66,6 +67,7 @@ fun TreatmentsRoute(
                     treatments = state.data.treatments,
                     products = state.data.products,
                     onBack = onBack,
+                    onHome = onHome,
                     onTreatmentSelected = onTreatmentSelected,
                     onProductSelected = { product ->
                         selectedProduct = product
